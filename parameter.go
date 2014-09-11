@@ -130,7 +130,7 @@ func parseParameters(args ...string) (param *parameters, err error) {
 
 	flags.StringVar(&param.servExpType, "servExpType", "web", "Service explorer type.")
 	flags.StringVar(&param.servExpPath, "servExpPath", filepath.Join("sandbox", "service-expolorer"), "Service explorer directory.")
-	flags.StringVar(&param.servExpAddr, "servExpAddr", "http://localhost:10007", "Service explorer address.")
+	flags.StringVar(&param.servExpAddr, "servExpAddr", "http://localhost:9003", "Service explorer address.")
 	flags.StringVar(&param.servExpUrl, "servExpUrl", "localhost", "Service explorer address.")
 	flags.StringVar(&param.servExpDb, "servExpDb", "edo", "Service explorer database name.")
 	flags.StringVar(&param.servExpColl, "servExpColl", "service-explorer", "Service explorer collection name.")
@@ -160,8 +160,8 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.StringVar(&param.codeContColl, "codeContColl", "code-container", "Code container lister collection name.")
 
 	flags.StringVar(&param.idpSocType, "idpSocType", "tcp", "Socket type.")
-	flags.StringVar(&param.idpSocPath, "idpSocPath", filepath.Join(os.TempDir(), "edo_id-provider"), "UNIX socket path.")
-	flags.IntVar(&param.idpSocPort, "idpSocPort", 9003, "TCP socket port.")
+	flags.StringVar(&param.idpSocPath, "idpSocPath", filepath.Join(os.TempDir(), "edo_id_provider"), "UNIX socket path.")
+	flags.IntVar(&param.idpSocPort, "idpSocPort", 8001, "TCP socket port.")
 
 	flags.StringVar(&param.idpProtType, "idpProtType", "http", "Protocol type.")
 

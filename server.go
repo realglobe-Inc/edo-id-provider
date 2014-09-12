@@ -105,20 +105,16 @@ func panicErrorWrapper(f func(http.ResponseWriter, *http.Request) error) func(ht
 			log.Err(erro.Unwrap(err))
 			log.Debug(err)
 
+			var status int
+			switch e := erro.Unwrap(err).(type) {
+			case *util.HttpStatusError:
+				status = e.Status()
+			default:
+				status = http.StatusInternalServerError
+			}
 			w.Header().Set("Content-Type", util.ContentTypeJson)
-			http.Error(w, string(util.ErrorToResponseJson(err)), errorStatus(erro.Unwrap(err)))
+			http.Error(w, string(util.ErrorToResponseJson(err)), status)
 			return
 		}
-	}
-}
-
-func errorStatus(err error) int {
-	switch err.(type) {
-	case *util.PanicWrapper:
-		return http.StatusInternalServerError
-	case *invalidRequest:
-		return http.StatusBadRequest
-	default:
-		return http.StatusInternalServerError
 	}
 }

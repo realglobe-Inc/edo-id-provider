@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"html"
 	"net/http"
@@ -116,7 +117,7 @@ func logoutPage(sys *system, w http.ResponseWriter, r *http.Request) error {
 	if err != nil && err != http.ErrNoCookie {
 		return erro.Wrap(err)
 	} else if sessIdCookie == nil {
-		return erro.Wrap(newInvalidSession())
+		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "no session was found.", nil))
 	}
 
 	// cookie にセッションがあった。
@@ -126,7 +127,7 @@ func logoutPage(sys *system, w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return erro.Wrap(err)
 	} else if sess == nil {
-		return erro.Wrap(newInvalidSession())
+		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "session "+sessIdCookie.Value+" is invalid.", nil))
 	}
 
 	// 有効なセッションだった。
@@ -175,11 +176,11 @@ func logoutPage(sys *system, w http.ResponseWriter, r *http.Request) error {
 func beginSessionPage(sys *system, w http.ResponseWriter, r *http.Request) error {
 	usrName := r.FormValue(formUsrName)
 	if usrName == "" {
-		return erro.Wrap(newInvalidRequest("no " + formUsrName + " parameter."))
+		return erro.Wrap(util.NewHttpStatusError(http.StatusBadRequest, "no "+formUsrName+" parameter.", nil))
 	}
 	passwd := r.FormValue(formPasswd)
 	if passwd == "" {
-		return erro.Wrap(newInvalidRequest("no " + formPasswd + " parameter."))
+		return erro.Wrap(util.NewHttpStatusError(http.StatusBadRequest, "no "+formPasswd+" parameter.", nil))
 	}
 	r.Form.Del(formUsrName)
 	r.Form.Del(formPasswd)
@@ -189,7 +190,7 @@ func beginSessionPage(sys *system, w http.ResponseWriter, r *http.Request) error
 		var err error
 		lifetime, err = time.ParseDuration(s)
 		if err != nil {
-			return erro.Wrap(err)
+			return erro.Wrap(util.NewHttpStatusError(http.StatusBadRequest, "cannot parse "+querySessLifetime+" parameter "+s+".", erro.Wrap(err)))
 		}
 	} else {
 		lifetime = sys.maxSessExpiDur
@@ -199,7 +200,7 @@ func beginSessionPage(sys *system, w http.ResponseWriter, r *http.Request) error
 	if err != nil {
 		return erro.Wrap(err)
 	} else if usrUuid == "" {
-		return erro.Wrap(newUserNotFound(usrName))
+		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "user "+usrName+" is not exist.", nil))
 	}
 
 	// ユーザー名が合ってた。
@@ -210,11 +211,11 @@ func beginSessionPage(sys *system, w http.ResponseWriter, r *http.Request) error
 	if err != nil {
 		return erro.Wrap(err)
 	} else if passwd != truePasswd {
-		return erro.Wrap(newInvalidPassword(usrName))
+		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "wrong password for user "+usrName+".", nil))
 	}
 
 	// パスワードも合ってた。
-	log.Debug("User " + usrName + " password is correct.")
+	log.Debug("Right password for user " + usrName + ".")
 
 	sess, err := sys.NewSession(usrUuid, lifetime)
 	if err != nil {
@@ -245,7 +246,7 @@ func setCookiePage(sys *system, w http.ResponseWriter, r *http.Request) error {
 	if err != nil && err != http.ErrNoCookie {
 		return erro.Wrap(err)
 	} else if sessIdCookie == nil {
-		return erro.Wrap(newInvalidSession())
+		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "no session was found.", nil))
 	}
 
 	// cookie にセッションがあった。
@@ -255,7 +256,7 @@ func setCookiePage(sys *system, w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return erro.Wrap(err)
 	} else if sess == nil {
-		return erro.Wrap(newInvalidSession())
+		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "session "+sessIdCookie.Value+" is invalid.", nil))
 	}
 
 	// 有効なセッションだった。
@@ -268,7 +269,8 @@ func setCookiePage(sys *system, w http.ResponseWriter, r *http.Request) error {
 	}
 	w.Header().Set("Set-Cookie", newSessIdCookie.String())
 
-	cliId, rediUri := r.FormValue(queryCliId), r.FormValue(queryRediUri)
+	cliId := r.FormValue(queryCliId)
+	rediUri := r.FormValue(queryRediUri)
 	if cliId == "" && rediUri == "" {
 		// ログイン済み（ログアウト）ページに飛ばす。
 		if err := r.ParseForm(); err != nil {
@@ -291,7 +293,7 @@ func setCookiePage(sys *system, w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return erro.Wrap(err)
 	} else if servUuid != cliId {
-		return erro.Wrap(newInvalidRedirectUri(cliId, rediUri))
+		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "redirect uri "+sessIdCookie.Value+" does not belong to "+cliId+".", nil))
 	}
 
 	// クライアントサービスが登録されていて、リダイレクト先がクライアントサービスの管轄。
@@ -322,7 +324,7 @@ func delCookiePage(sys *system, w http.ResponseWriter, r *http.Request) error {
 	if err != nil && err != http.ErrNoCookie {
 		return erro.Wrap(err)
 	} else if sessIdCookie == nil {
-		return erro.Wrap(newInvalidSession())
+		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "no session was found.", nil))
 	}
 
 	// cookie にセッションがあった。
@@ -332,7 +334,7 @@ func delCookiePage(sys *system, w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return erro.Wrap(err)
 	} else if sess == nil {
-		return erro.Wrap(newInvalidSession())
+		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "session "+sessIdCookie.Value+" is invalid.", nil))
 	}
 
 	// 有効なセッションだった。
@@ -368,7 +370,7 @@ func delCookiePage(sys *system, w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return erro.Wrap(err)
 	} else if servUuid != cliId {
-		return erro.Wrap(newInvalidRedirectUri(cliId, rediUri))
+		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "redirect uri "+sessIdCookie.Value+" does not belong to "+cliId+".", nil))
 	}
 
 	// クライアントサービスが登録されていて、リダイレクト先がクライアントサービスの管轄。

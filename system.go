@@ -12,14 +12,25 @@ import (
 // 便宜的に集めただけ。
 type system struct {
 	driver.ServiceExplorer
+	driver.ServiceKeyRegistry
 	driver.UserNameIndex
 	driver.UserAttributeRegistry
-	sessCont driver.TimeLimitedKeyValueStore
-	codeCont driver.TimeLimitedKeyValueStore
+	sessCont     driver.TimeLimitedKeyValueStore
+	codeCont     driver.TimeLimitedKeyValueStore
+	accTokenCont driver.TimeLimitedKeyValueStore
 
-	cookieMaxAge   int
-	maxSessExpiDur time.Duration
-	codeExpiDur    time.Duration
+	maxSessExpiDur     time.Duration // デフォルトかつ最大。
+	codeExpiDur        time.Duration
+	accTokenExpiDur    time.Duration // デフォルト。
+	maxAccTokenExpiDur time.Duration
+}
+
+func (sys *system) UserPassword(usrUuid string) (passwd string, err error) {
+	attr, err := sys.UserAttribute(usrUuid, "login_password")
+	if attr != nil && attr != "" {
+		passwd = attr.(string)
+	}
+	return passwd, err
 }
 
 // ユーザー認証済みを示すセッション。
@@ -59,9 +70,9 @@ func (sys *system) NewSession(usrUuid string, expiDur time.Duration) (*Session, 
 	}
 
 	// セッション ID が決まった。
-	log.Debug("Session ID was published.")
+	log.Debug("Session ID was generated.")
 
-	if expiDur > sys.maxSessExpiDur {
+	if expiDur == 0 || expiDur > sys.maxSessExpiDur {
 		expiDur = sys.maxSessExpiDur
 	}
 	sess := &Session{sessId, usrUuid, time.Now().Add(expiDur)}
@@ -74,33 +85,49 @@ func (sys *system) NewSession(usrUuid string, expiDur time.Duration) (*Session, 
 	return sess, nil
 }
 
-// 有効なセッションを取り出す。
-func (sys *system) Session(sessId string) (*Session, error) {
-	val, err := sys.sessCont.Get(sessId)
-	var sess *Session
-	if val != nil {
-		m := val.(map[string]interface{})
-		expiDate, err := time.Parse(time.RFC3339, m["expiration_date"].(string))
+func recognizeSession(sess interface{}) (*Session, error) {
+	switch s := sess.(type) {
+	case *Session:
+		return s, nil
+	case map[string]interface{}:
+		expiDate, err := time.Parse(time.RFC3339, s["expiration_date"].(string))
 		if err != nil {
 			return nil, erro.Wrap(err)
 		}
-		sess = &Session{
-			m["id"].(string),
-			m["user_uuid"].(string),
+		return &Session{
+			s["id"].(string),
+			s["user_uuid"].(string),
 			expiDate,
-		}
+		}, nil
+	default:
+		return nil, erro.New("unknown type ", sess, ".")
 	}
-	return sess, err
 }
 
-// アクセストークン発行許可証。
+// 有効なセッションを取り出す。
+func (sys *system) Session(sessId string) (*Session, error) {
+	val, err := sys.sessCont.Get(sessId)
+	if err != nil {
+		return nil, erro.Wrap(err)
+	} else if val == nil {
+		return nil, nil
+	}
+	return recognizeSession(val)
+}
+
+// セッションの有効期限を更新。
+func (sys *system) UpdateSession(sess *Session) error {
+	return sys.sessCont.Put(sess.Id, sess, sess.ExpiDate)
+}
+
+// アクセストークン発行用コード。
 type Code struct {
 	Id       string    `json:"id"`
 	ServUuid string    `json:"service_uuid"`
 	ExpiDate time.Time `json:"expiration_date"`
 }
 
-const codeIdLen int = 20 // コード ID の文字数。
+const codeIdLen int = 20 // アクセストークン発行用コードの文字数。
 
 func (sys *system) NewCode(servUuid string) (*Code, error) {
 	var codeId string
@@ -129,8 +156,8 @@ func (sys *system) NewCode(servUuid string) (*Code, error) {
 		}
 	}
 
-	// セッション ID が決まった。
-	log.Debug("Code ID was published.")
+	// コードが決まった。
+	log.Debug("Code was generated.")
 
 	code := &Code{codeId, servUuid, time.Now().Add(sys.codeExpiDur)}
 
@@ -142,29 +169,114 @@ func (sys *system) NewCode(servUuid string) (*Code, error) {
 	return code, nil
 }
 
-// 有効なアクセストークン取得用コードを取り出す。
-func (sys *system) Code(codeId string) (*Code, error) {
-	val, err := sys.codeCont.Get(codeId)
-	var code *Code
-	if val != nil {
-		m := val.(map[string]interface{})
-		expiDate, err := time.Parse(time.RFC3339, m["expiration_date"].(string))
+func recognizeCode(code interface{}) (*Code, error) {
+	switch s := code.(type) {
+	case *Code:
+		return s, nil
+	case map[string]interface{}:
+		expiDate, err := time.Parse(time.RFC3339, s["expiration_date"].(string))
 		if err != nil {
 			return nil, erro.Wrap(err)
 		}
-		code = &Code{
-			m["id"].(string),
-			m["service_uuid"].(string),
+		return &Code{
+			s["id"].(string),
+			s["service_uuid"].(string),
 			expiDate,
-		}
+		}, nil
+	default:
+		return nil, erro.New("unknown type ", code, ".")
 	}
-	return code, err
 }
 
-func (sys *system) UserPassword(usrUuid string) (passwd string, err error) {
-	attr, err := sys.UserAttribute(usrUuid, "login_password")
-	if attr != nil && attr != "" {
-		passwd = attr.(string)
+// 有効なアクセストークン取得用コードを取り出す。
+func (sys *system) Code(codeId string) (*Code, error) {
+	val, err := sys.codeCont.Get(codeId)
+	if err != nil {
+		return nil, erro.Wrap(err)
+	} else if val == nil {
+		return nil, nil
 	}
-	return passwd, err
+	return recognizeCode(val)
+}
+
+// アクセストークン。
+type AccessToken struct {
+	Id       string    `json:"id"`
+	ExpiDate time.Time `json:"expiration_date"`
+}
+
+const accTokenIdLen int = 20 // アクセストークンの文字数。
+
+func (sys *system) NewAccessToken(expiDur time.Duration) (*AccessToken, error) {
+	var accTokenId string
+	for {
+		accTokenIdBitLen := accTokenIdLen * 6
+		maxVal := big.NewInt(0).Lsh(big.NewInt(1), uint(accTokenIdBitLen))
+		val, err := rand.Int(rand.Reader, maxVal)
+		if err != nil {
+			return nil, erro.Wrap(err)
+		}
+		buff := val.Bytes()
+
+		for len(buff) < (accTokenIdBitLen+5)/8 {
+			buff = append(buff, 0)
+		}
+
+		accTokenId = base64.StdEncoding.EncodeToString(buff)
+		if len(accTokenId) > accTokenIdLen {
+			accTokenId = accTokenId[:accTokenIdLen]
+		}
+
+		if accToken, err := sys.accTokenCont.Get(accTokenId); err != nil {
+			return nil, erro.Wrap(err)
+		} else if accToken == nil {
+			break
+		}
+	}
+
+	// アクセストークンが決まった。
+	log.Debug("Access token was generated.")
+
+	if expiDur <= 0 {
+		expiDur = sys.accTokenExpiDur
+	} else if expiDur > sys.maxAccTokenExpiDur {
+		expiDur = sys.maxAccTokenExpiDur
+	}
+	accToken := &AccessToken{accTokenId, time.Now().Add(expiDur)}
+
+	if err := sys.accTokenCont.Put(accTokenId, accToken, accToken.ExpiDate); err != nil {
+		return nil, erro.Wrap(err)
+	}
+
+	log.Debug("Access token was published.")
+	return accToken, nil
+}
+
+func recognizeAccessToken(accToken interface{}) (*AccessToken, error) {
+	switch s := accToken.(type) {
+	case *AccessToken:
+		return s, nil
+	case map[string]interface{}:
+		expiDate, err := time.Parse(time.RFC3339, s["expiration_date"].(string))
+		if err != nil {
+			return nil, erro.Wrap(err)
+		}
+		return &AccessToken{
+			s["id"].(string),
+			expiDate,
+		}, nil
+	default:
+		return nil, erro.New("unknown type ", accToken, ".")
+	}
+}
+
+// 有効なアクセストークンを取り出す。
+func (sys *system) AccessToken(accTokenId string) (*AccessToken, error) {
+	val, err := sys.accTokenCont.Get(accTokenId)
+	if err != nil {
+		return nil, erro.Wrap(err)
+	} else if val == nil {
+		return nil, nil
+	}
+	return recognizeAccessToken(val)
 }

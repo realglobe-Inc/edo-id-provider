@@ -1,12 +1,14 @@
 package main
 
 import (
+	"crypto/rsa"
+	"encoding/base64"
+	"encoding/json"
 	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"html"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 )
 
@@ -15,13 +17,16 @@ const cookieSessId = "SESSION_ID"
 const (
 	formUsrName = "user_name"
 	formPasswd  = "password"
-)
 
-const (
-	queryCliId   = "client_id"
-	queryRediUri = "redirect_uri"
+	formCliId   = "client_id"
+	formRediUri = "redirect_uri"
 
-	querySessLifetime = "session_lifetime"
+	formSessLifetime = "session_lifetime"
+
+	formCode   = "code"
+	formCliSec = "client_secret"
+
+	formAccTokenLifetime = "access_token_lifetime"
 )
 
 // /.
@@ -83,7 +88,7 @@ func loginPage(sys *system, w http.ResponseWriter, r *http.Request) error {
     <H1>ログインしてね。</H1>
 
     <P>
-      <FORM METHOD="post" ACTION="` + beginSessPagePath + `" METHOD="POST">
+      <FORM METHOD="post" ACTION="` + beginSessPagePath + `">
         ユーザー名:<BR/><INPUT TYPE="text" NAME="` + formUsrName + `" SIZE="50" /><BR/>
         パスワード:<BR/><INPUT TYPE="password" NAME="` + formPasswd + `" SIZE="50" /><BR/>`
 
@@ -146,7 +151,7 @@ func logoutPage(sys *system, w http.ResponseWriter, r *http.Request) error {
     <H1>ログアウトするかい？</H1>
 
     <P>
-      <FORM METHOD="post" ACTION="` + delCookiePagePath + `" METHOD="POST">
+      <FORM METHOD="post" ACTION="` + delCookiePagePath + `">
         <INPUT TYPE="submit" VALUE="ログアウト" /><BR/>`
 
 	if err := r.ParseForm(); err != nil {
@@ -185,17 +190,6 @@ func beginSessionPage(sys *system, w http.ResponseWriter, r *http.Request) error
 	r.Form.Del(formUsrName)
 	r.Form.Del(formPasswd)
 
-	var lifetime time.Duration
-	if s := r.FormValue(querySessLifetime); s != "" {
-		var err error
-		lifetime, err = time.ParseDuration(s)
-		if err != nil {
-			return erro.Wrap(util.NewHttpStatusError(http.StatusBadRequest, "cannot parse "+querySessLifetime+" parameter "+s+".", erro.Wrap(err)))
-		}
-	} else {
-		lifetime = sys.maxSessExpiDur
-	}
-
 	usrUuid, err := sys.UserUuid(usrName)
 	if err != nil {
 		return erro.Wrap(err)
@@ -217,7 +211,7 @@ func beginSessionPage(sys *system, w http.ResponseWriter, r *http.Request) error
 	// パスワードも合ってた。
 	log.Debug("Right password for user " + usrName + ".")
 
-	sess, err := sys.NewSession(usrUuid, lifetime)
+	sess, err := sys.NewSession(usrUuid, sys.maxSessExpiDur) // 期限は /set_cookie で調整する。
 	if err != nil {
 		return erro.Wrap(err)
 	}
@@ -225,7 +219,7 @@ func beginSessionPage(sys *system, w http.ResponseWriter, r *http.Request) error
 	sessIdCookie := &http.Cookie{
 		Name:   cookieSessId,
 		Value:  sess.Id,
-		MaxAge: int(sess.ExpiDate.Sub(time.Now()).Seconds()),
+		MaxAge: int(sys.maxSessExpiDur.Seconds()), // 期限は /set_cookie で調整する。
 	}
 	w.Header().Set("Set-Cookie", sessIdCookie.String())
 
@@ -262,16 +256,36 @@ func setCookiePage(sys *system, w http.ResponseWriter, r *http.Request) error {
 	// 有効なセッションだった。
 	log.Debug("Session " + sessIdCookie.Value + " is valid.")
 
+	var expiDur time.Duration
+	if s := r.FormValue(formSessLifetime); s != "" {
+		var err error
+		expiDur, err = time.ParseDuration(s)
+		if err != nil {
+			return erro.Wrap(util.NewHttpStatusError(http.StatusBadRequest, "cannot parse "+formSessLifetime+" parameter "+s+".", erro.Wrap(err)))
+		}
+	}
+	if expiDur == 0 || expiDur > sys.maxSessExpiDur {
+		expiDur = sys.maxSessExpiDur
+	}
+
+	sess.ExpiDate = time.Now().Add(expiDur)
+	if err := sys.UpdateSession(sess); err != nil {
+		return erro.Wrap(err)
+	}
+
+	// セッション期限が更新できた。
+	log.Debug("Expiration date of session "+sessIdCookie.Value+" was updated to ", sess.ExpiDate, ".")
+
 	newSessIdCookie := &http.Cookie{
 		Name:   cookieSessId,
 		Value:  sess.Id,
-		MaxAge: sys.cookieMaxAge,
+		MaxAge: int(expiDur.Seconds()),
 	}
 	w.Header().Set("Set-Cookie", newSessIdCookie.String())
 
-	cliId := r.FormValue(queryCliId)
-	rediUri := r.FormValue(queryRediUri)
-	if cliId == "" && rediUri == "" {
+	cliId := r.FormValue(formCliId)
+	rediUri := r.FormValue(formRediUri)
+	if cliId == "" || rediUri == "" {
 		// ログイン済み（ログアウト）ページに飛ばす。
 		if err := r.ParseForm(); err != nil {
 			return erro.Wrap(err)
@@ -293,7 +307,7 @@ func setCookiePage(sys *system, w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return erro.Wrap(err)
 	} else if servUuid != cliId {
-		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "redirect uri "+sessIdCookie.Value+" does not belong to "+cliId+".", nil))
+		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "redirect uri "+rediUri+" does not belong to "+cliId+".", nil))
 	}
 
 	// クライアントサービスが登録されていて、リダイレクト先がクライアントサービスの管轄。
@@ -306,13 +320,15 @@ func setCookiePage(sys *system, w http.ResponseWriter, r *http.Request) error {
 
 	// code を発行。
 
-	var query string
-	if strings.Index(rediUri, "?") < 0 {
-		query = "?code=" + url.QueryEscape(code.Id)
-	} else {
-		query = "&code=" + url.QueryEscape(code.Id)
+	redi, err := url.Parse(rediUri)
+	if err != nil {
+		return erro.Wrap(err)
 	}
-	w.Header().Set("Location", rediUri+query)
+	form := redi.Query()
+	form.Set(formCode, code.Id)
+	redi.RawQuery = form.Encode()
+	rediUri = redi.String()
+	w.Header().Set("Location", rediUri)
 	w.WriteHeader(http.StatusFound)
 	log.Debug("Redirect to " + rediUri + ".")
 	return nil
@@ -347,8 +363,9 @@ func delCookiePage(sys *system, w http.ResponseWriter, r *http.Request) error {
 	}
 	w.Header().Set("Set-Cookie", newSessIdCookie.String())
 
-	cliId, rediUri := r.FormValue(queryCliId), r.FormValue(queryRediUri)
-	if cliId == "" && rediUri == "" {
+	cliId := r.FormValue(formCliId)
+	rediUri := r.FormValue(formRediUri)
+	if cliId == "" || rediUri == "" {
 		// ログアウト済み（ログイン）ページに飛ばす。
 		if err := r.ParseForm(); err != nil {
 			return erro.Wrap(err)
@@ -370,7 +387,7 @@ func delCookiePage(sys *system, w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return erro.Wrap(err)
 	} else if servUuid != cliId {
-		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "redirect uri "+sessIdCookie.Value+" does not belong to "+cliId+".", nil))
+		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "redirect uri "+rediUri+" does not belong to "+cliId+".", nil))
 	}
 
 	// クライアントサービスが登録されていて、リダイレクト先がクライアントサービスの管轄。
@@ -384,7 +401,86 @@ func delCookiePage(sys *system, w http.ResponseWriter, r *http.Request) error {
 
 // /access_token.
 func accessTokenPage(sys *system, w http.ResponseWriter, r *http.Request) error {
-	panic("not yet implemented.")
+	codeId := r.FormValue(formCode)
+	if codeId == "" {
+		return erro.Wrap(util.NewHttpStatusError(http.StatusBadRequest, "no "+formCode+" parameter.", nil))
+	}
+	cliId := r.FormValue(formCliId)
+	if cliId == "" {
+		return erro.Wrap(util.NewHttpStatusError(http.StatusBadRequest, "no "+formCliId+" parameter.", nil))
+	}
+	cliSec := r.FormValue(formCliSec)
+	if cliSec == "" {
+		return erro.Wrap(util.NewHttpStatusError(http.StatusBadRequest, "no "+formCliSec+" parameter.", nil))
+	}
+	var lifetime time.Duration
+	if s := r.FormValue(formAccTokenLifetime); s != "" {
+		var err error
+		lifetime, err = time.ParseDuration(s)
+		if err != nil {
+			return erro.Wrap(util.NewHttpStatusError(http.StatusBadRequest, "cannot parse "+formAccTokenLifetime+" parameter "+s+".", erro.Wrap(err)))
+		}
+	}
+
+	// パラメータはあった。
+
+	code, err := sys.Code(codeId)
+	if err != nil {
+		return erro.Wrap(err)
+	} else if code == nil {
+		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "code is invalid.", nil))
+	}
+
+	// code は有効だった。
+	log.Debug("code is valid.")
+
+	if cliId != code.ServUuid {
+		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "code is not bound to "+cliId+".", nil))
+	}
+
+	// 自称と発行先サービスが一致した。
+	log.Debug("code is bound to declared service " + cliId + ".")
+
+	servKey, err := sys.ServiceKey(cliId)
+	if err != nil {
+		return erro.Wrap(err)
+	} else if servKey == nil {
+		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "key of "+cliId+" is not exist.", nil))
+	}
+
+	// 公開鍵を取得できた。
+	log.Debug("Key of " + cliId + " is exist.")
+
+	// 署名検証。
+	buff, err := base64.StdEncoding.DecodeString(cliSec)
+	if err != nil {
+		return erro.Wrap(util.NewHttpStatusError(http.StatusBadRequest, "cannot parse "+formCliSec+" parameter.", erro.Wrap(err)))
+	}
+
+	if err := rsa.VerifyPKCS1v15(servKey, 0, []byte(codeId), buff); err != nil {
+		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, formCliSec+" is invalid.", erro.Wrap(err)))
+	}
+
+	// 署名も正しかった。
+	log.Debug(formCliSec + " is valid.")
+
+	accToken, err := sys.NewAccessToken(lifetime)
+	if err != nil {
+		return erro.Wrap(err)
+	}
+
+	var res struct {
+		AccToken string `json:"access_token"`
+	}
+	res.AccToken = accToken.Id
+	body, err := json.Marshal(&res)
+	if err != nil {
+		return erro.Wrap(err)
+	}
+
+	w.Header().Set("Content-Type", util.ContentTypeJson)
+	w.Write(body)
+	return nil
 }
 
 // /query.

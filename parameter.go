@@ -43,6 +43,20 @@ type parameters struct {
 	servExpDb   string
 	servExpColl string
 
+	// 公開鍵レジストリ。
+	servKeyRegType string
+
+	// ファイルベース公開鍵レジストリ。
+	servKeyRegPath string
+
+	// Web ベース公開鍵レジストリ。
+	servKeyRegAddr string
+
+	// mongo 公開鍵レジストリ。
+	servKeyRegUrl  string
+	servKeyRegDb   string
+	servKeyRegColl string
+
 	// ユーザー名索引。
 	usrNameIdxType string
 
@@ -76,7 +90,7 @@ type parameters struct {
 	sessContDb   string
 	sessContColl string
 
-	// アクセストークン発行コード用管理。
+	// アクセストークン発行用コード管理。
 	codeContType string
 
 	// ファイルベースアクセストークン発行用コード管理。
@@ -86,6 +100,17 @@ type parameters struct {
 	codeContUrl  string
 	codeContDb   string
 	codeContColl string
+
+	// アクセストークン管理。
+	accTokenContType string
+
+	// ファイルベースアクセストークン管理。
+	accTokenContPath string
+
+	// mongo アクセストークン管理。
+	accTokenContUrl  string
+	accTokenContDb   string
+	accTokenContColl string
 
 	// ソケット。
 	idpSocType string
@@ -99,14 +124,15 @@ type parameters struct {
 	// プロトコル。
 	idpProtType string
 
-	// cookie の有効期間（秒）。
-	cookieMaxAge int
-
-	// 無通信でのユーザー認証の有効期間。
-	maxSessExpiDur time.Duration
+	// 無通信での認証済みセッションの有効期間。
+	maxSessExpiDur time.Duration // デフォルトかつ最大。
 
 	// アクセストークン発行用コードの有効期間。
 	codeExpiDur time.Duration
+
+	// アクセストークンの有効期間。
+	accTokenExpiDur    time.Duration // デフォルト。
+	maxAccTokenExpiDur time.Duration
 }
 
 func parseParameters(args ...string) (param *parameters, err error) {
@@ -135,6 +161,13 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.StringVar(&param.servExpDb, "servExpDb", "edo", "Service explorer database name.")
 	flags.StringVar(&param.servExpColl, "servExpColl", "service-explorer", "Service explorer collection name.")
 
+	flags.StringVar(&param.servKeyRegType, "servKeyRegType", "web", "service key registry type.")
+	flags.StringVar(&param.servKeyRegPath, "servKeyRegPath", filepath.Join("sandbox", "service-key-registry"), "service key registry directory.")
+	flags.StringVar(&param.servKeyRegAddr, "servKeyRegAddr", "http://localhost:9002", "service key registry address.")
+	flags.StringVar(&param.servKeyRegUrl, "servKeyRegUrl", "localhost", "service key registry address.")
+	flags.StringVar(&param.servKeyRegDb, "servKeyRegDb", "edo", "service key registry database name.")
+	flags.StringVar(&param.servKeyRegColl, "servKeyRegColl", "service-key-registry", "service key registry collection name.")
+
 	flags.StringVar(&param.usrNameIdxType, "usrNameIdxType", "mongo", "Username index type.")
 	flags.StringVar(&param.usrNameIdxPath, "usrNameIdxPath", filepath.Join("sandbox", "user-name-index"), "Username index directory.")
 	flags.StringVar(&param.usrNameIdxUrl, "usrNameIdxUrl", "localhost", "Username index address.")
@@ -159,15 +192,22 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.StringVar(&param.codeContDb, "codeContDb", "edo", "Code container lister database name.")
 	flags.StringVar(&param.codeContColl, "codeContColl", "code-container", "Code container lister collection name.")
 
+	flags.StringVar(&param.accTokenContType, "accTokenContType", "mongo", "Access token container lister type.")
+	flags.StringVar(&param.accTokenContPath, "accTokenContPath", filepath.Join("sandbox", "access-token-container"), "Access token container lister directory.")
+	flags.StringVar(&param.accTokenContUrl, "accTokenContUrl", "localhost", "Access token container lister address.")
+	flags.StringVar(&param.accTokenContDb, "accTokenContDb", "edo", "Access token container lister database name.")
+	flags.StringVar(&param.accTokenContColl, "accTokenContColl", "access-token-container", "Access token container lister collection name.")
+
 	flags.StringVar(&param.idpSocType, "idpSocType", "tcp", "Socket type.")
 	flags.StringVar(&param.idpSocPath, "idpSocPath", filepath.Join(os.TempDir(), "edo_id_provider"), "UNIX socket path.")
 	flags.IntVar(&param.idpSocPort, "idpSocPort", 8001, "TCP socket port.")
 
 	flags.StringVar(&param.idpProtType, "idpProtType", "http", "Protocol type.")
 
-	flags.IntVar(&param.cookieMaxAge, "cookieMaxAge", 7*24*60*60 /* 1 週間 */, "Cookie expiration duration (second).")
-	flags.DurationVar(&param.maxSessExpiDur, "maxSessExpiDur", time.Hour, "Max session expiration duration.")
+	flags.DurationVar(&param.maxSessExpiDur, "maxSessExpiDur", 24*time.Hour, "Max session expiration duration.")
 	flags.DurationVar(&param.codeExpiDur, "codeExpiDur", 10*time.Minute, "Code expiration duration.")
+	flags.DurationVar(&param.accTokenExpiDur, "accTokenExpiDur", 24*time.Hour, "Default access token expiration duration.")
+	flags.DurationVar(&param.maxAccTokenExpiDur, "maxAccTokenExpiDur", 30*24*time.Hour, "Max access token expiration duration.")
 
 	var config string
 	flags.StringVar(&config, "f", "", "Config file path.")

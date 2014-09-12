@@ -104,6 +104,24 @@ func mainCore(shutCh chan struct{}, param *parameters) error {
 		return erro.New("invalid service explorer type " + param.servExpType + ".")
 	}
 
+	var servKeyReg driver.ServiceKeyRegistry
+	switch param.servKeyRegType {
+	case "file":
+		servKeyReg = driver.NewFileServiceKeyRegistry(param.servKeyRegPath)
+		log.Info("Use file service key registry " + param.servKeyRegPath + ".")
+	case "web":
+		servKeyReg = driver.NewWebServiceKeyRegistry(param.servKeyRegAddr)
+		log.Info("Use web service key registry " + param.servKeyRegAddr + ".")
+	case "mongo":
+		servKeyReg, err = driver.NewMongoServiceKeyRegistry(param.servKeyRegUrl, param.servKeyRegDb, param.servKeyRegColl)
+		if err != nil {
+			return erro.Wrap(err)
+		}
+		log.Info("Use mongodb service key registry " + param.servKeyRegUrl + ".")
+	default:
+		return erro.New("invalid service key registry type " + param.servKeyRegType + ".")
+	}
+
 	var usrNameIdx driver.UserNameIndex
 	switch param.usrNameIdxType {
 	case "file":
@@ -170,6 +188,24 @@ func mainCore(shutCh chan struct{}, param *parameters) error {
 		return erro.New("invalid code container type " + param.codeContType + ".")
 	}
 
+	var accTokenCont driver.TimeLimitedKeyValueStore
+	switch param.accTokenContType {
+	case "memory":
+		accTokenCont = driver.NewMemoryTimeLimitedKeyValueStore()
+		log.Info("Use memory access token container.")
+	case "file":
+		accTokenCont = driver.NewFileTimeLimitedKeyValueStore(param.accTokenContPath)
+		log.Info("Use file access token container " + param.accTokenContPath + ".")
+	case "mongo":
+		accTokenCont, err = driver.NewMongoTimeLimitedKeyValueStore(param.accTokenContUrl, param.accTokenContDb, param.accTokenContColl, "access_token_id", "access_token")
+		if err != nil {
+			return erro.Wrap(err)
+		}
+		log.Info("Use mongodb access token container " + param.accTokenContUrl + ".")
+	default:
+		return erro.New("invalid access token container type " + param.accTokenContType + ".")
+	}
+
 	var sleepTime time.Duration = 0
 	resetInterval := time.Minute
 	for {
@@ -216,13 +252,16 @@ func mainCore(shutCh chan struct{}, param *parameters) error {
 
 			sys := &system{
 				servExp,
+				servKeyReg,
 				usrNameIdx,
 				usrAttrReg,
 				sessCont,
 				codeCont,
-				param.cookieMaxAge,
+				accTokenCont,
 				param.maxSessExpiDur,
 				param.codeExpiDur,
+				param.accTokenExpiDur,
+				param.maxAccTokenExpiDur,
 			}
 
 			start := time.Now()

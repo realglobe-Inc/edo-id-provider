@@ -24,13 +24,16 @@ func TestBoot(t *testing.T) {
 
 	sys := &system{
 		ServiceExplorer:       driver.NewMemoryServiceExplorer(),
+		ServiceKeyRegistry:    driver.NewMemoryServiceKeyRegistry(),
 		UserNameIndex:         driver.NewMemoryUserNameIndex(),
 		UserAttributeRegistry: driver.NewMemoryUserAttributeRegistry(),
 		sessCont:              driver.NewMemoryTimeLimitedKeyValueStore(),
 		codeCont:              driver.NewMemoryTimeLimitedKeyValueStore(),
-		cookieMaxAge:          3600,
+		accTokenCont:          driver.NewMemoryTimeLimitedKeyValueStore(),
 		maxSessExpiDur:        time.Hour,
 		codeExpiDur:           time.Hour,
+		accTokenExpiDur:       time.Hour,
+		maxAccTokenExpiDur:    time.Hour,
 	}
 	go server(sys, lis, routProtType)
 

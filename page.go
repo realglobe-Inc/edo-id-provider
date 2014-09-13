@@ -27,6 +27,9 @@ const (
 	formCliSec = "client_secret"
 
 	formAccTokenLifetime = "access_token_lifetime"
+
+	formAccToken = "access_token"
+	formAttr     = "attribute"
 )
 
 // /.
@@ -313,7 +316,7 @@ func setCookiePage(sys *system, w http.ResponseWriter, r *http.Request) error {
 	// クライアントサービスが登録されていて、リダイレクト先がクライアントサービスの管轄。
 	log.Debug("Redirect destination " + rediUri + " belongs service " + cliId + ".")
 
-	code, err := sys.NewCode(cliId)
+	code, err := sys.NewCode(sess.UsrUuid, cliId)
 	if err != nil {
 		return erro.Wrap(err)
 	}
@@ -432,14 +435,14 @@ func accessTokenPage(sys *system, w http.ResponseWriter, r *http.Request) error 
 	}
 
 	// code は有効だった。
-	log.Debug("code is valid.")
+	log.Debug("Code is valid.")
 
 	if cliId != code.ServUuid {
 		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "code is not bound to "+cliId+".", nil))
 	}
 
 	// 自称と発行先サービスが一致した。
-	log.Debug("code is bound to declared service " + cliId + ".")
+	log.Debug("Code is bound to declared service " + cliId + ".")
 
 	servKey, err := sys.ServiceKey(cliId)
 	if err != nil {
@@ -464,7 +467,7 @@ func accessTokenPage(sys *system, w http.ResponseWriter, r *http.Request) error 
 	// 署名も正しかった。
 	log.Debug(formCliSec + " is valid.")
 
-	accToken, err := sys.NewAccessToken(lifetime)
+	accToken, err := sys.NewAccessToken(code.UsrUuid, lifetime)
 	if err != nil {
 		return erro.Wrap(err)
 	}
@@ -485,5 +488,77 @@ func accessTokenPage(sys *system, w http.ResponseWriter, r *http.Request) error 
 
 // /query.
 func queryPage(sys *system, w http.ResponseWriter, r *http.Request) error {
-	panic("not yet implemented.")
+	accTokenId := r.FormValue(formAccToken)
+	if accTokenId == "" {
+		return erro.Wrap(util.NewHttpStatusError(http.StatusBadRequest, "no "+formAccToken+" parameter.", nil))
+	}
+	cliId := r.FormValue(formCliId)
+	if cliId == "" {
+		return erro.Wrap(util.NewHttpStatusError(http.StatusBadRequest, "no "+formCliId+" parameter.", nil))
+	}
+	cliSec := r.FormValue(formCliSec)
+	if cliSec == "" {
+		return erro.Wrap(util.NewHttpStatusError(http.StatusBadRequest, "no "+formCliSec+" parameter.", nil))
+	}
+	attrNames := r.Form[formAttr]
+	if attrNames == nil {
+		attrNames = []string{}
+	}
+
+	// パラメータはあった。
+
+	accToken, err := sys.AccessToken(accTokenId)
+	if err != nil {
+		return erro.Wrap(err)
+	} else if accToken == nil {
+		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "access token is invalid.", nil))
+	}
+
+	// code は有効だった。
+	log.Debug("Access token is valid.")
+
+	servKey, err := sys.ServiceKey(cliId)
+	if err != nil {
+		return erro.Wrap(err)
+	} else if servKey == nil {
+		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "key of "+cliId+" is not exist.", nil))
+	}
+
+	// 公開鍵を取得できた。
+	log.Debug("Key of " + cliId + " is exist.")
+
+	// 署名検証。
+	buff, err := base64.StdEncoding.DecodeString(cliSec)
+	if err != nil {
+		return erro.Wrap(util.NewHttpStatusError(http.StatusBadRequest, "cannot parse "+formCliSec+" parameter.", erro.Wrap(err)))
+	}
+
+	if err := rsa.VerifyPKCS1v15(servKey, 0, []byte(accTokenId), buff); err != nil {
+		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, formCliSec+" is invalid.", erro.Wrap(err)))
+	}
+
+	// 署名も正しかった。
+	log.Debug(formCliSec + " is valid.")
+
+	var res struct {
+		Usr map[string]interface{} `json:"user"`
+	}
+	res.Usr = map[string]interface{}{}
+
+	for _, attrName := range attrNames {
+		attr, err := sys.UserAttribute(accToken.UsrUuid, attrName)
+		if err != nil {
+			return erro.Wrap(err)
+		}
+		res.Usr[attrName] = attr
+	}
+
+	body, err := json.Marshal(&res)
+	if err != nil {
+		return erro.Wrap(err)
+	}
+
+	w.Header().Set("Content-Type", util.ContentTypeJson)
+	w.Write(body)
+	return nil
 }

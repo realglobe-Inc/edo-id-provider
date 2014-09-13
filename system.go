@@ -6,6 +6,7 @@ import (
 	"github.com/realglobe-Inc/edo/driver"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"math/big"
+	"strings"
 	"time"
 )
 
@@ -25,12 +26,30 @@ type system struct {
 	maxAccTokenExpiDur time.Duration
 }
 
+const attrLoginPasswd = "login_password"
+
 func (sys *system) UserPassword(usrUuid string) (passwd string, err error) {
-	attr, err := sys.UserAttribute(usrUuid, "login_password")
-	if attr != nil && attr != "" {
-		passwd = attr.(string)
+	attr, err := sys.UserAttribute(usrUuid, attrLoginPasswd)
+	if err != nil {
+		return "", erro.Wrap(err)
+	} else if attr == nil || attr == "" {
+		return "", nil
 	}
-	return passwd, err
+	return attr.(string), err
+}
+
+func (sys *system) UserAttribute(usrUuid, attrName string) (attr interface{}, err error) {
+	// TODO フィルタをハードコードしちゃってる。
+	if strings.HasSuffix(attrName, "password") {
+		return nil, nil
+	}
+	attr, err = sys.UserAttributeRegistry.UserAttribute(usrUuid, attrName)
+	if err != nil {
+		return nil, erro.Wrap(err)
+	} else if attr == nil || attr == "" {
+		return nil, nil
+	}
+	return attr, err
 }
 
 // ユーザー認証済みを示すセッション。
@@ -123,13 +142,14 @@ func (sys *system) UpdateSession(sess *Session) error {
 // アクセストークン発行用コード。
 type Code struct {
 	Id       string    `json:"id"`
+	UsrUuid  string    `json:"user_uuid"`
 	ServUuid string    `json:"service_uuid"`
 	ExpiDate time.Time `json:"expiration_date"`
 }
 
 const codeIdLen int = 20 // アクセストークン発行用コードの文字数。
 
-func (sys *system) NewCode(servUuid string) (*Code, error) {
+func (sys *system) NewCode(usrUuid, servUuid string) (*Code, error) {
 	var codeId string
 	for {
 		codeIdBitLen := codeIdLen * 6
@@ -159,7 +179,7 @@ func (sys *system) NewCode(servUuid string) (*Code, error) {
 	// コードが決まった。
 	log.Debug("Code was generated.")
 
-	code := &Code{codeId, servUuid, time.Now().Add(sys.codeExpiDur)}
+	code := &Code{codeId, usrUuid, servUuid, time.Now().Add(sys.codeExpiDur)}
 
 	if err := sys.codeCont.Put(codeId, code, code.ExpiDate); err != nil {
 		return nil, erro.Wrap(err)
@@ -180,6 +200,7 @@ func recognizeCode(code interface{}) (*Code, error) {
 		}
 		return &Code{
 			s["id"].(string),
+			s["user_uuid"].(string),
 			s["service_uuid"].(string),
 			expiDate,
 		}, nil
@@ -202,12 +223,13 @@ func (sys *system) Code(codeId string) (*Code, error) {
 // アクセストークン。
 type AccessToken struct {
 	Id       string    `json:"id"`
+	UsrUuid  string    `json:"user_uuid"`
 	ExpiDate time.Time `json:"expiration_date"`
 }
 
 const accTokenIdLen int = 20 // アクセストークンの文字数。
 
-func (sys *system) NewAccessToken(expiDur time.Duration) (*AccessToken, error) {
+func (sys *system) NewAccessToken(usrUuid string, expiDur time.Duration) (*AccessToken, error) {
 	var accTokenId string
 	for {
 		accTokenIdBitLen := accTokenIdLen * 6
@@ -242,7 +264,7 @@ func (sys *system) NewAccessToken(expiDur time.Duration) (*AccessToken, error) {
 	} else if expiDur > sys.maxAccTokenExpiDur {
 		expiDur = sys.maxAccTokenExpiDur
 	}
-	accToken := &AccessToken{accTokenId, time.Now().Add(expiDur)}
+	accToken := &AccessToken{accTokenId, usrUuid, time.Now().Add(expiDur)}
 
 	if err := sys.accTokenCont.Put(accTokenId, accToken, accToken.ExpiDate); err != nil {
 		return nil, erro.Wrap(err)
@@ -263,6 +285,7 @@ func recognizeAccessToken(accToken interface{}) (*AccessToken, error) {
 		}
 		return &AccessToken{
 			s["id"].(string),
+			s["user_uuid"].(string),
 			expiDate,
 		}, nil
 	default:

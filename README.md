@@ -75,7 +75,7 @@ client_secret が発行先サービスが code にした署名
 
 ----------
 
-### /query?client_id={client_id}&access_token={access_token}&client_secret={client_secret}&q={attribute1,attribute2,...}
+### /query?client_id={client_id}&access_token={access_token}&client_secret={client_secret}&attribute={attribute1}&attribute={attribute2}&...
 
 (TODO) OpenID Connect 風にした方が良いか。
 
@@ -87,8 +87,8 @@ client_secret がそのサービスが access_token にした署名
 ```
 {
   "user": {
-    attribute1: "XXXXX",
-    attribute2: "YYYYY",
+    attribute1: XXX,
+    attribute2: YYY,
     ...
   }
 }

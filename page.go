@@ -115,7 +115,7 @@ func loginPage(sys *system, w http.ResponseWriter, r *http.Request) error {
 
 	w.Write([]byte(page))
 
-	log.Debug("Response login page.")
+	log.Debug("Responded login page.")
 	return nil
 }
 
@@ -176,7 +176,7 @@ func logoutPage(sys *system, w http.ResponseWriter, r *http.Request) error {
 
 	w.Write([]byte(page))
 
-	log.Debug("Response logout page.")
+	log.Debug("Responded logout page.")
 	return nil
 }
 
@@ -260,11 +260,11 @@ func setCookiePage(sys *system, w http.ResponseWriter, r *http.Request) error {
 	log.Debug("Session " + sessIdCookie.Value + " is valid.")
 
 	var expiDur time.Duration
-	if s := r.FormValue(formSessLifetime); s != "" {
+	if expiDurStr := r.FormValue(formSessLifetime); expiDurStr != "" {
 		var err error
-		expiDur, err = time.ParseDuration(s)
+		expiDur, err = time.ParseDuration(expiDurStr)
 		if err != nil {
-			return erro.Wrap(util.NewHttpStatusError(http.StatusBadRequest, "cannot parse "+formSessLifetime+" parameter "+s+".", erro.Wrap(err)))
+			return erro.Wrap(util.NewHttpStatusError(http.StatusBadRequest, "cannot parse "+formSessLifetime+" parameter "+expiDurStr+".", erro.Wrap(err)))
 		}
 	}
 	if expiDur == 0 || expiDur > sys.maxSessExpiDur {
@@ -337,8 +337,8 @@ func setCookiePage(sys *system, w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-// /del_cookie.
-func delCookiePage(sys *system, w http.ResponseWriter, r *http.Request) error {
+// /delete_cookie.
+func deleteCookiePage(sys *system, w http.ResponseWriter, r *http.Request) error {
 	sessIdCookie, err := r.Cookie(cookieSessId)
 	if err != nil && err != http.ErrNoCookie {
 		return erro.Wrap(err)
@@ -457,7 +457,7 @@ func accessTokenPage(sys *system, w http.ResponseWriter, r *http.Request) error 
 	// 署名検証。
 	buff, err := base64.StdEncoding.DecodeString(cliSec)
 	if err != nil {
-		return erro.Wrap(util.NewHttpStatusError(http.StatusBadRequest, "cannot parse "+formCliSec+" parameter.", erro.Wrap(err)))
+		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "cannot parse "+formCliSec+" parameter.", erro.Wrap(err)))
 	}
 
 	if err := rsa.VerifyPKCS1v15(servKey, 0, []byte(codeId), buff); err != nil {
@@ -530,7 +530,7 @@ func queryPage(sys *system, w http.ResponseWriter, r *http.Request) error {
 	// 署名検証。
 	buff, err := base64.StdEncoding.DecodeString(cliSec)
 	if err != nil {
-		return erro.Wrap(util.NewHttpStatusError(http.StatusBadRequest, "cannot parse "+formCliSec+" parameter.", erro.Wrap(err)))
+		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "cannot parse "+formCliSec+" parameter.", erro.Wrap(err)))
 	}
 
 	if err := rsa.VerifyPKCS1v15(servKey, 0, []byte(accTokenId), buff); err != nil {

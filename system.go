@@ -29,10 +29,10 @@ type system struct {
 const attrLoginPasswd = "login_password"
 
 func (sys *system) UserPassword(usrUuid string) (passwd string, err error) {
-	attr, err := sys.UserAttribute(usrUuid, attrLoginPasswd)
+	attr, err := sys.UserAttributeRegistry.UserAttribute(usrUuid, attrLoginPasswd)
 	if err != nil {
 		return "", erro.Wrap(err)
-	} else if attr == nil || attr == "" {
+	} else if attr == nil {
 		return "", nil
 	}
 	return attr.(string), err

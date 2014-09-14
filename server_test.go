@@ -2,8 +2,9 @@ package main
 
 import (
 	"github.com/realglobe-Inc/edo/driver"
-	"net"
+	"github.com/realglobe-Inc/edo/util"
 	"net/http"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -15,12 +16,10 @@ func TestBoot(t *testing.T) {
 	// defer hndl.SetLevel(level.INFO)
 	// ////////////////////////////////
 
-	lis, err := net.Listen("tcp", ":0")
+	port, err := util.FreePort()
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer lis.Close()
-	routProtType := "http"
 
 	sys := &system{
 		ServiceExplorer:       driver.NewMemoryServiceExplorer(),
@@ -35,12 +34,12 @@ func TestBoot(t *testing.T) {
 		accTokenExpiDur:       time.Hour,
 		maxAccTokenExpiDur:    time.Hour,
 	}
-	go server(sys, lis, routProtType)
+	go serve(sys, "tcp", "", port, "http")
 
 	// サーバ起動待ち。
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(50 * time.Millisecond)
 
-	req, err := http.NewRequest("GET", "http://"+lis.Addr().String()+loginPagePath, nil)
+	req, err := http.NewRequest("GET", "http://localhost:"+strconv.Itoa(port)+loginPagePath, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

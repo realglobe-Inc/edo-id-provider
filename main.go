@@ -1,17 +1,12 @@
 package main
 
 import (
-	"fmt"
 	"github.com/realglobe-Inc/edo/driver"
 	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"github.com/realglobe-Inc/go-lib-rg/rglog"
-	"math/rand"
-	"net"
+	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
-	"time"
 )
 
 var exitCode = 0
@@ -37,42 +32,14 @@ func main() {
 	}
 
 	hndl.SetLevel(param.consLv)
-
-	switch param.logType {
-	case "":
-	case "file":
-		if err := util.InitFileLog("github.com/realglobe-Inc", param.logLv, param.idpLogPath); err != nil {
-			log.Err(erro.Unwrap(err))
-			log.Debug(err)
-			exitCode = 1
-			return
-		}
-	case "fluentd":
-		if err := util.InitFluentdLog("github.com/realglobe-Inc", param.logLv, param.fluAddr, param.idpFluTag); err != nil {
-			log.Err(erro.Unwrap(err))
-			log.Debug(err)
-			exitCode = 1
-			return
-		}
-	default:
-		log.Err("Invalid log type: " + param.logType + ".")
+	if err := util.SetupLog("github.com/realglobe-Inc", param.logType, param.logLv, param.idpLogPath, param.fluAddr, param.idpFluTag); err != nil {
+		log.Err(erro.Unwrap(err))
 		log.Debug(err)
 		exitCode = 1
 		return
 	}
 
-	shutCh := make(chan struct{}, 1)
-
-	// SIGINT、SIGKILL、SIGTERM を受け取ったら終了。
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, os.Interrupt, os.Kill, syscall.SIGTERM)
-	go func() {
-		sig := <-sigCh
-		log.Info("Signal ", sig, " was caught.")
-		shutCh <- struct{}{}
-	}()
-
-	if err := mainCore(shutCh, param); err != nil {
+	if err := mainCore(param); err != nil {
 		err = erro.Wrap(err)
 		log.Err(erro.Unwrap(err))
 		log.Debug(err)
@@ -83,7 +50,8 @@ func main() {
 	log.Info("Shut down.")
 }
 
-func mainCore(shutCh chan struct{}, param *parameters) error {
+// system を準備する。
+func mainCore(param *parameters) error {
 	var err error
 
 	var servExp driver.ServiceExplorer
@@ -206,114 +174,62 @@ func mainCore(shutCh chan struct{}, param *parameters) error {
 		return erro.New("invalid access token container type " + param.accTokenContType + ".")
 	}
 
-	var sleepTime time.Duration = 0
-	resetInterval := time.Minute
-	for {
-		if brk, err := func() (brk bool, err error) {
-			var lis net.Listener
-			defer func() {
-				if lis != nil {
-					lis.Close()
-				}
-			}()
-
-			switch param.idpSocType {
-			case "unix":
-				lis, err = net.Listen("unix", param.idpSocPath)
-				if err != nil {
-					return false, erro.Wrap(err)
-				}
-				if err := os.Chmod(param.idpSocPath, 0777); err != nil {
-					return false, erro.Wrap(err)
-				}
-				log.Info("Wait on UNIX socket " + param.idpSocPath + ".")
-			case "tcp":
-				lis, err = net.Listen("tcp", fmt.Sprint(":", param.idpSocPort))
-				if err != nil {
-					return false, erro.Wrap(err)
-				}
-				log.Info("Wait on TCP socket ", param.idpSocPort, ".")
-			default:
-				return true, erro.New("invalid socket type " + param.idpSocType + ".")
-			}
-
-			stopCh := make(chan struct{}, 1)
-			subShutCh := make(chan bool, 1)
-			go func() {
-				select {
-				case <-shutCh:
-					subShutCh <- true
-					lis.Close()
-				case <-stopCh:
-					subShutCh <- false
-				}
-			}()
-			defer func() { stopCh <- struct{}{} }()
-
-			sys := &system{
-				servExp,
-				servKeyReg,
-				usrNameIdx,
-				usrAttrReg,
-				sessCont,
-				codeCont,
-				accTokenCont,
-				param.maxSessExpiDur,
-				param.codeExpiDur,
-				param.accTokenExpiDur,
-				param.maxAccTokenExpiDur,
-			}
-
-			start := time.Now()
-			if err := server(sys, lis, param.idpProtType); err != nil {
-				err := erro.Wrap(err)
-
-				// 正常な終了処理としてソケットが閉じられたかもしれないので調べる。
-				select {
-				case <-subShutCh:
-					return true, nil
-				default:
-				}
-
-				stopCh <- struct{}{}
-				brk = <-subShutCh
-
-				if brk || erro.Unwrap(err) == invalidProtocol {
-					// どうしようもない。
-					return true, err
-				}
-
-				end := time.Now()
-				if end.Sub(start) > resetInterval {
-					sleepTime = 0
-				}
-
-				return false, err
-			}
-
-			stopCh <- struct{}{}
-			return <-subShutCh, nil
-		}(); brk {
-			return erro.Wrap(err)
-		} else {
-			if err != nil {
-				log.Err(erro.Unwrap(err))
-				log.Debug(err)
-			}
-
-			sleepTime = nextSleepTime(sleepTime, resetInterval)
-			log.Info("Retry after ", sleepTime)
-			time.Sleep(sleepTime)
-		}
+	sys := &system{
+		servExp,
+		servKeyReg,
+		usrNameIdx,
+		usrAttrReg,
+		sessCont,
+		codeCont,
+		accTokenCont,
+		param.maxSessExpiDur,
+		param.codeExpiDur,
+		param.accTokenExpiDur,
+		param.maxAccTokenExpiDur,
 	}
-
-	return nil
+	return serve(sys, param.idpSocType, param.idpSocPath, param.idpSocPort, param.idpProtType)
 }
 
-func nextSleepTime(cur, max time.Duration) time.Duration {
-	next := 2*cur + time.Duration(rand.Int63n(int64(time.Second)))
-	if next >= max {
-		next = time.Minute
+// 振り分ける。
+const (
+	routPagePath      = "/"
+	loginPagePath     = "/login"
+	logoutPagePath    = "/logout"
+	beginSessPagePath = "/begin_session"
+	setCookiePagePath = "/set_cookie"
+	delCookiePagePath = "/delete_cookie"
+
+	accTokenPagePath = "/access_token"
+
+	queryPagePath = "/query"
+)
+
+func serve(sys *system, socType, socPath string, socPort int, protType string) error {
+	routes := map[string]util.HandlerFunc{
+		routPagePath: func(w http.ResponseWriter, r *http.Request) error {
+			return routPage(sys, w, r)
+		},
+		loginPagePath: func(w http.ResponseWriter, r *http.Request) error {
+			return loginPage(sys, w, r)
+		},
+		logoutPagePath: func(w http.ResponseWriter, r *http.Request) error {
+			return logoutPage(sys, w, r)
+		},
+		beginSessPagePath: func(w http.ResponseWriter, r *http.Request) error {
+			return beginSessionPage(sys, w, r)
+		},
+		delCookiePagePath: func(w http.ResponseWriter, r *http.Request) error {
+			return deleteCookiePage(sys, w, r)
+		},
+		setCookiePagePath: func(w http.ResponseWriter, r *http.Request) error {
+			return setCookiePage(sys, w, r)
+		},
+		accTokenPagePath: func(w http.ResponseWriter, r *http.Request) error {
+			return accessTokenPage(sys, w, r)
+		},
+		queryPagePath: func(w http.ResponseWriter, r *http.Request) error {
+			return queryPage(sys, w, r)
+		},
 	}
-	return next
+	return util.Serve(socType, socPath, socPort, protType, routes)
 }

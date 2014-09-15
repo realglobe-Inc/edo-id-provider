@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto"
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
@@ -30,6 +31,8 @@ const (
 
 	formAccToken = "access_token"
 	formAttr     = "attribute"
+
+	formHashType = "hash_type"
 )
 
 // /.
@@ -266,8 +269,7 @@ func setCookiePage(sys *system, w http.ResponseWriter, r *http.Request) error {
 		if err != nil {
 			return erro.Wrap(util.NewHttpStatusError(http.StatusBadRequest, "cannot parse "+formSessLifetime+" parameter "+expiDurStr+".", erro.Wrap(err)))
 		}
-	}
-	if expiDur == 0 || expiDur > sys.maxSessExpiDur {
+	} else if expiDur == 0 || expiDur > sys.maxSessExpiDur {
 		expiDur = sys.maxSessExpiDur
 	}
 
@@ -444,6 +446,12 @@ func accessTokenPage(sys *system, w http.ResponseWriter, r *http.Request) error 
 	// 自称と発行先サービスが一致した。
 	log.Debug("Code is bound to declared service " + cliId + ".")
 
+	// 通信前にハッシュ計算。
+	hash, hashed, err := getHashAndHashed(r.FormValue(formHashType), []byte(codeId))
+	if err != nil {
+		return erro.Wrap(err)
+	}
+
 	servKey, err := sys.ServiceKey(cliId)
 	if err != nil {
 		return erro.Wrap(err)
@@ -458,9 +466,7 @@ func accessTokenPage(sys *system, w http.ResponseWriter, r *http.Request) error 
 	buff, err := base64.StdEncoding.DecodeString(cliSec)
 	if err != nil {
 		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "cannot parse "+formCliSec+" parameter.", erro.Wrap(err)))
-	}
-
-	if err := rsa.VerifyPKCS1v15(servKey, 0, []byte(codeId), buff); err != nil {
+	} else if err := rsa.VerifyPKCS1v15(servKey, hash, hashed, buff); err != nil {
 		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, formCliSec+" is invalid.", erro.Wrap(err)))
 	}
 
@@ -517,6 +523,12 @@ func queryPage(sys *system, w http.ResponseWriter, r *http.Request) error {
 	// code は有効だった。
 	log.Debug("Access token is valid.")
 
+	// 通信前にハッシュ計算。
+	hash, hashed, err := getHashAndHashed(r.FormValue(formHashType), []byte(accTokenId))
+	if err != nil {
+		return erro.Wrap(err)
+	}
+
 	servKey, err := sys.ServiceKey(cliId)
 	if err != nil {
 		return erro.Wrap(err)
@@ -531,9 +543,7 @@ func queryPage(sys *system, w http.ResponseWriter, r *http.Request) error {
 	buff, err := base64.StdEncoding.DecodeString(cliSec)
 	if err != nil {
 		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "cannot parse "+formCliSec+" parameter.", erro.Wrap(err)))
-	}
-
-	if err := rsa.VerifyPKCS1v15(servKey, 0, []byte(accTokenId), buff); err != nil {
+	} else if err := rsa.VerifyPKCS1v15(servKey, hash, hashed, buff); err != nil {
 		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, formCliSec+" is invalid.", erro.Wrap(err)))
 	}
 
@@ -561,4 +571,27 @@ func queryPage(sys *system, w http.ResponseWriter, r *http.Request) error {
 	w.Header().Set("Content-Type", util.ContentTypeJson)
 	w.Write(body)
 	return nil
+}
+
+func getHashAndHashed(hashType string, msg []byte) (hash crypto.Hash, hashed []byte, err error) {
+	switch hashType {
+	case "":
+		//return 0, msg, nil
+		hash = crypto.SHA1
+	case "sha1":
+		hash = crypto.SHA1
+	case "sha224":
+		hash = crypto.SHA224
+	case "sha256":
+		hash = crypto.SHA256
+	case "sha384":
+		hash = crypto.SHA384
+	case "sha512":
+		hash = crypto.SHA512
+	default:
+		return 0, nil, erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "hash type "+hashType+" is not supported.", nil))
+	}
+	h := hash.New()
+	h.Write(msg)
+	return hash, h.Sum(nil), nil
 }

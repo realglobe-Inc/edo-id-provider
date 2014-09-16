@@ -109,7 +109,7 @@ func recognizeSession(sess interface{}) (*Session, error) {
 	case *Session:
 		return s, nil
 	case map[string]interface{}:
-		expiDate, err := time.Parse(time.RFC3339, s["expiration_date"].(string))
+		expiDate, err := time.Parse(time.RFC3339Nano, s["expiration_date"].(string))
 		if err != nil {
 			return nil, erro.Wrap(err)
 		}
@@ -194,7 +194,7 @@ func recognizeCode(code interface{}) (*Code, error) {
 	case *Code:
 		return s, nil
 	case map[string]interface{}:
-		expiDate, err := time.Parse(time.RFC3339, s["expiration_date"].(string))
+		expiDate, err := time.Parse(time.RFC3339Nano, s["expiration_date"].(string))
 		if err != nil {
 			return nil, erro.Wrap(err)
 		}
@@ -279,7 +279,7 @@ func recognizeAccessToken(accToken interface{}) (*AccessToken, error) {
 	case *AccessToken:
 		return s, nil
 	case map[string]interface{}:
-		expiDate, err := time.Parse(time.RFC3339, s["expiration_date"].(string))
+		expiDate, err := time.Parse(time.RFC3339Nano, s["expiration_date"].(string))
 		if err != nil {
 			return nil, erro.Wrap(err)
 		}

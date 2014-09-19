@@ -84,7 +84,8 @@ client_secret が発行先サービスが code にした署名ならば、
 
 ```
 {
-  "access_token": "XXXXX"
+  "access_token": "XXXXX",
+  "expires_in": 3600
 }
 ```
 

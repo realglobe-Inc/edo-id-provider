@@ -480,8 +480,10 @@ func accessTokenPage(sys *system, w http.ResponseWriter, r *http.Request) error 
 
 	var res struct {
 		AccToken string `json:"access_token"`
+		Expi     int64  `json:"expires_in"`
 	}
 	res.AccToken = accToken.Id
+	res.Expi = int64(accToken.ExpiDate.Sub(time.Now()).Seconds())
 	body, err := json.Marshal(&res)
 	if err != nil {
 		return erro.Wrap(err)

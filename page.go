@@ -576,22 +576,13 @@ func queryPage(sys *system, w http.ResponseWriter, r *http.Request) error {
 }
 
 func getHashAndHashed(hashType string, msg []byte) (hash crypto.Hash, hashed []byte, err error) {
-	switch hashType {
-	case "":
-		//return 0, msg, nil
+	if hashType == "" {
 		hash = crypto.SHA1
-	case "sha1":
-		hash = crypto.SHA1
-	case "sha224":
-		hash = crypto.SHA224
-	case "sha256":
-		hash = crypto.SHA256
-	case "sha384":
-		hash = crypto.SHA384
-	case "sha512":
-		hash = crypto.SHA512
-	default:
-		return 0, nil, erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "hash type "+hashType+" is not supported.", nil))
+	} else {
+		hash, err = util.ParseHashFunction(hashType)
+		if err != nil {
+			return 0, nil, erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "hash type "+hashType+" is not supported.", erro.Wrap(err)))
+		}
 	}
 	h := hash.New()
 	h.Write(msg)

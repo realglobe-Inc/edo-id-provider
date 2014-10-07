@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"github.com/realglobe-Inc/edo/driver"
+	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"math/big"
 	"strings"
@@ -64,22 +65,12 @@ const sessIdLen int = 20 // セッション ID の文字数。
 func (sys *system) NewSession(usrUuid string, expiDur time.Duration) (*Session, error) {
 	var sessId string
 	for {
-		sessIdBitLen := sessIdLen * 6
-		maxVal := big.NewInt(0).Lsh(big.NewInt(1), uint(sessIdBitLen))
-		val, err := rand.Int(rand.Reader, maxVal)
+		buff, err := util.SecureRandomBytes(sessIdLen * 6 / 8)
 		if err != nil {
 			return nil, erro.Wrap(err)
 		}
-		buff := val.Bytes()
-
-		for len(buff) < (sessIdBitLen+5)/8 {
-			buff = append(buff, 0)
-		}
 
 		sessId = base64.StdEncoding.EncodeToString(buff)
-		if len(sessId) > sessIdLen {
-			sessId = sessId[:sessIdLen]
-		}
 
 		if sess, err := sys.sessCont.Get(sessId); err != nil {
 			return nil, erro.Wrap(err)

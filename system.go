@@ -3,9 +3,11 @@ package main
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
 	"github.com/realglobe-Inc/edo/driver"
 	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
+	"gopkg.in/mgo.v2"
 	"math/big"
 	"strings"
 	"time"
@@ -29,28 +31,22 @@ type system struct {
 
 const attrLoginPasswd = "login_password"
 
-func (sys *system) UserPassword(usrUuid string) (passwd string, err error) {
-	attr, err := sys.UserAttributeRegistry.UserAttribute(usrUuid, attrLoginPasswd)
+func (sys *system) UserPassword(usrUuid string, caStmp *driver.Stamp) (passwd string, newCaStmp *driver.Stamp, err error) {
+	value, newCaStmp, err := sys.UserAttributeRegistry.UserAttribute(usrUuid, attrLoginPasswd, caStmp)
 	if err != nil {
-		return "", erro.Wrap(err)
-	} else if attr == nil {
-		return "", nil
+		return "", nil, erro.Wrap(err)
+	} else if value == nil {
+		return "", newCaStmp, nil
 	}
-	return attr.(string), err
+	return value.(string), newCaStmp, err
 }
 
-func (sys *system) UserAttribute(usrUuid, attrName string) (attr interface{}, err error) {
+func (sys *system) UserAttribute(usrUuid, attrName string, caStmp *driver.Stamp) (attr interface{}, newCaStmp *driver.Stamp, err error) {
 	// TODO フィルタをハードコードしちゃってる。
 	if strings.HasSuffix(attrName, "password") {
-		return nil, nil
+		return nil, nil, nil
 	}
-	attr, err = sys.UserAttributeRegistry.UserAttribute(usrUuid, attrName)
-	if err != nil {
-		return nil, erro.Wrap(err)
-	} else if attr == nil || attr == "" {
-		return nil, nil
-	}
-	return attr, err
+	return sys.UserAttributeRegistry.UserAttribute(usrUuid, attrName, caStmp)
 }
 
 // ユーザー認証済みを示すセッション。
@@ -62,18 +58,18 @@ type Session struct {
 
 const sessIdLen int = 20 // セッション ID の文字数。
 
-func (sys *system) NewSession(usrUuid string, expiDur time.Duration) (*Session, error) {
+func (sys *system) NewSession(usrUuid string, expiDur time.Duration) (sess *Session, newCaStmp *driver.Stamp, err error) {
 	var sessId string
 	for {
 		buff, err := util.SecureRandomBytes(sessIdLen * 6 / 8)
 		if err != nil {
-			return nil, erro.Wrap(err)
+			return nil, nil, erro.Wrap(err)
 		}
 
 		sessId = base64.StdEncoding.EncodeToString(buff)
 
-		if sess, err := sys.sessCont.Get(sessId); err != nil {
-			return nil, erro.Wrap(err)
+		if sess, _, err := sys.sessCont.Get(sessId, nil); err != nil {
+			return nil, nil, erro.Wrap(err)
 		} else if sess == nil {
 			break
 		}
@@ -85,48 +81,49 @@ func (sys *system) NewSession(usrUuid string, expiDur time.Duration) (*Session, 
 	if expiDur == 0 || expiDur > sys.maxSessExpiDur {
 		expiDur = sys.maxSessExpiDur
 	}
-	sess := &Session{sessId, usrUuid, time.Now().Add(expiDur)}
 
-	if err := sys.sessCont.Put(sessId, sess, sess.ExpiDate); err != nil {
-		return nil, erro.Wrap(err)
+	sess = &Session{sessId, usrUuid, time.Now().Add(expiDur)}
+	newCaStmp, err = sys.sessCont.Put(sessId, sess, sess.ExpiDate)
+	if err != nil {
+		return nil, nil, erro.Wrap(err)
 	}
 
 	log.Debug("Session was published.")
-	return sess, nil
+	return sess, newCaStmp, nil
 }
 
-func recognizeSession(sess interface{}) (*Session, error) {
-	switch s := sess.(type) {
-	case *Session:
-		return s, nil
-	case map[string]interface{}:
-		expiDate, err := time.Parse(time.RFC3339Nano, s["expiration_date"].(string))
-		if err != nil {
-			return nil, erro.Wrap(err)
-		}
-		return &Session{
-			s["id"].(string),
-			s["user_uuid"].(string),
-			expiDate,
-		}, nil
-	default:
-		return nil, erro.New("unknown type ", sess, ".")
+func sessionUnmarshal(data []byte) (value interface{}, err error) {
+	var res Session
+	if err := json.Unmarshal(data, &res); err != nil {
+		return nil, erro.Wrap(err)
 	}
+	return &res, nil
+}
+
+func sessionMongoTake(query *mgo.Query) (value interface{}, stmp *driver.Stamp, err error) {
+	var res struct {
+		Value *Session
+		Stamp *driver.Stamp
+	}
+	if err := query.One(&res); err != nil {
+		return nil, nil, erro.Wrap(err)
+	}
+	return res.Value, res.Stamp, nil
 }
 
 // 有効なセッションを取り出す。
-func (sys *system) Session(sessId string) (*Session, error) {
-	val, err := sys.sessCont.Get(sessId)
+func (sys *system) Session(sessId string, caStmp *driver.Stamp) (sess *Session, newCaStmp *driver.Stamp, err error) {
+	value, newCaStmp, err := sys.sessCont.Get(sessId, caStmp)
 	if err != nil {
-		return nil, erro.Wrap(err)
-	} else if val == nil {
-		return nil, nil
+		return nil, nil, erro.Wrap(err)
+	} else if value == nil {
+		return nil, newCaStmp, nil
 	}
-	return recognizeSession(val)
+	return value.(*Session), newCaStmp, nil
 }
 
 // セッションの有効期限を更新。
-func (sys *system) UpdateSession(sess *Session) error {
+func (sys *system) UpdateSession(sess *Session) (newCaStmp *driver.Stamp, err error) {
 	return sys.sessCont.Put(sess.Id, sess, sess.ExpiDate)
 }
 
@@ -140,16 +137,16 @@ type Code struct {
 
 const codeIdLen int = 20 // アクセストークン発行用コードの文字数。
 
-func (sys *system) NewCode(usrUuid, servUuid string) (*Code, error) {
+func (sys *system) NewCode(usrUuid, servUuid string) (code *Code, newCaStmp *driver.Stamp, err error) {
 	var codeId string
 	for {
 		codeIdBitLen := codeIdLen * 6
 		maxVal := big.NewInt(0).Lsh(big.NewInt(1), uint(codeIdBitLen))
-		val, err := rand.Int(rand.Reader, maxVal)
+		value, err := rand.Int(rand.Reader, maxVal)
 		if err != nil {
-			return nil, erro.Wrap(err)
+			return nil, nil, erro.Wrap(err)
 		}
-		buff := val.Bytes()
+		buff := value.Bytes()
 
 		for len(buff) < (codeIdBitLen+5)/8 {
 			buff = append(buff, 0)
@@ -160,8 +157,8 @@ func (sys *system) NewCode(usrUuid, servUuid string) (*Code, error) {
 			codeId = codeId[:codeIdLen]
 		}
 
-		if code, err := sys.codeCont.Get(codeId); err != nil {
-			return nil, erro.Wrap(err)
+		if code, _, err := sys.codeCont.Get(codeId, nil); err != nil {
+			return nil, nil, erro.Wrap(err)
 		} else if code == nil {
 			break
 		}
@@ -170,45 +167,44 @@ func (sys *system) NewCode(usrUuid, servUuid string) (*Code, error) {
 	// コードが決まった。
 	log.Debug("Code was generated.")
 
-	code := &Code{codeId, usrUuid, servUuid, time.Now().Add(sys.codeExpiDur)}
-
-	if err := sys.codeCont.Put(codeId, code, code.ExpiDate); err != nil {
-		return nil, erro.Wrap(err)
+	code = &Code{codeId, usrUuid, servUuid, time.Now().Add(sys.codeExpiDur)}
+	newCaStmp, err = sys.codeCont.Put(codeId, code, code.ExpiDate)
+	if err != nil {
+		return nil, nil, erro.Wrap(err)
 	}
 
 	log.Debug("Code was published.")
-	return code, nil
+	return code, newCaStmp, nil
 }
 
-func recognizeCode(code interface{}) (*Code, error) {
-	switch s := code.(type) {
-	case *Code:
-		return s, nil
-	case map[string]interface{}:
-		expiDate, err := time.Parse(time.RFC3339Nano, s["expiration_date"].(string))
-		if err != nil {
-			return nil, erro.Wrap(err)
-		}
-		return &Code{
-			s["id"].(string),
-			s["user_uuid"].(string),
-			s["service_uuid"].(string),
-			expiDate,
-		}, nil
-	default:
-		return nil, erro.New("unknown type ", code, ".")
+func codeUnmarshal(data []byte) (value interface{}, err error) {
+	var res Code
+	if err := json.Unmarshal(data, &res); err != nil {
+		return nil, erro.Wrap(err)
 	}
+	return &res, nil
+}
+
+func codeMongoTake(query *mgo.Query) (value interface{}, stmp *driver.Stamp, err error) {
+	var res struct {
+		Value *Code
+		Stamp *driver.Stamp
+	}
+	if err := query.One(&res); err != nil {
+		return nil, nil, erro.Wrap(err)
+	}
+	return res.Value, res.Stamp, nil
 }
 
 // 有効なアクセストークン取得用コードを取り出す。
-func (sys *system) Code(codeId string) (*Code, error) {
-	val, err := sys.codeCont.Get(codeId)
+func (sys *system) Code(codeId string, caStmp *driver.Stamp) (code *Code, newCaStmp *driver.Stamp, err error) {
+	value, newCaStmp, err := sys.codeCont.Get(codeId, caStmp)
 	if err != nil {
-		return nil, erro.Wrap(err)
-	} else if val == nil {
-		return nil, nil
+		return nil, nil, erro.Wrap(err)
+	} else if value == nil {
+		return nil, newCaStmp, nil
 	}
-	return recognizeCode(val)
+	return value.(*Code), newCaStmp, nil
 }
 
 // アクセストークン。
@@ -220,16 +216,16 @@ type AccessToken struct {
 
 const accTokenIdLen int = 20 // アクセストークンの文字数。
 
-func (sys *system) NewAccessToken(usrUuid string, expiDur time.Duration) (*AccessToken, error) {
+func (sys *system) NewAccessToken(usrUuid string, expiDur time.Duration) (accToken *AccessToken, newCaStmp *driver.Stamp, err error) {
 	var accTokenId string
 	for {
 		accTokenIdBitLen := accTokenIdLen * 6
 		maxVal := big.NewInt(0).Lsh(big.NewInt(1), uint(accTokenIdBitLen))
-		val, err := rand.Int(rand.Reader, maxVal)
+		value, err := rand.Int(rand.Reader, maxVal)
 		if err != nil {
-			return nil, erro.Wrap(err)
+			return nil, nil, erro.Wrap(err)
 		}
-		buff := val.Bytes()
+		buff := value.Bytes()
 
 		for len(buff) < (accTokenIdBitLen+5)/8 {
 			buff = append(buff, 0)
@@ -240,8 +236,8 @@ func (sys *system) NewAccessToken(usrUuid string, expiDur time.Duration) (*Acces
 			accTokenId = accTokenId[:accTokenIdLen]
 		}
 
-		if accToken, err := sys.accTokenCont.Get(accTokenId); err != nil {
-			return nil, erro.Wrap(err)
+		if accToken, _, err := sys.accTokenCont.Get(accTokenId, nil); err != nil {
+			return nil, nil, erro.Wrap(err)
 		} else if accToken == nil {
 			break
 		}
@@ -255,42 +251,43 @@ func (sys *system) NewAccessToken(usrUuid string, expiDur time.Duration) (*Acces
 	} else if expiDur > sys.maxAccTokenExpiDur {
 		expiDur = sys.maxAccTokenExpiDur
 	}
-	accToken := &AccessToken{accTokenId, usrUuid, time.Now().Add(expiDur)}
 
-	if err := sys.accTokenCont.Put(accTokenId, accToken, accToken.ExpiDate); err != nil {
-		return nil, erro.Wrap(err)
+	accToken = &AccessToken{accTokenId, usrUuid, time.Now().Add(expiDur)}
+	newCaStmp, err = sys.accTokenCont.Put(accTokenId, accToken, accToken.ExpiDate)
+	if err != nil {
+		return nil, nil, erro.Wrap(err)
 	}
 
 	log.Debug("Access token was published.")
-	return accToken, nil
+	return accToken, newCaStmp, nil
 }
 
-func recognizeAccessToken(accToken interface{}) (*AccessToken, error) {
-	switch s := accToken.(type) {
-	case *AccessToken:
-		return s, nil
-	case map[string]interface{}:
-		expiDate, err := time.Parse(time.RFC3339Nano, s["expiration_date"].(string))
-		if err != nil {
-			return nil, erro.Wrap(err)
-		}
-		return &AccessToken{
-			s["id"].(string),
-			s["user_uuid"].(string),
-			expiDate,
-		}, nil
-	default:
-		return nil, erro.New("unknown type ", accToken, ".")
+func accessTokenUnmarshal(data []byte) (value interface{}, err error) {
+	var res AccessToken
+	if err := json.Unmarshal(data, &res); err != nil {
+		return nil, erro.Wrap(err)
 	}
+	return &res, nil
+}
+
+func accessTokenMongoTake(query *mgo.Query) (value interface{}, stmp *driver.Stamp, err error) {
+	var res struct {
+		Value *AccessToken
+		Stamp *driver.Stamp
+	}
+	if err := query.One(&res); err != nil {
+		return nil, nil, erro.Wrap(err)
+	}
+	return res.Value, res.Stamp, nil
 }
 
 // 有効なアクセストークンを取り出す。
-func (sys *system) AccessToken(accTokenId string) (*AccessToken, error) {
-	val, err := sys.accTokenCont.Get(accTokenId)
+func (sys *system) AccessToken(accTokenId string, caStmp *driver.Stamp) (accToken *AccessToken, newCaStmp *driver.Stamp, err error) {
+	value, newCaStmp, err := sys.accTokenCont.Get(accTokenId, caStmp)
 	if err != nil {
-		return nil, erro.Wrap(err)
-	} else if val == nil {
-		return nil, nil
+		return nil, nil, erro.Wrap(err)
+	} else if value == nil {
+		return nil, newCaStmp, nil
 	}
-	return recognizeAccessToken(val)
+	return value.(*AccessToken), newCaStmp, nil
 }

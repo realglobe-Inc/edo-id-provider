@@ -59,7 +59,7 @@ func routPage(sys *system, w http.ResponseWriter, r *http.Request) error {
 	// cookie にセッションがあった。
 	log.Debug("Session " + sessIdCookie.Value + " is in cookie.")
 
-	sess, err := sys.Session(sessIdCookie.Value)
+	sess, _, err := sys.Session(sessIdCookie.Value, nil)
 	if err != nil {
 		return erro.Wrap(err)
 	} else if sess == nil {
@@ -101,10 +101,10 @@ func loginPage(sys *system, w http.ResponseWriter, r *http.Request) error {
 	if err := r.ParseForm(); err != nil {
 		return erro.Wrap(err)
 	}
-	for key, vals := range r.Form {
-		for _, val := range vals {
+	for key, values := range r.Form {
+		for _, value := range values {
 			page += `
-        <INPUT TYPE="hidden" NAME="` + key + `" VALUE="` + html.EscapeString(val) + `" /> `
+        <INPUT TYPE="hidden" NAME="` + key + `" VALUE="` + html.EscapeString(value) + `" /> `
 		}
 	}
 
@@ -134,7 +134,7 @@ func logoutPage(sys *system, w http.ResponseWriter, r *http.Request) error {
 	// cookie にセッションがあった。
 	log.Debug("Session " + sessIdCookie.Value + " is in cookie.")
 
-	sess, err := sys.Session(sessIdCookie.Value)
+	sess, _, err := sys.Session(sessIdCookie.Value, nil)
 	if err != nil {
 		return erro.Wrap(err)
 	} else if sess == nil {
@@ -163,10 +163,10 @@ func logoutPage(sys *system, w http.ResponseWriter, r *http.Request) error {
 	if err := r.ParseForm(); err != nil {
 		return erro.Wrap(err)
 	}
-	for key, vals := range r.Form {
-		for _, val := range vals {
+	for key, values := range r.Form {
+		for _, value := range values {
 			page += `
-        <INPUT TYPE="hidden" NAME="` + key + `" VALUE="` + html.EscapeString(val) + `" /> `
+        <INPUT TYPE="hidden" NAME="` + key + `" VALUE="` + html.EscapeString(value) + `" /> `
 		}
 	}
 
@@ -196,7 +196,7 @@ func beginSessionPage(sys *system, w http.ResponseWriter, r *http.Request) error
 	r.Form.Del(formUsrName)
 	r.Form.Del(formPasswd)
 
-	usrUuid, err := sys.UserUuid(usrName)
+	usrUuid, _, err := sys.UserUuid(usrName, nil)
 	if err != nil {
 		return erro.Wrap(err)
 	} else if usrUuid == "" {
@@ -207,7 +207,7 @@ func beginSessionPage(sys *system, w http.ResponseWriter, r *http.Request) error
 	log.Debug("User " + usrName + " found.")
 
 	// TODO パスワードをハッシュ値にしとくとか。
-	truePasswd, err := sys.UserPassword(usrUuid)
+	truePasswd, _, err := sys.UserPassword(usrUuid, nil)
 	if err != nil {
 		return erro.Wrap(err)
 	} else if passwd != truePasswd {
@@ -217,7 +217,7 @@ func beginSessionPage(sys *system, w http.ResponseWriter, r *http.Request) error
 	// パスワードも合ってた。
 	log.Debug("Right password for user " + usrName + ".")
 
-	sess, err := sys.NewSession(usrUuid, sys.maxSessExpiDur) // 期限は /set_cookie で調整する。
+	sess, _, err := sys.NewSession(usrUuid, sys.maxSessExpiDur) // 期限は /set_cookie で調整する。
 	if err != nil {
 		return erro.Wrap(err)
 	}
@@ -252,7 +252,7 @@ func setCookiePage(sys *system, w http.ResponseWriter, r *http.Request) error {
 	// cookie にセッションがあった。
 	log.Debug("Session " + sessIdCookie.Value + " is in cookie.")
 
-	sess, err := sys.Session(sessIdCookie.Value)
+	sess, _, err := sys.Session(sessIdCookie.Value, nil)
 	if err != nil {
 		return erro.Wrap(err)
 	} else if sess == nil {
@@ -274,7 +274,7 @@ func setCookiePage(sys *system, w http.ResponseWriter, r *http.Request) error {
 	}
 
 	sess.ExpiDate = time.Now().Add(expiDur)
-	if err := sys.UpdateSession(sess); err != nil {
+	if _, err := sys.UpdateSession(sess); err != nil {
 		return erro.Wrap(err)
 	}
 
@@ -308,7 +308,7 @@ func setCookiePage(sys *system, w http.ResponseWriter, r *http.Request) error {
 	// クライアントサービスのページにリダイレクトする必要あり。
 	log.Debug("Need to redirect.")
 
-	servUuid, err := sys.ServiceUuid(rediUri)
+	servUuid, _, err := sys.ServiceUuid(rediUri, nil)
 	if err != nil {
 		return erro.Wrap(err)
 	} else if servUuid != cliId {
@@ -318,7 +318,7 @@ func setCookiePage(sys *system, w http.ResponseWriter, r *http.Request) error {
 	// クライアントサービスが登録されていて、リダイレクト先がクライアントサービスの管轄。
 	log.Debug("Redirect destination " + rediUri + " belongs service " + cliId + ".")
 
-	code, err := sys.NewCode(sess.UsrUuid, cliId)
+	code, _, err := sys.NewCode(sess.UsrUuid, cliId)
 	if err != nil {
 		return erro.Wrap(err)
 	}
@@ -351,7 +351,7 @@ func deleteCookiePage(sys *system, w http.ResponseWriter, r *http.Request) error
 	// cookie にセッションがあった。
 	log.Debug("Session " + sessIdCookie.Value + " is in cookie.")
 
-	sess, err := sys.Session(sessIdCookie.Value)
+	sess, _, err := sys.Session(sessIdCookie.Value, nil)
 	if err != nil {
 		return erro.Wrap(err)
 	} else if sess == nil {
@@ -388,7 +388,7 @@ func deleteCookiePage(sys *system, w http.ResponseWriter, r *http.Request) error
 	// クライアントサービスのページにリダイレクトする必要あり。
 	log.Debug("Need to redirect.")
 
-	servUuid, err := sys.ServiceUuid(rediUri)
+	servUuid, _, err := sys.ServiceUuid(rediUri, nil)
 	if err != nil {
 		return erro.Wrap(err)
 	} else if servUuid != cliId {
@@ -429,7 +429,7 @@ func accessTokenPage(sys *system, w http.ResponseWriter, r *http.Request) error 
 
 	// パラメータはあった。
 
-	code, err := sys.Code(codeId)
+	code, _, err := sys.Code(codeId, nil)
 	if err != nil {
 		return erro.Wrap(err)
 	} else if code == nil {
@@ -452,7 +452,7 @@ func accessTokenPage(sys *system, w http.ResponseWriter, r *http.Request) error 
 		return erro.Wrap(err)
 	}
 
-	servKey, err := sys.ServiceKey(cliId)
+	servKey, _, err := sys.ServiceKey(cliId, nil)
 	if err != nil {
 		return erro.Wrap(err)
 	} else if servKey == nil {
@@ -473,7 +473,7 @@ func accessTokenPage(sys *system, w http.ResponseWriter, r *http.Request) error 
 	// 署名も正しかった。
 	log.Debug(formCliSec + " is valid.")
 
-	accToken, err := sys.NewAccessToken(code.UsrUuid, lifetime)
+	accToken, _, err := sys.NewAccessToken(code.UsrUuid, lifetime)
 	if err != nil {
 		return erro.Wrap(err)
 	}
@@ -515,7 +515,7 @@ func queryPage(sys *system, w http.ResponseWriter, r *http.Request) error {
 
 	// パラメータはあった。
 
-	accToken, err := sys.AccessToken(accTokenId)
+	accToken, _, err := sys.AccessToken(accTokenId, nil)
 	if err != nil {
 		return erro.Wrap(err)
 	} else if accToken == nil {
@@ -531,7 +531,7 @@ func queryPage(sys *system, w http.ResponseWriter, r *http.Request) error {
 		return erro.Wrap(err)
 	}
 
-	servKey, err := sys.ServiceKey(cliId)
+	servKey, _, err := sys.ServiceKey(cliId, nil)
 	if err != nil {
 		return erro.Wrap(err)
 	} else if servKey == nil {
@@ -558,7 +558,7 @@ func queryPage(sys *system, w http.ResponseWriter, r *http.Request) error {
 	res.Usr = map[string]interface{}{}
 
 	for _, attrName := range attrNames {
-		attr, err := sys.UserAttribute(accToken.UsrUuid, attrName)
+		attr, _, err := sys.UserAttribute(accToken.UsrUuid, attrName, nil)
 		if err != nil {
 			return erro.Wrap(err)
 		}

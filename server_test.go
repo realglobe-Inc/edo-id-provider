@@ -22,13 +22,13 @@ func TestBoot(t *testing.T) {
 	}
 
 	sys := &system{
-		ServiceExplorer:       driver.NewMemoryServiceExplorer(),
-		ServiceKeyRegistry:    driver.NewMemoryServiceKeyRegistry(),
-		UserNameIndex:         driver.NewMemoryUserNameIndex(),
-		UserAttributeRegistry: driver.NewMemoryUserAttributeRegistry(),
-		sessCont:              driver.NewMemoryTimeLimitedKeyValueStore(),
-		codeCont:              driver.NewMemoryTimeLimitedKeyValueStore(),
-		accTokenCont:          driver.NewMemoryTimeLimitedKeyValueStore(),
+		ServiceExplorer:       driver.NewMemoryServiceExplorer(0),
+		ServiceKeyRegistry:    driver.NewMemoryServiceKeyRegistry(0),
+		UserNameIndex:         driver.NewMemoryUserNameIndex(0),
+		UserAttributeRegistry: driver.NewMemoryUserAttributeRegistry(0),
+		sessCont:              driver.NewMemoryTimeLimitedKeyValueStore(0),
+		codeCont:              driver.NewMemoryTimeLimitedKeyValueStore(0),
+		accTokenCont:          driver.NewMemoryTimeLimitedKeyValueStore(0),
 		maxSessExpiDur:        time.Hour,
 		codeExpiDur:           time.Hour,
 		accTokenExpiDur:       time.Hour,

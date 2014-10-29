@@ -55,22 +55,22 @@ func main() {
 func mainCore(param *parameters) error {
 	var err error
 
-	var servExp driver.ServiceExplorer
-	switch param.servExpType {
+	var taExp driver.TaExplorer
+	switch param.taExpType {
 	case "file":
-		servExp = driver.NewFileServiceExplorer(param.servExpPath, 0)
-		log.Info("Use file service explorer " + param.servExpPath + ".")
+		taExp = driver.NewFileTaExplorer(param.taExpPath, 0)
+		log.Info("Use file TA explorer " + param.taExpPath + ".")
 	case "web":
-		servExp = driver.NewWebServiceExplorer(param.servExpAddr)
-		log.Info("Use web service explorer " + param.servExpAddr + ".")
+		taExp = driver.NewWebTaExplorer(param.taExpAddr)
+		log.Info("Use web TA explorer " + param.taExpAddr + ".")
 	case "mongo":
-		servExp, err = driver.NewMongoServiceExplorer(param.servExpUrl, param.servExpDb, param.servExpColl, 0)
+		taExp, err = driver.NewMongoTaExplorer(param.taExpUrl, param.taExpDb, param.taExpColl, 0)
 		if err != nil {
 			return erro.Wrap(err)
 		}
-		log.Info("Use mongodb service explorer " + param.servExpUrl + ".")
+		log.Info("Use mongodb TA explorer " + param.taExpUrl + ".")
 	default:
-		return erro.New("invalid service explorer type " + param.servExpType + ".")
+		return erro.New("invalid TA explorer type " + param.taExpType + ".")
 	}
 
 	var taKeyReg driver.TaKeyProvider
@@ -186,7 +186,7 @@ func mainCore(param *parameters) error {
 	}
 
 	sys := &system{
-		servExp,
+		taExp,
 		taKeyReg,
 		usrNameIdx,
 		usrAttrReg,

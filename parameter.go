@@ -30,18 +30,18 @@ type parameters struct {
 	idpFluTag string
 
 	// サービス検索。
-	servExpType string
+	taExpType string
 
 	// ファイルベースサービス検索。
-	servExpPath string
+	taExpPath string
 
 	// Web ベースサービス検索。
-	servExpAddr string
+	taExpAddr string
 
 	// mongo サービス検索。
-	servExpUrl  string
-	servExpDb   string
-	servExpColl string
+	taExpUrl  string
+	taExpDb   string
+	taExpColl string
 
 	// 公開鍵レジストリ。
 	taKeyRegType string
@@ -154,12 +154,12 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.StringVar(&param.fluAddr, "fluAddr", "localhost:24224", "fluentd address.")
 	flags.StringVar(&param.idpFluTag, "idpFluTag", "edo.id-provider", "fluentd tag.")
 
-	flags.StringVar(&param.servExpType, "servExpType", "web", "Service explorer type.")
-	flags.StringVar(&param.servExpPath, "servExpPath", filepath.Join("sandbox", "service-expolorer"), "Service explorer directory.")
-	flags.StringVar(&param.servExpAddr, "servExpAddr", "http://localhost:9003", "Service explorer address.")
-	flags.StringVar(&param.servExpUrl, "servExpUrl", "localhost", "Service explorer address.")
-	flags.StringVar(&param.servExpDb, "servExpDb", "edo", "Service explorer database name.")
-	flags.StringVar(&param.servExpColl, "servExpColl", "service-explorer", "Service explorer collection name.")
+	flags.StringVar(&param.taExpType, "taExpType", "web", "TA explorer type.")
+	flags.StringVar(&param.taExpPath, "taExpPath", filepath.Join("sandbox", "service-expolorer"), "TA explorer directory.")
+	flags.StringVar(&param.taExpAddr, "taExpAddr", "http://localhost:16034", "TA explorer address.")
+	flags.StringVar(&param.taExpUrl, "taExpUrl", "localhost", "TA explorer address.")
+	flags.StringVar(&param.taExpDb, "taExpDb", "edo", "TA explorer database name.")
+	flags.StringVar(&param.taExpColl, "taExpColl", "ta-explorer", "TA explorer collection name.")
 
 	flags.StringVar(&param.taKeyRegType, "taKeyRegType", "web", "TA key provider type.")
 	flags.StringVar(&param.taKeyRegPath, "taKeyRegPath", filepath.Join("sandbox", "ta-key-provider"), "TA key provider directory.")

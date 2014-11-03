@@ -137,7 +137,9 @@ type parameters struct {
 
 func parseParameters(args ...string) (param *parameters, err error) {
 
-	flags := util.NewFlagSet("edo-id-provider parameters", flag.ExitOnError)
+	const label = "id-provider"
+
+	flags := util.NewFlagSet("edo-"+label+" parameters", flag.ExitOnError)
 	flags.Usage = func() {
 		fmt.Fprintln(os.Stderr, "Usage:")
 		fmt.Fprintln(os.Stderr, "  "+args[0]+" [{FLAG}...]")
@@ -150,9 +152,9 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.Var(level.Var(&param.consLv, level.INFO), "consLv", "Console log level.")
 	flags.StringVar(&param.logType, "logType", "", "Extra log type.")
 	flags.Var(level.Var(&param.logLv, level.ALL), "logLv", "Extra log level.")
-	flags.StringVar(&param.idpLogPath, "idpLogPath", filepath.Join(os.TempDir(), "edo-id-provider.log"), "File log path.")
+	flags.StringVar(&param.idpLogPath, "idpLogPath", filepath.Join(os.TempDir(), "edo-"+label+".log"), "File log path.")
 	flags.StringVar(&param.fluAddr, "fluAddr", "localhost:24224", "fluentd address.")
-	flags.StringVar(&param.idpFluTag, "idpFluTag", "edo.id-provider", "fluentd tag.")
+	flags.StringVar(&param.idpFluTag, "idpFluTag", "edo."+label, "fluentd tag.")
 
 	flags.StringVar(&param.taExpType, "taExpType", "web", "TA explorer type.")
 	flags.StringVar(&param.taExpPath, "taExpPath", filepath.Join("sandbox", "service-expolorer"), "TA explorer directory.")
@@ -199,8 +201,8 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.StringVar(&param.accTokenContColl, "accTokenContColl", "access-token-container", "Access token container lister collection name.")
 
 	flags.StringVar(&param.idpSocType, "idpSocType", "tcp", "Socket type.")
-	flags.StringVar(&param.idpSocPath, "idpSocPath", filepath.Join(os.TempDir(), "edo-id-provider"), "UNIX socket path.")
-	flags.IntVar(&param.idpSocPort, "idpSocPort", 8001, "TCP socket port.")
+	flags.StringVar(&param.idpSocPath, "idpSocPath", filepath.Join(os.TempDir(), "edo-"+label), "UNIX socket path.")
+	flags.IntVar(&param.idpSocPort, "idpSocPort", 16040, "TCP socket port.")
 
 	flags.StringVar(&param.idpProtType, "idpProtType", "http", "Protocol type.")
 

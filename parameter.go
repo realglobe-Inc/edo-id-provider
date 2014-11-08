@@ -23,11 +23,11 @@ type parameters struct {
 	logLv   level.Level
 
 	// ファイルログ。
-	idpLogPath string
+	logPath string
 
 	// fluentd ログ。
-	fluAddr   string
-	idpFluTag string
+	fluAddr string
+	fluTag  string
 
 	// サービス検索。
 	taExpType string
@@ -113,16 +113,16 @@ type parameters struct {
 	accTokenContColl string
 
 	// ソケット。
-	idpSocType string
+	socType string
 
 	// UNIX ソケット。
-	idpSocPath string
+	socPath string
 
 	// TCP ソケット。
-	idpSocPort int
+	socPort int
 
 	// プロトコル。
-	idpProtType string
+	protType string
 
 	// 無通信での認証済みセッションの有効期間。
 	maxSessExpiDur time.Duration // デフォルトかつ最大。
@@ -152,9 +152,9 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.Var(level.Var(&param.consLv, level.INFO), "consLv", "Console log level.")
 	flags.StringVar(&param.logType, "logType", "", "Extra log type.")
 	flags.Var(level.Var(&param.logLv, level.ALL), "logLv", "Extra log level.")
-	flags.StringVar(&param.idpLogPath, "idpLogPath", filepath.Join(os.TempDir(), "edo-"+label+".log"), "File log path.")
+	flags.StringVar(&param.logPath, "logPath", filepath.Join(os.TempDir(), "edo-"+label+".log"), "File log path.")
 	flags.StringVar(&param.fluAddr, "fluAddr", "localhost:24224", "fluentd address.")
-	flags.StringVar(&param.idpFluTag, "idpFluTag", "edo."+label, "fluentd tag.")
+	flags.StringVar(&param.fluTag, "fluTag", "edo."+label, "fluentd tag.")
 
 	flags.StringVar(&param.taExpType, "taExpType", "web", "TA explorer type.")
 	flags.StringVar(&param.taExpPath, "taExpPath", filepath.Join("sandbox", "service-expolorer"), "TA explorer directory.")
@@ -200,11 +200,11 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.StringVar(&param.accTokenContDb, "accTokenContDb", "edo", "Access token container lister database name.")
 	flags.StringVar(&param.accTokenContColl, "accTokenContColl", "access-token-container", "Access token container lister collection name.")
 
-	flags.StringVar(&param.idpSocType, "idpSocType", "tcp", "Socket type.")
-	flags.StringVar(&param.idpSocPath, "idpSocPath", filepath.Join(os.TempDir(), "edo-"+label), "UNIX socket path.")
-	flags.IntVar(&param.idpSocPort, "idpSocPort", 16040, "TCP socket port.")
+	flags.StringVar(&param.socType, "socType", "tcp", "Socket type.")
+	flags.StringVar(&param.socPath, "socPath", filepath.Join(os.TempDir(), "edo-"+label), "UNIX socket path.")
+	flags.IntVar(&param.socPort, "socPort", 16040, "TCP socket port.")
 
-	flags.StringVar(&param.idpProtType, "idpProtType", "http", "Protocol type.")
+	flags.StringVar(&param.protType, "protType", "http", "Protocol type.")
 
 	flags.DurationVar(&param.maxSessExpiDur, "maxSessExpiDur", 24*time.Hour, "Max session expiration duration.")
 	flags.DurationVar(&param.codeExpiDur, "codeExpiDur", 10*time.Minute, "Code expiration duration.")

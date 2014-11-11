@@ -16,7 +16,7 @@ import (
 // 便宜的に集めただけ。
 type system struct {
 	driver.ServiceExplorer
-	driver.ServiceKeyRegistry
+	driver.TaKeyProvider
 	driver.UserNameIndex
 	driver.UserAttributeRegistry
 	sessCont     driver.TimeLimitedKeyValueStore

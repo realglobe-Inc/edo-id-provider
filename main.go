@@ -73,22 +73,22 @@ func mainCore(param *parameters) error {
 		return erro.New("invalid service explorer type " + param.servExpType + ".")
 	}
 
-	var servKeyReg driver.ServiceKeyRegistry
-	switch param.servKeyRegType {
+	var taKeyReg driver.TaKeyProvider
+	switch param.taKeyRegType {
 	case "file":
-		servKeyReg = driver.NewFileServiceKeyRegistry(param.servKeyRegPath, 0)
-		log.Info("Use file service key registry " + param.servKeyRegPath + ".")
+		taKeyReg = driver.NewFileTaKeyProvider(param.taKeyRegPath, 0)
+		log.Info("Use file TA key provider " + param.taKeyRegPath + ".")
 	case "web":
-		servKeyReg = driver.NewWebServiceKeyRegistry(param.servKeyRegAddr)
-		log.Info("Use web service key registry " + param.servKeyRegAddr + ".")
+		taKeyReg = driver.NewWebTaKeyProvider(param.taKeyRegAddr)
+		log.Info("Use web TA key provider " + param.taKeyRegAddr + ".")
 	case "mongo":
-		servKeyReg, err = driver.NewMongoServiceKeyRegistry(param.servKeyRegUrl, param.servKeyRegDb, param.servKeyRegColl, 0)
+		taKeyReg, err = driver.NewMongoTaKeyProvider(param.taKeyRegUrl, param.taKeyRegDb, param.taKeyRegColl, 0)
 		if err != nil {
 			return erro.Wrap(err)
 		}
-		log.Info("Use mongodb service key registry " + param.servKeyRegUrl + ".")
+		log.Info("Use mongodb TA key provider " + param.taKeyRegUrl + ".")
 	default:
-		return erro.New("invalid service key registry type " + param.servKeyRegType + ".")
+		return erro.New("invalid TA key provider type " + param.taKeyRegType + ".")
 	}
 
 	var usrNameIdx driver.UserNameIndex
@@ -187,7 +187,7 @@ func mainCore(param *parameters) error {
 
 	sys := &system{
 		servExp,
-		servKeyReg,
+		taKeyReg,
 		usrNameIdx,
 		usrAttrReg,
 		sessCont,

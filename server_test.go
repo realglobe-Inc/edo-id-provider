@@ -23,7 +23,7 @@ func TestBoot(t *testing.T) {
 
 	sys := &system{
 		ServiceExplorer:       driver.NewMemoryServiceExplorer(0),
-		ServiceKeyRegistry:    driver.NewMemoryServiceKeyRegistry(0),
+		TaKeyProvider:    driver.NewMemoryTaKeyProvider(0),
 		UserNameIndex:         driver.NewMemoryUserNameIndex(0),
 		UserAttributeRegistry: driver.NewMemoryUserAttributeRegistry(0),
 		sessCont:              driver.NewMemoryTimeLimitedKeyValueStore(0),

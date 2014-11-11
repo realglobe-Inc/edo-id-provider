@@ -44,18 +44,18 @@ type parameters struct {
 	servExpColl string
 
 	// 公開鍵レジストリ。
-	servKeyRegType string
+	taKeyRegType string
 
 	// ファイルベース公開鍵レジストリ。
-	servKeyRegPath string
+	taKeyRegPath string
 
 	// Web ベース公開鍵レジストリ。
-	servKeyRegAddr string
+	taKeyRegAddr string
 
 	// mongo 公開鍵レジストリ。
-	servKeyRegUrl  string
-	servKeyRegDb   string
-	servKeyRegColl string
+	taKeyRegUrl  string
+	taKeyRegDb   string
+	taKeyRegColl string
 
 	// ユーザー名索引。
 	usrNameIdxType string
@@ -161,12 +161,12 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.StringVar(&param.servExpDb, "servExpDb", "edo", "Service explorer database name.")
 	flags.StringVar(&param.servExpColl, "servExpColl", "service-explorer", "Service explorer collection name.")
 
-	flags.StringVar(&param.servKeyRegType, "servKeyRegType", "web", "service key registry type.")
-	flags.StringVar(&param.servKeyRegPath, "servKeyRegPath", filepath.Join("sandbox", "service-key-registry"), "service key registry directory.")
-	flags.StringVar(&param.servKeyRegAddr, "servKeyRegAddr", "http://localhost:9002", "service key registry address.")
-	flags.StringVar(&param.servKeyRegUrl, "servKeyRegUrl", "localhost", "service key registry address.")
-	flags.StringVar(&param.servKeyRegDb, "servKeyRegDb", "edo", "service key registry database name.")
-	flags.StringVar(&param.servKeyRegColl, "servKeyRegColl", "service-key-registry", "service key registry collection name.")
+	flags.StringVar(&param.taKeyRegType, "taKeyRegType", "web", "TA key provider type.")
+	flags.StringVar(&param.taKeyRegPath, "taKeyRegPath", filepath.Join("sandbox", "ta-key-provider"), "TA key provider directory.")
+	flags.StringVar(&param.taKeyRegAddr, "taKeyRegAddr", "http://localhost:16033", "TA key provider address.")
+	flags.StringVar(&param.taKeyRegUrl, "taKeyRegUrl", "localhost", "TA key provider address.")
+	flags.StringVar(&param.taKeyRegDb, "taKeyRegDb", "edo", "TA key provider database name.")
+	flags.StringVar(&param.taKeyRegColl, "taKeyRegColl", "ta-key-provider", "TA key provider collection name.")
 
 	flags.StringVar(&param.usrNameIdxType, "usrNameIdxType", "mongo", "Username index type.")
 	flags.StringVar(&param.usrNameIdxPath, "usrNameIdxPath", filepath.Join("sandbox", "user-name-index"), "Username index directory.")

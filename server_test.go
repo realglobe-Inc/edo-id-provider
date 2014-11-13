@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/realglobe-Inc/edo/driver"
 	"github.com/realglobe-Inc/edo/util"
-	"github.com/realglobe-Inc/go-lib-rg/rglog/handler"
 	"github.com/realglobe-Inc/go-lib-rg/rglog/level"
 	"net/http"
 	"strconv"
@@ -11,17 +10,14 @@ import (
 	"time"
 )
 
-var hndl handler.Handler
-
 func init() {
-	hndl = util.InitConsoleLog("github.com/realglobe-Inc")
-	hndl.SetLevel(level.OFF)
+	util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
 }
 
 func TestBoot(t *testing.T) {
 	// ////////////////////////////////
-	// hndl.SetLevel(level.ALL)
-	// defer hndl.SetLevel(level.INFO)
+	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
+	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
 	port, err := util.FreePort()

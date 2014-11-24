@@ -201,7 +201,7 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.StringVar(&param.accTokenContColl, "accTokenContColl", "access-token-container", "Access token container lister collection name.")
 
 	flags.StringVar(&param.socType, "socType", "tcp", "Socket type.")
-	flags.StringVar(&param.socPath, "socPath", filepath.Join(os.TempDir(), "edo-"+label), "UNIX socket path.")
+	flags.StringVar(&param.socPath, "socPath", filepath.Join(os.TempDir(), "edo", label), "UNIX socket path.")
 	flags.IntVar(&param.socPort, "socPort", 16040, "TCP socket port.")
 
 	flags.StringVar(&param.protType, "protType", "http", "Protocol type.")

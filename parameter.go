@@ -137,9 +137,9 @@ type parameters struct {
 
 func parseParameters(args ...string) (param *parameters, err error) {
 
-	const label = "id-provider"
+	const label = "edo-id-provider"
 
-	flags := util.NewFlagSet("edo-"+label+" parameters", flag.ExitOnError)
+	flags := util.NewFlagSet(label+" parameters", flag.ExitOnError)
 	flags.Usage = func() {
 		fmt.Fprintln(os.Stderr, "Usage:")
 		fmt.Fprintln(os.Stderr, "  "+args[0]+" [{FLAG}...]")
@@ -152,56 +152,56 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.Var(level.Var(&param.consLv, level.INFO), "consLv", "Console log level.")
 	flags.StringVar(&param.logType, "logType", "", "Extra log type.")
 	flags.Var(level.Var(&param.logLv, level.ALL), "logLv", "Extra log level.")
-	flags.StringVar(&param.logPath, "logPath", filepath.Join(os.TempDir(), "edo", label+".log"), "File log path.")
+	flags.StringVar(&param.logPath, "logPath", filepath.Join(filepath.Dir(os.Args[0]), "log", label+".log"), "File log path.")
 	flags.StringVar(&param.fluAddr, "fluAddr", "localhost:24224", "fluentd address.")
 	flags.StringVar(&param.fluTag, "fluTag", "edo."+label, "fluentd tag.")
 
 	flags.StringVar(&param.taExpType, "taExpType", "web", "TA explorer type.")
-	flags.StringVar(&param.taExpPath, "taExpPath", filepath.Join("sandbox", "service-expolorer"), "TA explorer directory.")
+	flags.StringVar(&param.taExpPath, "taExpPath", filepath.Join(filepath.Dir(os.Args[0]), "ta_uris"), "TA explorer directory.")
 	flags.StringVar(&param.taExpAddr, "taExpAddr", "http://localhost:16034", "TA explorer address.")
 	flags.StringVar(&param.taExpUrl, "taExpUrl", "localhost", "TA explorer address.")
 	flags.StringVar(&param.taExpDb, "taExpDb", "edo", "TA explorer database name.")
-	flags.StringVar(&param.taExpColl, "taExpColl", "ta-explorer", "TA explorer collection name.")
+	flags.StringVar(&param.taExpColl, "taExpColl", "ta_uris", "TA explorer collection name.")
 
 	flags.StringVar(&param.taKeyRegType, "taKeyRegType", "web", "TA key provider type.")
-	flags.StringVar(&param.taKeyRegPath, "taKeyRegPath", filepath.Join("sandbox", "ta-key-provider"), "TA key provider directory.")
+	flags.StringVar(&param.taKeyRegPath, "taKeyRegPath", filepath.Join(filepath.Dir(os.Args[0]), "public_keys"), "TA key provider directory.")
 	flags.StringVar(&param.taKeyRegAddr, "taKeyRegAddr", "http://localhost:16033", "TA key provider address.")
 	flags.StringVar(&param.taKeyRegUrl, "taKeyRegUrl", "localhost", "TA key provider address.")
 	flags.StringVar(&param.taKeyRegDb, "taKeyRegDb", "edo", "TA key provider database name.")
-	flags.StringVar(&param.taKeyRegColl, "taKeyRegColl", "ta-key-provider", "TA key provider collection name.")
+	flags.StringVar(&param.taKeyRegColl, "taKeyRegColl", "public_keys", "TA key provider collection name.")
 
 	flags.StringVar(&param.usrNameIdxType, "usrNameIdxType", "mongo", "Username index type.")
-	flags.StringVar(&param.usrNameIdxPath, "usrNameIdxPath", filepath.Join("sandbox", "user-name-index"), "Username index directory.")
+	flags.StringVar(&param.usrNameIdxPath, "usrNameIdxPath", filepath.Join(filepath.Dir(os.Args[0]), "user_ids"), "Username index directory.")
 	flags.StringVar(&param.usrNameIdxUrl, "usrNameIdxUrl", "localhost", "Username index address.")
 	flags.StringVar(&param.usrNameIdxDb, "usrNameIdxDb", "edo", "Username index database name.")
-	flags.StringVar(&param.usrNameIdxColl, "usrNameIdxColl", "user-name-index", "Username index collection name.")
+	flags.StringVar(&param.usrNameIdxColl, "usrNameIdxColl", "user_ids", "Username index collection name.")
 
 	flags.StringVar(&param.usrAttrRegType, "usrAttrRegType", "mongo", "User attribute registry type.")
-	flags.StringVar(&param.usrAttrRegPath, "usrAttrRegPath", filepath.Join("sandbox", "user-attribute-registry"), "User attribute registry directory.")
+	flags.StringVar(&param.usrAttrRegPath, "usrAttrRegPath", filepath.Join(filepath.Dir(os.Args[0]), "user_attributes"), "User attribute registry directory.")
 	flags.StringVar(&param.usrAttrRegUrl, "usrAttrRegUrl", "localhost", "User attribute registry address.")
 	flags.StringVar(&param.usrAttrRegDb, "usrAttrRegDb", "edo", "User attribute registry database name.")
-	flags.StringVar(&param.usrAttrRegColl, "usrAttrRegColl", "user-attribute-registry", "User attribute registry collection name.")
+	flags.StringVar(&param.usrAttrRegColl, "usrAttrRegColl", "user_attributes", "User attribute registry collection name.")
 
 	flags.StringVar(&param.sessContType, "sessContType", "mongo", "Session container lister type.")
-	flags.StringVar(&param.sessContPath, "sessContPath", filepath.Join("sandbox", "session-container"), "Session container lister directory.")
+	flags.StringVar(&param.sessContPath, "sessContPath", filepath.Join(filepath.Dir(os.Args[0]), "sessions"), "Session container lister directory.")
 	flags.StringVar(&param.sessContUrl, "sessContUrl", "localhost", "Session container lister address.")
 	flags.StringVar(&param.sessContDb, "sessContDb", "edo", "Session container lister database name.")
-	flags.StringVar(&param.sessContColl, "sessContColl", "session-container", "Session container lister collection name.")
+	flags.StringVar(&param.sessContColl, "sessContColl", "sessions", "Session container lister collection name.")
 
 	flags.StringVar(&param.codeContType, "codeContType", "mongo", "Code container lister type.")
-	flags.StringVar(&param.codeContPath, "codeContPath", filepath.Join("sandbox", "code-container"), "Code container lister directory.")
+	flags.StringVar(&param.codeContPath, "codeContPath", filepath.Join(filepath.Dir(os.Args[0]), "access_codes"), "Code container lister directory.")
 	flags.StringVar(&param.codeContUrl, "codeContUrl", "localhost", "Code container lister address.")
 	flags.StringVar(&param.codeContDb, "codeContDb", "edo", "Code container lister database name.")
-	flags.StringVar(&param.codeContColl, "codeContColl", "code-container", "Code container lister collection name.")
+	flags.StringVar(&param.codeContColl, "codeContColl", "access_codes", "Code container lister collection name.")
 
 	flags.StringVar(&param.accTokenContType, "accTokenContType", "mongo", "Access token container lister type.")
-	flags.StringVar(&param.accTokenContPath, "accTokenContPath", filepath.Join("sandbox", "access-token-container"), "Access token container lister directory.")
+	flags.StringVar(&param.accTokenContPath, "accTokenContPath", filepath.Join(filepath.Dir(os.Args[0]), "access_tokens"), "Access token container lister directory.")
 	flags.StringVar(&param.accTokenContUrl, "accTokenContUrl", "localhost", "Access token container lister address.")
 	flags.StringVar(&param.accTokenContDb, "accTokenContDb", "edo", "Access token container lister database name.")
-	flags.StringVar(&param.accTokenContColl, "accTokenContColl", "access-token-container", "Access token container lister collection name.")
+	flags.StringVar(&param.accTokenContColl, "accTokenContColl", "access_tokens", "Access token container lister collection name.")
 
 	flags.StringVar(&param.socType, "socType", "tcp", "Socket type.")
-	flags.StringVar(&param.socPath, "socPath", filepath.Join(os.TempDir(), "edo", label), "UNIX socket path.")
+	flags.StringVar(&param.socPath, "socPath", filepath.Join(filepath.Dir(os.Args[0]), "run", label+".soc"), "UNIX socket path.")
 	flags.IntVar(&param.socPort, "socPort", 16040, "TCP socket port.")
 
 	flags.StringVar(&param.protType, "protType", "http", "Protocol type.")

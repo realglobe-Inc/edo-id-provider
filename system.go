@@ -15,10 +15,10 @@ import (
 
 // 便宜的に集めただけ。
 type system struct {
-	driver.TaExplorer
-	driver.TaKeyProvider
-	driver.UserNameIndex
-	driver.UserAttributeRegistry
+	TaExplorer
+	TaKeyProvider
+	UserNameIndex
+	UserAttributeRegistry
 	sessCont     driver.TimeLimitedKeyValueStore
 	codeCont     driver.TimeLimitedKeyValueStore
 	accTokenCont driver.TimeLimitedKeyValueStore

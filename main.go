@@ -55,16 +55,16 @@ func main() {
 func mainCore(param *parameters) error {
 	var err error
 
-	var taExp driver.TaExplorer
+	var taExp TaExplorer
 	switch param.taExpType {
 	case "file":
-		taExp = driver.NewFileTaExplorer(param.taExpPath, 0)
+		taExp = NewFileTaExplorer(param.taExpPath, 0)
 		log.Info("Use file TA explorer " + param.taExpPath + ".")
 	case "web":
-		taExp = driver.NewWebTaExplorer(param.taExpAddr)
+		taExp = NewWebTaExplorer(param.taExpAddr)
 		log.Info("Use web TA explorer " + param.taExpAddr + ".")
 	case "mongo":
-		taExp, err = driver.NewMongoTaExplorer(param.taExpUrl, param.taExpDb, param.taExpColl, 0)
+		taExp, err = NewMongoTaExplorer(param.taExpUrl, param.taExpDb, param.taExpColl, 0)
 		if err != nil {
 			return erro.Wrap(err)
 		}
@@ -73,16 +73,16 @@ func mainCore(param *parameters) error {
 		return erro.New("invalid TA explorer type " + param.taExpType + ".")
 	}
 
-	var taKeyReg driver.TaKeyProvider
+	var taKeyReg TaKeyProvider
 	switch param.taKeyRegType {
 	case "file":
-		taKeyReg = driver.NewFileTaKeyProvider(param.taKeyRegPath, 0)
+		taKeyReg = NewFileTaKeyProvider(param.taKeyRegPath, 0)
 		log.Info("Use file TA key provider " + param.taKeyRegPath + ".")
 	case "web":
-		taKeyReg = driver.NewWebTaKeyProvider(param.taKeyRegAddr)
+		taKeyReg = NewWebTaKeyProvider(param.taKeyRegAddr)
 		log.Info("Use web TA key provider " + param.taKeyRegAddr + ".")
 	case "mongo":
-		taKeyReg, err = driver.NewMongoTaKeyProvider(param.taKeyRegUrl, param.taKeyRegDb, param.taKeyRegColl, 0)
+		taKeyReg, err = NewMongoTaKeyProvider(param.taKeyRegUrl, param.taKeyRegDb, param.taKeyRegColl, 0)
 		if err != nil {
 			return erro.Wrap(err)
 		}
@@ -91,13 +91,13 @@ func mainCore(param *parameters) error {
 		return erro.New("invalid TA key provider type " + param.taKeyRegType + ".")
 	}
 
-	var usrNameIdx driver.UserNameIndex
+	var usrNameIdx UserNameIndex
 	switch param.usrNameIdxType {
 	case "file":
-		usrNameIdx = driver.NewFileUserNameIndex(param.usrNameIdxPath, 0)
+		usrNameIdx = NewFileUserNameIndex(param.usrNameIdxPath, 0)
 		log.Info("Use file user name index " + param.usrNameIdxPath + ".")
 	case "mongo":
-		usrNameIdx, err = driver.NewMongoUserNameIndex(param.usrNameIdxUrl, param.usrNameIdxDb, param.usrNameIdxColl, 0)
+		usrNameIdx, err = NewMongoUserNameIndex(param.usrNameIdxUrl, param.usrNameIdxDb, param.usrNameIdxColl, 0)
 		if err != nil {
 			return erro.Wrap(err)
 		}
@@ -106,13 +106,13 @@ func mainCore(param *parameters) error {
 		return erro.New("invalid user name index type " + param.usrNameIdxType + ".")
 	}
 
-	var usrAttrReg driver.UserAttributeRegistry
+	var usrAttrReg UserAttributeRegistry
 	switch param.usrAttrRegType {
 	case "file":
-		usrAttrReg = driver.NewFileUserAttributeRegistry(param.usrAttrRegPath, 0)
+		usrAttrReg = NewFileUserAttributeRegistry(param.usrAttrRegPath, 0)
 		log.Info("Use file user attribute registry " + param.usrAttrRegPath + ".")
 	case "mongo":
-		usrAttrReg, err = driver.NewMongoUserAttributeRegistry(param.usrAttrRegUrl, param.usrAttrRegDb, param.usrAttrRegColl, 0)
+		usrAttrReg, err = NewMongoUserAttributeRegistry(param.usrAttrRegUrl, param.usrAttrRegDb, param.usrAttrRegColl, 0)
 		if err != nil {
 			return erro.Wrap(err)
 		}

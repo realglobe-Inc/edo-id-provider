@@ -29,13 +29,7 @@ func pemToPublicKey(pemStr interface{}) (pubKey interface{}, err error) {
 
 // スレッドセーフ。
 func NewMongoTaKeyProvider(url, dbName, collName string, expiDur time.Duration) (TaKeyProvider, error) {
-	base, err := driver.NewMongoKeyValueStore(url, dbName, collName, expiDur)
-	if err != nil {
-		return nil, erro.Wrap(err)
-	}
-	base.SetMarshal(publicKeyToPem)
-	base.SetUnmarshal(pemToPublicKey)
 	// デコード後をキャッシュ。
 	// TODO キャッシュの並列化。
-	return newTaKeyProvider(driver.NewCachingKeyValueStore(base)), nil
+	return newTaKeyProvider(driver.NewCachingKeyValueStore(driver.NewMongoKeyValueStore(url, dbName, collName, publicKeyToPem, pemToPublicKey, nil, expiDur, expiDur))), nil
 }

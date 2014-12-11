@@ -11,7 +11,7 @@ type MemoryUserAttributeRegistry struct {
 
 // スレッドセーフ。
 func NewMemoryUserAttributeRegistry(expiDur time.Duration) *MemoryUserAttributeRegistry {
-	return &MemoryUserAttributeRegistry{driver.NewMemoryKeyValueStore(expiDur)}
+	return &MemoryUserAttributeRegistry{driver.NewMemoryKeyValueStore(expiDur, expiDur)}
 }
 
 func (reg *MemoryUserAttributeRegistry) UserAttribute(usrUuid, attrName string, caStmp *driver.Stamp) (usrAttr interface{}, newCaStmp *driver.Stamp, err error) {

@@ -17,22 +17,16 @@ func containerToTaExplorerTree(data interface{}) (interface{}, error) {
 // mongodb から map[string]string を読み取る。
 func containerMongoTake(query *mgo.Query) (interface{}, *driver.Stamp, error) {
 	var res struct {
-		Value map[string]string
-		Stamp *driver.Stamp
+		V map[string]string
+		S *driver.Stamp
 	}
 	if err := query.One(&res); err != nil {
 		return nil, nil, erro.Wrap(err)
 	}
-	return res.Value, res.Stamp, nil
+	return res.V, res.S, nil
 }
 
 // スレッドセーフ。
 func NewMongoTaExplorer(url, dbName, collName string, expiDur time.Duration) (TaExplorer, error) {
-	base, err := driver.NewMongoKeyValueStore(url, dbName, collName, expiDur)
-	if err != nil {
-		return nil, erro.Wrap(err)
-	}
-	base.SetUnmarshal(containerToTaExplorerTree)
-	base.SetTake(containerMongoTake)
-	return newTaExplorer(base), nil
+	return newTaExplorer(driver.NewMongoKeyValueStore(url, dbName, collName, nil, containerToTaExplorerTree, containerMongoTake, expiDur, expiDur)), nil
 }

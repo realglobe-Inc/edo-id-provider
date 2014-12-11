@@ -121,25 +121,16 @@ func mainCore(param *parameters) error {
 		return erro.New("invalid user attribute registry type " + param.usrAttrRegType + ".")
 	}
 
-	jsonKeyGen := func(before string) string {
-		return before + ".json"
-	}
-
 	var sessCont driver.TimeLimitedKeyValueStore
 	switch param.sessContType {
 	case "memory":
-		sessCont = driver.NewMemoryTimeLimitedKeyValueStore(0)
+		sessCont = driver.NewMemoryTimeLimitedKeyValueStore(0, 0)
 		log.Info("Use memory session container.")
 	case "file":
-		sessCont = driver.NewFileTimeLimitedKeyValueStore(param.sessContPath, jsonKeyGen, json.Marshal, sessionUnmarshal, 0)
+		sessCont = driver.NewFileTimeLimitedKeyValueStore(param.sessContPath, keyToJsonPath, jsonPathToKey, json.Marshal, sessionUnmarshal, 0, 0)
 		log.Info("Use file session container " + param.sessContPath + ".")
 	case "mongo":
-		cont, err := driver.NewMongoTimeLimitedKeyValueStore(param.sessContUrl, param.sessContDb, param.sessContColl, 0)
-		if err != nil {
-			return erro.Wrap(err)
-		}
-		cont.SetMongoTake(sessionMongoTake)
-		sessCont = cont
+		sessCont = driver.NewMongoTimeLimitedKeyValueStore(param.sessContUrl, param.sessContDb, param.sessContColl, nil, nil, sessionMongoTake, 0, 0)
 		log.Info("Use mongodb session container " + param.sessContUrl + ".")
 	default:
 		return erro.New("invalid session container type " + param.sessContType + ".")
@@ -148,18 +139,13 @@ func mainCore(param *parameters) error {
 	var codeCont driver.TimeLimitedKeyValueStore
 	switch param.codeContType {
 	case "memory":
-		codeCont = driver.NewMemoryTimeLimitedKeyValueStore(0)
+		codeCont = driver.NewMemoryTimeLimitedKeyValueStore(0, 0)
 		log.Info("Use memory code container.")
 	case "file":
-		codeCont = driver.NewFileTimeLimitedKeyValueStore(param.codeContPath, jsonKeyGen, json.Marshal, codeUnmarshal, 0)
+		codeCont = driver.NewFileTimeLimitedKeyValueStore(param.codeContPath, keyToJsonPath, jsonPathToKey, json.Marshal, codeUnmarshal, 0, 0)
 		log.Info("Use file code container " + param.codeContPath + ".")
 	case "mongo":
-		cont, err := driver.NewMongoTimeLimitedKeyValueStore(param.codeContUrl, param.codeContDb, param.codeContColl, 0)
-		if err != nil {
-			return erro.Wrap(err)
-		}
-		cont.SetMongoTake(codeMongoTake)
-		codeCont = cont
+		codeCont = driver.NewMongoTimeLimitedKeyValueStore(param.codeContUrl, param.codeContDb, param.codeContColl, nil, nil, codeMongoTake, 0, 0)
 		log.Info("Use mongodb code container " + param.codeContUrl + ".")
 	default:
 		return erro.New("invalid code container type " + param.codeContType + ".")
@@ -168,18 +154,13 @@ func mainCore(param *parameters) error {
 	var accTokenCont driver.TimeLimitedKeyValueStore
 	switch param.accTokenContType {
 	case "memory":
-		accTokenCont = driver.NewMemoryTimeLimitedKeyValueStore(0)
+		accTokenCont = driver.NewMemoryTimeLimitedKeyValueStore(0, 0)
 		log.Info("Use memory access token container.")
 	case "file":
-		accTokenCont = driver.NewFileTimeLimitedKeyValueStore(param.accTokenContPath, jsonKeyGen, json.Marshal, accessTokenUnmarshal, 0)
+		accTokenCont = driver.NewFileTimeLimitedKeyValueStore(param.accTokenContPath, keyToJsonPath, jsonPathToKey, json.Marshal, accessTokenUnmarshal, 0, 0)
 		log.Info("Use file access token container " + param.accTokenContPath + ".")
 	case "mongo":
-		cont, err := driver.NewMongoTimeLimitedKeyValueStore(param.accTokenContUrl, param.accTokenContDb, param.accTokenContColl, 0)
-		if err != nil {
-			return erro.Wrap(err)
-		}
-		cont.SetMongoTake(accessTokenMongoTake)
-		accTokenCont = cont
+		accTokenCont = driver.NewMongoTimeLimitedKeyValueStore(param.accTokenContUrl, param.accTokenContDb, param.accTokenContColl, nil, nil, accessTokenMongoTake, 0, 0)
 		log.Info("Use mongodb access token container " + param.accTokenContUrl + ".")
 	default:
 		return erro.New("invalid access token container type " + param.accTokenContType + ".")

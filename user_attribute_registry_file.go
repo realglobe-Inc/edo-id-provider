@@ -18,5 +18,5 @@ func jsonUnmarshal(data []byte) (interface{}, error) {
 
 // スレッドセーフ。
 func NewFileUserAttributeRegistry(path string, expiDur time.Duration) UserAttributeRegistry {
-	return newUserAttributeRegistry(driver.NewFileKeyValueStore(path, jsonKeyGen, json.Marshal, jsonUnmarshal, expiDur))
+	return newUserAttributeRegistry(driver.NewFileKeyValueStore(path, keyToJsonPath, jsonPathToKey, json.Marshal, jsonUnmarshal, expiDur, expiDur))
 }

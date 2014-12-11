@@ -28,10 +28,7 @@ func TestMongoTaExplorer(t *testing.T) {
 		t.SkipNow()
 	}
 
-	reg, err := NewMongoTaExplorer(mongoAddr, testLabel, "ta-explorer", 0)
-	if err != nil {
-		t.Fatal(err)
-	}
+	reg := NewMongoTaExplorer(mongoAddr, testLabel, "ta-explorer", 0)
 	defer reg.(*taExplorer).base.(driver.MongoKeyValueStore).Clear()
 
 	if _, err := reg.(*taExplorer).base.Put("list", bson.M{testUri: testServUuid}); err != nil {
@@ -46,10 +43,7 @@ func TestMongoTaExplorerStamp(t *testing.T) {
 		t.SkipNow()
 	}
 
-	reg, err := NewMongoTaExplorer(mongoAddr, testLabel, "ta-explorer", 0)
-	if err != nil {
-		t.Fatal(err)
-	}
+	reg := NewMongoTaExplorer(mongoAddr, testLabel, "ta-explorer", 0)
 	defer reg.(*taExplorer).base.(driver.MongoKeyValueStore).Clear()
 
 	if _, err := reg.(*taExplorer).base.Put("list", bson.M{testUri: testServUuid}); err != nil {

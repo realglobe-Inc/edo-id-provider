@@ -10,10 +10,7 @@ func TestMongoTaKeyProvider(t *testing.T) {
 		t.SkipNow()
 	}
 
-	reg, err := NewMongoTaKeyProvider(mongoAddr, testLabel, "ta-key-provider", 0)
-	if err != nil {
-		t.Fatal(err)
-	}
+	reg := NewMongoTaKeyProvider(mongoAddr, testLabel, "ta-key-provider", 0)
 	defer driver.NewMongoKeyValueStore(mongoAddr, testLabel, "ta-key-provider", nil, nil, nil, 0, 0).Clear()
 
 	if _, err := reg.(*taKeyProvider).base.Put(testServUuid, testPublicKey); err != nil {
@@ -28,10 +25,7 @@ func TestMongoTaKeyProviderStamp(t *testing.T) {
 		t.SkipNow()
 	}
 
-	reg, err := NewMongoTaKeyProvider(mongoAddr, testLabel, "ta-key-provider", 0)
-	if err != nil {
-		t.Fatal(err)
-	}
+	reg := NewMongoTaKeyProvider(mongoAddr, testLabel, "ta-key-provider", 0)
 	defer driver.NewMongoKeyValueStore(mongoAddr, testLabel, "ta-key-provider", nil, nil, nil, 0, 0).Clear()
 
 	if _, err := reg.(*taKeyProvider).base.Put(testServUuid, testPublicKey); err != nil {

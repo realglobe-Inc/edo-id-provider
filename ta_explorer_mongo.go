@@ -23,10 +23,11 @@ func containerMongoTake(query *mgo.Query) (interface{}, *driver.Stamp, error) {
 	if err := query.One(&res); err != nil {
 		return nil, nil, erro.Wrap(err)
 	}
+
 	return res.V, res.S, nil
 }
 
 // スレッドセーフ。
-func NewMongoTaExplorer(url, dbName, collName string, expiDur time.Duration) (TaExplorer, error) {
-	return newTaExplorer(driver.NewMongoKeyValueStore(url, dbName, collName, nil, containerToTaExplorerTree, containerMongoTake, expiDur, expiDur)), nil
+func NewMongoTaExplorer(url, dbName, collName string, expiDur time.Duration) TaExplorer {
+	return newTaExplorer(driver.NewMongoKeyValueStore(url, dbName, collName, nil, containerToTaExplorerTree, containerMongoTake, expiDur, expiDur))
 }

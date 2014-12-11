@@ -53,8 +53,6 @@ func main() {
 
 // system を準備する。
 func mainCore(param *parameters) error {
-	var err error
-
 	var taExp TaExplorer
 	switch param.taExpType {
 	case "file":
@@ -64,10 +62,7 @@ func mainCore(param *parameters) error {
 		taExp = NewWebTaExplorer(param.taExpAddr)
 		log.Info("Use web TA explorer " + param.taExpAddr + ".")
 	case "mongo":
-		taExp, err = NewMongoTaExplorer(param.taExpUrl, param.taExpDb, param.taExpColl, 0)
-		if err != nil {
-			return erro.Wrap(err)
-		}
+		taExp = NewMongoTaExplorer(param.taExpUrl, param.taExpDb, param.taExpColl, 0)
 		log.Info("Use mongodb TA explorer " + param.taExpUrl + ".")
 	default:
 		return erro.New("invalid TA explorer type " + param.taExpType + ".")
@@ -82,10 +77,7 @@ func mainCore(param *parameters) error {
 		taKeyReg = NewWebTaKeyProvider(param.taKeyRegAddr)
 		log.Info("Use web TA key provider " + param.taKeyRegAddr + ".")
 	case "mongo":
-		taKeyReg, err = NewMongoTaKeyProvider(param.taKeyRegUrl, param.taKeyRegDb, param.taKeyRegColl, 0)
-		if err != nil {
-			return erro.Wrap(err)
-		}
+		taKeyReg = NewMongoTaKeyProvider(param.taKeyRegUrl, param.taKeyRegDb, param.taKeyRegColl, 0)
 		log.Info("Use mongodb TA key provider " + param.taKeyRegUrl + ".")
 	default:
 		return erro.New("invalid TA key provider type " + param.taKeyRegType + ".")
@@ -97,10 +89,7 @@ func mainCore(param *parameters) error {
 		usrNameIdx = NewFileUserNameIndex(param.usrNameIdxPath, 0)
 		log.Info("Use file user name index " + param.usrNameIdxPath + ".")
 	case "mongo":
-		usrNameIdx, err = NewMongoUserNameIndex(param.usrNameIdxUrl, param.usrNameIdxDb, param.usrNameIdxColl, 0)
-		if err != nil {
-			return erro.Wrap(err)
-		}
+		usrNameIdx = NewMongoUserNameIndex(param.usrNameIdxUrl, param.usrNameIdxDb, param.usrNameIdxColl, 0)
 		log.Info("Use mongodb user name index " + param.usrNameIdxUrl + ".")
 	default:
 		return erro.New("invalid user name index type " + param.usrNameIdxType + ".")
@@ -112,10 +101,7 @@ func mainCore(param *parameters) error {
 		usrAttrReg = NewFileUserAttributeRegistry(param.usrAttrRegPath, 0)
 		log.Info("Use file user attribute registry " + param.usrAttrRegPath + ".")
 	case "mongo":
-		usrAttrReg, err = NewMongoUserAttributeRegistry(param.usrAttrRegUrl, param.usrAttrRegDb, param.usrAttrRegColl, 0)
-		if err != nil {
-			return erro.Wrap(err)
-		}
+		usrAttrReg = NewMongoUserAttributeRegistry(param.usrAttrRegUrl, param.usrAttrRegDb, param.usrAttrRegColl, 0)
 		log.Info("Use mongodb user attribute registry " + param.usrAttrRegUrl + ".")
 	default:
 		return erro.New("invalid user attribute registry type " + param.usrAttrRegType + ".")

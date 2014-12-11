@@ -1,116 +1,77 @@
 edo-id-provider
 ===
 
-ログインサーバー。
+IdP。
+アカウント認証サーバー。
 
-### /
 
-cookie に有効な SESSION_ID が設定されていれば、
-URL パラメータを維持したまま /set_cookie にリダイレクト。
-設定されていなければ、URL パラメータを維持したまま /login にリダイレクト。
+起動
+---
 
-### /login
-
-ログイン画面を表示する。
-ログインボタンを押すと、
-/begin_session に元の URL パラメータをつけて、
-ユーザー名とパスワードを POST する。
-
-### /begin_session
-
-user_name と password が付随していなければ 400 Bad Request。
-
-ユーザー名とパスワードが正しければ、
-cookie に SESSION_ID を設定して、
-URL パラメータを維持したまま /set_cookie にリダイレクト。
-正しくなければ、403 Forbidden。
-
-(TODO) OpenID Connect 的にはエラーは URL パラメータで返すらしい。
-
-### /set_cookie?client_id={client_id}&redirect_uri={redirect_uri}
-
-cookie に有効な SESSION_ID が設定されていて、
-client_id が登録されているサービスの UUID で、
-redirect_uri がそのサービスの提供する URI 以下ならば、
-SESSION_ID を更新して、
-code をつけて redirect_uri にリダイレクト。
-そうでなければ、403 Forbidden。
-
-### /set_cookie
-
-cookie に有効な SESSION_ID が設定されているならば、
-SESSION_ID を更新して、
-URL パラメータを維持したまま /logout にリダイレクト。
-設定されていなければ、403 Forbidden。
-
-### /logout
-
-cookie に有効な SESSION_ID が設定されていれば、ログアウト画面を表示する。
-設定されていなければ、403 Forbidden。
-
-(TODO) /login に戻す手もある。ただ、無限ループバグを作る可能性あり。
-
-ログアウトボタンを押すと、/end_session に元の URL パラメータをつけて、GET する。
-
-### /delete_cookie
-
-cookie に有効な SESSION_ID が設定されていれば、
-cookie から SESSION_ID を削除して、
-URL パラメータを維持したまま /login にリダイレクト。
-設定されていなければ、403 Forbidden。
-
-(TODO) 対応する access_token 等も消すべきか。
-
-### /delete_cookie?client_id={client_id}&redirect_uri={redirect_uri}
-
-cookie に有効な SESSION_ID が設定されていて、
-client_id が登録されているサービスの UUID で、
-redirect_uri がそのサービスの提供する URI 以下ならば、
-cookie から SESSION_ID を削除して、
-redirect_uri にリダイレクト。
-設定されていなければ、403 Forbidden。
-
-(TODO) 対応する access_token 等も消すべきか。
-
-----------
-
-### /access_token?code={code}&client_id={client_id}&client_secret={client_secret}
-
-code、client_id、client_secret が無ければ、400 Bad Request。
-code が有効で、
-client_id が code の発行先サービスの UUID で、
-client_secret が発行先サービスが code にした署名ならば、
-200 OK でボディに JSON で access_token が入る。
+UI 用の HTML 等を ui ディレクトリの下に置く。
 
 ```
-{
-  "access_token": "XXXXX",
-  "expires_in": 3600
-}
+<任意のディレクトリ>/
+├── edo-id-provider
+└── ui
+     ├── index.html
+     ...
 ```
 
-そうでなければ、403 Forbidden。
+|オプション|値の意味・選択肢|
+|:--|:--|
+|-uiPath|UI 用 HTML 等を置くディレクトリパス|
+|-uiUri|UI 用 HTML 等を提供する URI|
 
-----------
 
-### /query?access_token={access_token}&client_id={client_id}&client_secret={client_secret}&attribute={attribute1}&attribute={attribute2}&...
+URI
+---
 
-(TODO) OpenID Connect 風にした方が良いか。
+|URI|機能|
+|:--|:--|
+|/login|アカウント認証する|
+|/login/ui|UI 用の HTML を提供する|
+|/access_token|アクセストークンを発行する|
 
-access_token、client_id、client_secret が無ければ、400 Bad Request。
-access_token が有効で、
-client_id が登録されているサービスの UUID で、
-client_secret がそのサービスが access_token にした署名
-ならば、200 OK でボディに JSON で attribute が入る。
+
+### GET /login
+
+prompt クエリが login、または、select_account の場合、クエリを維持したまま /ui/index.html にリダイレクトする。
+
+そうでなく、cookie の X-Edo-Idp-Session に有効なセッションが設定されている場合、
+対応するアカウントでの認証が済んでいるとみなして、POST /login の認証後処理と同じことをする。
+
+そうでない場合、クエリを維持したまま /ui/index.html にリダイレクトする。
+
+
+### POST /login
+
+username と passwd フォームパラメータでアカウント名とパスワードを受け取り認証する。
+
+細かい動作は OpenID Connect の OpenID Provider とほぼ同じ。
+違いは認可コードの形式が一部指定されていること。
+
+
+### GET /login/ui/...
+
+UI 用の HTML を提供する。
+
+対応するディレクトリ内に、少なくとも index.html だけは置く必要がある。
+
+UI の役目は、最終的に、以下のように username と passwd でアカウント名とパスワードを /login に POST させること。
 
 ```
-{
-  "user": {
-    attrX: XXX,
-    attrY: YYY,
-    ...
-  }
-}
+<form method="post" action="/login">
+    アカウント:<input type="text" name="username" size="20" /><br/>
+    パスワード:<input type="password" name="passwd" size="20" /><br/>
+    <input type="submit" value="ログイン" />
+</form>
 ```
 
-そうでなければ、403 Forbidden。
+
+### POST /access_token
+
+アクセストークンを発行する。
+
+細かい動作は OpenID Connect の OpenID Provider とほぼ同じ。
+違いはトークンリクエスト時に署名によるクライアント認証を強制する点。

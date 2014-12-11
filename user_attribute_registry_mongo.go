@@ -6,6 +6,6 @@ import (
 )
 
 // スレッドセーフ。
-func NewMongoUserAttributeRegistry(url, dbName, collName string, expiDur time.Duration) UserAttributeRegistry {
-	return newUserAttributeRegistry(driver.NewMongoKeyValueStore(url, dbName, collName, nil, nil, nil, expiDur, expiDur))
+func NewMongoUserAttributeRegistry(url, dbName, collName string, staleDur, expiDur time.Duration) UserAttributeRegistry {
+	return newUserAttributeRegistry(driver.NewMongoKeyValueStore(url, dbName, collName, nil, nil, nil, staleDur, expiDur))
 }

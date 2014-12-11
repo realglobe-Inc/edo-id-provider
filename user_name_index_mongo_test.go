@@ -10,7 +10,7 @@ func TestMongoUserNameIndex(t *testing.T) {
 		t.SkipNow()
 	}
 
-	reg := NewMongoUserNameIndex(mongoAddr, testLabel, "user_ids", 0)
+	reg := NewMongoUserNameIndex(mongoAddr, testLabel, "user_ids", 0, 0)
 	defer reg.(*userNameIndex).base.(driver.MongoKeyValueStore).Clear()
 
 	if _, err := reg.(*userNameIndex).base.Put(testUsrName, testUsrUuid); err != nil {

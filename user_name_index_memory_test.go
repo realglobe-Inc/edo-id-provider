@@ -5,7 +5,7 @@ import (
 )
 
 func TestMemoryUserNameIndex(t *testing.T) {
-	reg := NewMemoryUserNameIndex(0)
+	reg := NewMemoryUserNameIndex(0, 0)
 	reg.AddUserUuid(testUsrName, testUsrUuid)
 	testUserNameIndex(t, reg)
 }

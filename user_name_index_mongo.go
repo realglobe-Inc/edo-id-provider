@@ -6,6 +6,6 @@ import (
 )
 
 // スレッドセーフ。
-func NewMongoUserNameIndex(url, dbName, collName string, expiDur time.Duration) UserNameIndex {
-	return newUserNameIndex(driver.NewMongoKeyValueStore(url, dbName, collName, nil, nil, nil, expiDur, expiDur))
+func NewMongoUserNameIndex(url, dbName, collName string, staleDur, expiDur time.Duration) UserNameIndex {
+	return newUserNameIndex(driver.NewMongoKeyValueStore(url, dbName, collName, nil, nil, nil, staleDur, expiDur))
 }

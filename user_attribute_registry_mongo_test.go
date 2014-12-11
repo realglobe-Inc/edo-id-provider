@@ -10,7 +10,7 @@ func TestMongoUserAttributeRegistry(t *testing.T) {
 		t.SkipNow()
 	}
 
-	reg := NewMongoUserAttributeRegistry(mongoAddr, testLabel, "user_attributes", 0)
+	reg := NewMongoUserAttributeRegistry(mongoAddr, testLabel, "user_attributes", 0, 0)
 	defer reg.(*userAttributeRegistry).base.(driver.MongoKeyValueStore).Clear()
 
 	if _, err := reg.(*userAttributeRegistry).base.Put(testUsrUuid+"/"+testAttrName, testAttr); err != nil {

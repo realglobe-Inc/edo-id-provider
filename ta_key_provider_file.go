@@ -39,6 +39,6 @@ func publicKeyUnmarshal(data []byte) (interface{}, error) {
 }
 
 // スレッドセーフ。
-func NewFileTaKeyProvider(path string, expiDur time.Duration) TaKeyProvider {
-	return newTaKeyProvider(driver.NewFileKeyValueStore(path, keyToEscapedPubPath, escapedPubPathToKey, publicKeyMarshal, publicKeyUnmarshal, expiDur, expiDur))
+func NewFileTaKeyProvider(path string, staleDur, expiDur time.Duration) TaKeyProvider {
+	return newTaKeyProvider(driver.NewFileKeyValueStore(path, keyToEscapedPubPath, escapedPubPathToKey, publicKeyMarshal, publicKeyUnmarshal, staleDur, expiDur))
 }

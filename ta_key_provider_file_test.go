@@ -13,7 +13,7 @@ func TestFileTaKeyProvider(t *testing.T) {
 	}
 	defer os.RemoveAll(path)
 
-	reg := NewFileTaKeyProvider(path, 0)
+	reg := NewFileTaKeyProvider(path, 0, 0)
 	if _, err := reg.(*taKeyProvider).base.Put(testServUuid, testPublicKey); err != nil {
 		t.Fatal(err)
 	}
@@ -28,7 +28,7 @@ func TestFileTaKeyProviderStamp(t *testing.T) {
 	}
 	defer os.RemoveAll(path)
 
-	reg := NewFileTaKeyProvider(path, 0)
+	reg := NewFileTaKeyProvider(path, 0, 0)
 	if _, err := reg.(*taKeyProvider).base.Put(testServUuid, testPublicKey); err != nil {
 		t.Fatal(err)
 	}

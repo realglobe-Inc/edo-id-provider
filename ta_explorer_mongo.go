@@ -28,6 +28,6 @@ func containerMongoTake(query *mgo.Query) (interface{}, *driver.Stamp, error) {
 }
 
 // スレッドセーフ。
-func NewMongoTaExplorer(url, dbName, collName string, expiDur time.Duration) TaExplorer {
-	return newTaExplorer(driver.NewMongoKeyValueStore(url, dbName, collName, nil, containerToTaExplorerTree, containerMongoTake, expiDur, expiDur))
+func NewMongoTaExplorer(url, dbName, collName string, staleDur, expiDur time.Duration) TaExplorer {
+	return newTaExplorer(driver.NewMongoKeyValueStore(url, dbName, collName, nil, containerToTaExplorerTree, containerMongoTake, staleDur, expiDur))
 }

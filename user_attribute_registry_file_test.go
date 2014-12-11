@@ -13,7 +13,7 @@ func TestFileUserAttributeRegistry(t *testing.T) {
 	}
 	defer os.RemoveAll(path)
 
-	reg := NewFileUserAttributeRegistry(path, 0)
+	reg := NewFileUserAttributeRegistry(path, 0, 0)
 	if _, err := reg.(*userAttributeRegistry).base.Put(testUsrUuid+"/"+testAttrName, testAttr); err != nil {
 		t.Fatal(err)
 	}

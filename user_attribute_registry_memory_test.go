@@ -5,7 +5,7 @@ import (
 )
 
 func TestMemoryUserAttributeRegistry(t *testing.T) {
-	reg := NewMemoryUserAttributeRegistry(0)
+	reg := NewMemoryUserAttributeRegistry(0, 0)
 	reg.AddUserAttribute(testUsrUuid, testAttrName, testAttr)
 	testUserAttributeRegistry(t, reg)
 }

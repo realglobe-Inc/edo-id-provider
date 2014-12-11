@@ -26,10 +26,10 @@ func TestBoot(t *testing.T) {
 	}
 
 	sys := &system{
-		TaExplorer:            NewMemoryTaExplorer(0),
-		TaKeyProvider:         NewMemoryTaKeyProvider(0),
-		UserNameIndex:         NewMemoryUserNameIndex(0),
-		UserAttributeRegistry: NewMemoryUserAttributeRegistry(0),
+		TaExplorer:            NewMemoryTaExplorer(0, 0),
+		TaKeyProvider:         NewMemoryTaKeyProvider(0, 0),
+		UserNameIndex:         NewMemoryUserNameIndex(0, 0),
+		UserAttributeRegistry: NewMemoryUserAttributeRegistry(0, 0),
 		sessCont:              driver.NewMemoryTimeLimitedKeyValueStore(0, 0),
 		codeCont:              driver.NewMemoryTimeLimitedKeyValueStore(0, 0),
 		accTokenCont:          driver.NewMemoryTimeLimitedKeyValueStore(0, 0),

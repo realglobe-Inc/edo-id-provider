@@ -11,8 +11,8 @@ type MemoryUserNameIndex struct {
 }
 
 // スレッドセーフ。
-func NewMemoryUserNameIndex(expiDur time.Duration) *MemoryUserNameIndex {
-	return &MemoryUserNameIndex{driver.NewMemoryKeyValueStore(expiDur, expiDur)}
+func NewMemoryUserNameIndex(staleDur, expiDur time.Duration) *MemoryUserNameIndex {
+	return &MemoryUserNameIndex{driver.NewMemoryKeyValueStore(staleDur, expiDur)}
 }
 
 func (reg *MemoryUserNameIndex) UserUuid(usrName string, caStmp *driver.Stamp) (usrUuid string, newCaStmp *driver.Stamp, err error) {

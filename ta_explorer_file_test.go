@@ -13,7 +13,7 @@ func TestFileTaExplorer(t *testing.T) {
 	}
 	defer os.RemoveAll(path)
 
-	reg := NewFileTaExplorer(path, 0)
+	reg := NewFileTaExplorer(path, 0, 0)
 	if _, err := reg.(*taExplorer).base.Put("list", testServExpTree); err != nil {
 		t.Fatal(err)
 	}
@@ -28,7 +28,7 @@ func TestFileTaExplorerStamp(t *testing.T) {
 	}
 	defer os.RemoveAll(path)
 
-	reg := NewFileTaExplorer(path, 0)
+	reg := NewFileTaExplorer(path, 0, 0)
 	if _, err := reg.(*taExplorer).base.Put("list", testServExpTree); err != nil {
 		t.Fatal(err)
 	}

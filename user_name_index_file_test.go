@@ -13,7 +13,7 @@ func TestFileUserNameIndex(t *testing.T) {
 	}
 	defer os.RemoveAll(path)
 
-	reg := NewFileUserNameIndex(path, 0)
+	reg := NewFileUserNameIndex(path, 0, 0)
 	if _, err := reg.(*userNameIndex).base.Put(testUsrName, testUsrUuid); err != nil {
 		t.Fatal(err)
 	}

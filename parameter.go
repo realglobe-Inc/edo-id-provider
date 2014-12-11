@@ -123,6 +123,11 @@ type parameters struct {
 	// プロトコル。
 	protType string
 
+	// キャッシュを最新とみなす期間。
+	caStaleDur time.Duration
+	// キャッシュを廃棄するまでの期間。
+	caExpiDur time.Duration
+
 	// 無通信での認証済みセッションの有効期間。
 	maxSessExpiDur time.Duration // デフォルトかつ最大。
 
@@ -204,6 +209,9 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.IntVar(&param.socPort, "socPort", 16040, "TCP socket port.")
 
 	flags.StringVar(&param.protType, "protType", "http", "Protocol type.")
+
+	flags.DurationVar(&param.caStaleDur, "caStaleDur", 5*time.Minute, "Cache fresh duration.")
+	flags.DurationVar(&param.caExpiDur, "caExpiDur", 30*time.Minute, "Cache expiration duration.")
 
 	flags.DurationVar(&param.maxSessExpiDur, "maxSessExpiDur", 24*time.Hour, "Max session expiration duration.")
 	flags.DurationVar(&param.codeExpiDur, "codeExpiDur", 10*time.Minute, "Code expiration duration.")

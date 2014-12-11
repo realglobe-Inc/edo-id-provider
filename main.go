@@ -56,13 +56,13 @@ func mainCore(param *parameters) error {
 	var taExp TaExplorer
 	switch param.taExpType {
 	case "file":
-		taExp = NewFileTaExplorer(param.taExpPath, 0)
+		taExp = NewFileTaExplorer(param.taExpPath, param.caStaleDur, param.caExpiDur)
 		log.Info("Use file TA explorer " + param.taExpPath + ".")
 	case "web":
 		taExp = NewWebTaExplorer(param.taExpAddr)
 		log.Info("Use web TA explorer " + param.taExpAddr + ".")
 	case "mongo":
-		taExp = NewMongoTaExplorer(param.taExpUrl, param.taExpDb, param.taExpColl, 0)
+		taExp = NewMongoTaExplorer(param.taExpUrl, param.taExpDb, param.taExpColl, param.caStaleDur, param.caExpiDur)
 		log.Info("Use mongodb TA explorer " + param.taExpUrl + ".")
 	default:
 		return erro.New("invalid TA explorer type " + param.taExpType + ".")
@@ -71,13 +71,13 @@ func mainCore(param *parameters) error {
 	var taKeyReg TaKeyProvider
 	switch param.taKeyRegType {
 	case "file":
-		taKeyReg = NewFileTaKeyProvider(param.taKeyRegPath, 0)
+		taKeyReg = NewFileTaKeyProvider(param.taKeyRegPath, param.caStaleDur, param.caExpiDur)
 		log.Info("Use file TA key provider " + param.taKeyRegPath + ".")
 	case "web":
 		taKeyReg = NewWebTaKeyProvider(param.taKeyRegAddr)
 		log.Info("Use web TA key provider " + param.taKeyRegAddr + ".")
 	case "mongo":
-		taKeyReg = NewMongoTaKeyProvider(param.taKeyRegUrl, param.taKeyRegDb, param.taKeyRegColl, 0)
+		taKeyReg = NewMongoTaKeyProvider(param.taKeyRegUrl, param.taKeyRegDb, param.taKeyRegColl, param.caStaleDur, param.caExpiDur)
 		log.Info("Use mongodb TA key provider " + param.taKeyRegUrl + ".")
 	default:
 		return erro.New("invalid TA key provider type " + param.taKeyRegType + ".")
@@ -86,10 +86,10 @@ func mainCore(param *parameters) error {
 	var usrNameIdx UserNameIndex
 	switch param.usrNameIdxType {
 	case "file":
-		usrNameIdx = NewFileUserNameIndex(param.usrNameIdxPath, 0)
+		usrNameIdx = NewFileUserNameIndex(param.usrNameIdxPath, param.caStaleDur, param.caExpiDur)
 		log.Info("Use file user name index " + param.usrNameIdxPath + ".")
 	case "mongo":
-		usrNameIdx = NewMongoUserNameIndex(param.usrNameIdxUrl, param.usrNameIdxDb, param.usrNameIdxColl, 0)
+		usrNameIdx = NewMongoUserNameIndex(param.usrNameIdxUrl, param.usrNameIdxDb, param.usrNameIdxColl, param.caStaleDur, param.caExpiDur)
 		log.Info("Use mongodb user name index " + param.usrNameIdxUrl + ".")
 	default:
 		return erro.New("invalid user name index type " + param.usrNameIdxType + ".")
@@ -98,10 +98,10 @@ func mainCore(param *parameters) error {
 	var usrAttrReg UserAttributeRegistry
 	switch param.usrAttrRegType {
 	case "file":
-		usrAttrReg = NewFileUserAttributeRegistry(param.usrAttrRegPath, 0)
+		usrAttrReg = NewFileUserAttributeRegistry(param.usrAttrRegPath, param.caStaleDur, param.caExpiDur)
 		log.Info("Use file user attribute registry " + param.usrAttrRegPath + ".")
 	case "mongo":
-		usrAttrReg = NewMongoUserAttributeRegistry(param.usrAttrRegUrl, param.usrAttrRegDb, param.usrAttrRegColl, 0)
+		usrAttrReg = NewMongoUserAttributeRegistry(param.usrAttrRegUrl, param.usrAttrRegDb, param.usrAttrRegColl, param.caStaleDur, param.caExpiDur)
 		log.Info("Use mongodb user attribute registry " + param.usrAttrRegUrl + ".")
 	default:
 		return erro.New("invalid user attribute registry type " + param.usrAttrRegType + ".")
@@ -110,13 +110,13 @@ func mainCore(param *parameters) error {
 	var sessCont driver.TimeLimitedKeyValueStore
 	switch param.sessContType {
 	case "memory":
-		sessCont = driver.NewMemoryTimeLimitedKeyValueStore(0, 0)
+		sessCont = driver.NewMemoryTimeLimitedKeyValueStore(param.caStaleDur, param.caExpiDur)
 		log.Info("Use memory session container.")
 	case "file":
-		sessCont = driver.NewFileTimeLimitedKeyValueStore(param.sessContPath, keyToJsonPath, jsonPathToKey, json.Marshal, sessionUnmarshal, 0, 0)
+		sessCont = driver.NewFileTimeLimitedKeyValueStore(param.sessContPath, keyToJsonPath, jsonPathToKey, json.Marshal, sessionUnmarshal, param.caStaleDur, param.caExpiDur)
 		log.Info("Use file session container " + param.sessContPath + ".")
 	case "mongo":
-		sessCont = driver.NewMongoTimeLimitedKeyValueStore(param.sessContUrl, param.sessContDb, param.sessContColl, nil, nil, sessionMongoTake, 0, 0)
+		sessCont = driver.NewMongoTimeLimitedKeyValueStore(param.sessContUrl, param.sessContDb, param.sessContColl, nil, nil, sessionMongoTake, param.caStaleDur, param.caExpiDur)
 		log.Info("Use mongodb session container " + param.sessContUrl + ".")
 	default:
 		return erro.New("invalid session container type " + param.sessContType + ".")
@@ -125,13 +125,13 @@ func mainCore(param *parameters) error {
 	var codeCont driver.TimeLimitedKeyValueStore
 	switch param.codeContType {
 	case "memory":
-		codeCont = driver.NewMemoryTimeLimitedKeyValueStore(0, 0)
+		codeCont = driver.NewMemoryTimeLimitedKeyValueStore(param.caStaleDur, param.caExpiDur)
 		log.Info("Use memory code container.")
 	case "file":
-		codeCont = driver.NewFileTimeLimitedKeyValueStore(param.codeContPath, keyToJsonPath, jsonPathToKey, json.Marshal, codeUnmarshal, 0, 0)
+		codeCont = driver.NewFileTimeLimitedKeyValueStore(param.codeContPath, keyToJsonPath, jsonPathToKey, json.Marshal, codeUnmarshal, param.caStaleDur, param.caExpiDur)
 		log.Info("Use file code container " + param.codeContPath + ".")
 	case "mongo":
-		codeCont = driver.NewMongoTimeLimitedKeyValueStore(param.codeContUrl, param.codeContDb, param.codeContColl, nil, nil, codeMongoTake, 0, 0)
+		codeCont = driver.NewMongoTimeLimitedKeyValueStore(param.codeContUrl, param.codeContDb, param.codeContColl, nil, nil, codeMongoTake, param.caStaleDur, param.caExpiDur)
 		log.Info("Use mongodb code container " + param.codeContUrl + ".")
 	default:
 		return erro.New("invalid code container type " + param.codeContType + ".")
@@ -140,13 +140,13 @@ func mainCore(param *parameters) error {
 	var accTokenCont driver.TimeLimitedKeyValueStore
 	switch param.accTokenContType {
 	case "memory":
-		accTokenCont = driver.NewMemoryTimeLimitedKeyValueStore(0, 0)
+		accTokenCont = driver.NewMemoryTimeLimitedKeyValueStore(param.caStaleDur, param.caExpiDur)
 		log.Info("Use memory access token container.")
 	case "file":
-		accTokenCont = driver.NewFileTimeLimitedKeyValueStore(param.accTokenContPath, keyToJsonPath, jsonPathToKey, json.Marshal, accessTokenUnmarshal, 0, 0)
+		accTokenCont = driver.NewFileTimeLimitedKeyValueStore(param.accTokenContPath, keyToJsonPath, jsonPathToKey, json.Marshal, accessTokenUnmarshal, param.caStaleDur, param.caExpiDur)
 		log.Info("Use file access token container " + param.accTokenContPath + ".")
 	case "mongo":
-		accTokenCont = driver.NewMongoTimeLimitedKeyValueStore(param.accTokenContUrl, param.accTokenContDb, param.accTokenContColl, nil, nil, accessTokenMongoTake, 0, 0)
+		accTokenCont = driver.NewMongoTimeLimitedKeyValueStore(param.accTokenContUrl, param.accTokenContDb, param.accTokenContColl, nil, nil, accessTokenMongoTake, param.caStaleDur, param.caExpiDur)
 		log.Info("Use mongodb access token container " + param.accTokenContUrl + ".")
 	default:
 		return erro.New("invalid access token container type " + param.accTokenContType + ".")

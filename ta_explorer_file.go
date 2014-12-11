@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/realglobe-Inc/edo/driver"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -17,6 +18,15 @@ func jsonPathToKey(path string) string {
 		return ""
 	}
 	return path[:len(path)-len(".json")]
+}
+
+func keyToEscapedJsonPath(key string) string {
+	return keyToJsonPath(url.QueryEscape(key))
+}
+
+func escapedJsonPathToKey(path string) string {
+	key, _ := url.QueryUnescape(jsonPathToKey(path))
+	return key
 }
 
 func taExplorerTreeMarshal(value interface{}) (data []byte, err error) {
@@ -41,5 +51,5 @@ func taExplorerTreeUnmarshal(data []byte) (interface{}, error) {
 
 // スレッドセーフ。
 func NewFileTaExplorer(path string, staleDur, expiDur time.Duration) TaExplorer {
-	return newTaExplorer(driver.NewFileKeyValueStore(path, keyToJsonPath, jsonPathToKey, taExplorerTreeMarshal, taExplorerTreeUnmarshal, staleDur, expiDur))
+	return newTaExplorer(driver.NewFileKeyValueStore(path, keyToEscapedJsonPath, escapedJsonPathToKey, taExplorerTreeMarshal, taExplorerTreeUnmarshal, staleDur, expiDur))
 }

@@ -15,7 +15,7 @@ func containerToTaExplorerTree(data interface{}) (interface{}, error) {
 }
 
 // mongodb から map[string]string を読み取る。
-func containerMongoTake(query *mgo.Query) (interface{}, *driver.Stamp, error) {
+func readContainer(query *mgo.Query) (interface{}, *driver.Stamp, error) {
 	var res struct {
 		V map[string]string
 		S *driver.Stamp
@@ -29,5 +29,5 @@ func containerMongoTake(query *mgo.Query) (interface{}, *driver.Stamp, error) {
 
 // スレッドセーフ。
 func NewMongoTaExplorer(url, dbName, collName string, staleDur, expiDur time.Duration) TaExplorer {
-	return newTaExplorer(driver.NewMongoKeyValueStore(url, dbName, collName, nil, containerToTaExplorerTree, containerMongoTake, staleDur, expiDur))
+	return newTaExplorer(driver.NewMongoKeyValueStore(url, dbName, collName, nil, containerToTaExplorerTree, readContainer, staleDur, expiDur))
 }

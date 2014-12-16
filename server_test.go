@@ -4,8 +4,6 @@ import (
 	"github.com/realglobe-Inc/edo/driver"
 	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/go-lib-rg/rglog/level"
-	"net/http"
-	"strconv"
 	"testing"
 	"time"
 )
@@ -43,17 +41,17 @@ func TestBoot(t *testing.T) {
 	// サーバ起動待ち。
 	time.Sleep(50 * time.Millisecond)
 
-	req, err := http.NewRequest("GET", "http://localhost:"+strconv.Itoa(port)+loginPagePath, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	resp, err := (&http.Client{}).Do(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer resp.Body.Close()
+	// req, err := http.NewRequest("GET", "http://localhost:"+strconv.Itoa(port)+loginPagePath, nil)
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+	// resp, err := (&http.Client{}).Do(req)
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+	// defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		t.Error(resp)
-	}
+	// if resp.StatusCode != http.StatusOK {
+	// 	t.Error(resp)
+	// }
 }

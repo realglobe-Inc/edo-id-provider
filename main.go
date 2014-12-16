@@ -6,7 +6,6 @@ import (
 	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"github.com/realglobe-Inc/go-lib-rg/rglog"
-	"net/http"
 	"os"
 )
 
@@ -157,30 +156,30 @@ const (
 
 func serve(sys *system, socType, socPath string, socPort int, protType string) error {
 	routes := map[string]util.HandlerFunc{
-		routPagePath: func(w http.ResponseWriter, r *http.Request) error {
-			return routPage(sys, w, r)
-		},
-		loginPagePath: func(w http.ResponseWriter, r *http.Request) error {
-			return loginPage(sys, w, r)
-		},
-		logoutPagePath: func(w http.ResponseWriter, r *http.Request) error {
-			return logoutPage(sys, w, r)
-		},
-		beginSessPagePath: func(w http.ResponseWriter, r *http.Request) error {
-			return beginSessionPage(sys, w, r)
-		},
-		delCookiePagePath: func(w http.ResponseWriter, r *http.Request) error {
-			return deleteCookiePage(sys, w, r)
-		},
-		setCookiePagePath: func(w http.ResponseWriter, r *http.Request) error {
-			return setCookiePage(sys, w, r)
-		},
-		accTokenPagePath: func(w http.ResponseWriter, r *http.Request) error {
-			return accessTokenPage(sys, w, r)
-		},
-		queryPagePath: func(w http.ResponseWriter, r *http.Request) error {
-			return queryPage(sys, w, r)
-		},
+	// routPagePath: func(w http.ResponseWriter, r *http.Request) error {
+	// 	return routPage(sys, w, r)
+	// },
+	// loginPagePath: func(w http.ResponseWriter, r *http.Request) error {
+	// 	return loginPage(sys, w, r)
+	// },
+	// logoutPagePath: func(w http.ResponseWriter, r *http.Request) error {
+	// 	return logoutPage(sys, w, r)
+	// },
+	// beginSessPagePath: func(w http.ResponseWriter, r *http.Request) error {
+	// 	return beginSessionPage(sys, w, r)
+	// },
+	// delCookiePagePath: func(w http.ResponseWriter, r *http.Request) error {
+	// 	return deleteCookiePage(sys, w, r)
+	// },
+	// setCookiePagePath: func(w http.ResponseWriter, r *http.Request) error {
+	// 	return setCookiePage(sys, w, r)
+	// },
+	// accTokenPagePath: func(w http.ResponseWriter, r *http.Request) error {
+	// 	return accessTokenPage(sys, w, r)
+	// },
+	// queryPagePath: func(w http.ResponseWriter, r *http.Request) error {
+	// 	return queryPage(sys, w, r)
+	// },
 	}
 	return util.Serve(socType, socPath, socPort, protType, routes)
 }

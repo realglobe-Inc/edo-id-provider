@@ -95,7 +95,7 @@ func mainCore(param *parameters) error {
 		sessCont = driver.NewMemoryTimeLimitedKeyValueStore(param.caStaleDur, param.caExpiDur)
 		log.Info("Use memory session container.")
 	case "file":
-		sessCont = driver.NewFileTimeLimitedKeyValueStore(param.sessContPath, keyToJsonPath, jsonPathToKey, json.Marshal, sessionUnmarshal, param.caStaleDur, param.caExpiDur)
+		sessCont = driver.NewFileTimeLimitedKeyValueStore(param.sessContPath, param.sessContPath+".expi", keyToJsonPath, jsonPathToKey, json.Marshal, sessionUnmarshal, param.caStaleDur, param.caExpiDur)
 		log.Info("Use file session container " + param.sessContPath + ".")
 	default:
 		return erro.New("invalid session container type " + param.sessContType + ".")
@@ -107,7 +107,7 @@ func mainCore(param *parameters) error {
 		codeCont = driver.NewMemoryTimeLimitedKeyValueStore(param.caStaleDur, param.caExpiDur)
 		log.Info("Use memory code container.")
 	case "file":
-		codeCont = driver.NewFileTimeLimitedKeyValueStore(param.codeContPath, keyToJsonPath, jsonPathToKey, json.Marshal, codeUnmarshal, param.caStaleDur, param.caExpiDur)
+		codeCont = driver.NewFileTimeLimitedKeyValueStore(param.codeContPath, param.codeContPath+".expi", keyToJsonPath, jsonPathToKey, json.Marshal, codeUnmarshal, param.caStaleDur, param.caExpiDur)
 		log.Info("Use file code container " + param.codeContPath + ".")
 	default:
 		return erro.New("invalid code container type " + param.codeContType + ".")
@@ -119,7 +119,7 @@ func mainCore(param *parameters) error {
 		accTokenCont = driver.NewMemoryTimeLimitedKeyValueStore(param.caStaleDur, param.caExpiDur)
 		log.Info("Use memory access token container.")
 	case "file":
-		accTokenCont = driver.NewFileTimeLimitedKeyValueStore(param.accTokenContPath, keyToJsonPath, jsonPathToKey, json.Marshal, accessTokenUnmarshal, param.caStaleDur, param.caExpiDur)
+		accTokenCont = driver.NewFileTimeLimitedKeyValueStore(param.accTokenContPath, param.accTokenContPath+".expi", keyToJsonPath, jsonPathToKey, json.Marshal, accessTokenUnmarshal, param.caStaleDur, param.caExpiDur)
 		log.Info("Use file access token container " + param.accTokenContPath + ".")
 	default:
 		return erro.New("invalid access token container type " + param.accTokenContType + ".")

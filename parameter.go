@@ -43,6 +43,11 @@ type parameters struct {
 	// キャッシュを廃棄するまでの期間。
 	caExpiDur time.Duration
 
+	// UI 用 HTML を提供する URI。
+	uiUri string
+	// UI 用 HTML を置くディレクトリパス。
+	uiPath string
+
 	// TA 格納庫種別。
 	taContType string
 	// TA 格納庫ディレクトリパス。
@@ -144,6 +149,9 @@ func parseParameters(args ...string) (param *parameters, err error) {
 
 	flags.DurationVar(&param.caStaleDur, "caStaleDur", 5*time.Minute, "Cache fresh duration.")
 	flags.DurationVar(&param.caExpiDur, "caExpiDur", 30*time.Minute, "Cache expiration duration.")
+
+	flags.StringVar(&param.uiUri, "uiUri", authPath+"/html", "UI uri.")
+	flags.StringVar(&param.uiPath, "uiPath", filepath.Join(filepath.Dir(os.Args[0]), "html"), "Protocol type. http/fcgi")
 
 	flags.StringVar(&param.taContType, "taContType", "file", "TA container type.")
 	flags.StringVar(&param.taContPath, "taContPath", filepath.Join(filepath.Dir(os.Args[0]), "tas"), "TA container directory.")

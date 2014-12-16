@@ -1,6 +1,12 @@
 package main
 
-import ()
+import (
+	"net/http"
+)
+
+func authPage(sys *system, w http.ResponseWriter, r *http.Request) error {
+	panic("not yet implemented")
+}
 
 // import (
 // 	"crypto"

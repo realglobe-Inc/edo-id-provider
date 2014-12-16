@@ -4,6 +4,7 @@ import (
 	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"github.com/realglobe-Inc/go-lib-rg/rglog"
+	"net/http"
 	"os"
 )
 
@@ -120,6 +121,8 @@ func mainCore(param *parameters) error {
 	}
 
 	sys := newSystem(
+		param.uiUri,
+		param.uiPath,
 		taCont,
 		accCont,
 		sessCont,
@@ -131,44 +134,29 @@ func mainCore(param *parameters) error {
 
 // 振り分ける。
 const (
-	routPagePath      = "/"
-	loginPagePath     = "/login"
-	logoutPagePath    = "/logout"
-	beginSessPagePath = "/begin_session"
-	setCookiePagePath = "/set_cookie"
-	delCookiePagePath = "/delete_cookie"
-
-	accTokenPagePath = "/access_token"
-
-	queryPagePath = "/query"
+	authPath   = "/login"
+	tokPath    = "/token"
+	accInfPath = "/account"
 )
 
 func serve(sys *system, socType, socPath string, socPort int, protType string) error {
 	routes := map[string]util.HandlerFunc{
-	// routPagePath: func(w http.ResponseWriter, r *http.Request) error {
-	// 	return routPage(sys, w, r)
-	// },
-	// loginPagePath: func(w http.ResponseWriter, r *http.Request) error {
-	// 	return loginPage(sys, w, r)
-	// },
-	// logoutPagePath: func(w http.ResponseWriter, r *http.Request) error {
-	// 	return logoutPage(sys, w, r)
-	// },
-	// beginSessPagePath: func(w http.ResponseWriter, r *http.Request) error {
-	// 	return beginSessionPage(sys, w, r)
-	// },
-	// delCookiePagePath: func(w http.ResponseWriter, r *http.Request) error {
-	// 	return deleteCookiePage(sys, w, r)
-	// },
-	// setCookiePagePath: func(w http.ResponseWriter, r *http.Request) error {
-	// 	return setCookiePage(sys, w, r)
-	// },
-	// accTokenPagePath: func(w http.ResponseWriter, r *http.Request) error {
-	// 	return accessTokenPage(sys, w, r)
-	// },
-	// queryPagePath: func(w http.ResponseWriter, r *http.Request) error {
-	// 	return queryPage(sys, w, r)
-	// },
+		authPath: func(w http.ResponseWriter, r *http.Request) error {
+			return authPage(sys, w, r)
+		},
+		tokPath: func(w http.ResponseWriter, r *http.Request) error {
+			return tokenApi(sys, w, r)
+		},
+		accInfPath: func(w http.ResponseWriter, r *http.Request) error {
+			return accountInfoApi(sys, w, r)
+		},
+	}
+	fileHndl := http.StripPrefix(sys.uiUri, http.FileServer(http.Dir(sys.uiPath)))
+	for _, uri := range []string{sys.uiUri, sys.uiUri + "/"} {
+		routes[uri] = func(w http.ResponseWriter, r *http.Request) error {
+			fileHndl.ServeHTTP(w, r)
+			return nil
+		}
 	}
 	return util.Serve(socType, socPath, socPort, protType, routes)
 }

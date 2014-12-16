@@ -30,6 +30,8 @@ func TestBoot(t *testing.T) {
 	defer os.RemoveAll(path)
 
 	sys := &system{
+		uiUri:    "/login/html",
+		uiPath:   path,
 		taCont:   newMemoryTaContainer(0, 0),
 		accCont:  newMemoryAccountContainer(0, 0),
 		sessCont: newMemorySessionContainer(10, time.Second, 0, 0),

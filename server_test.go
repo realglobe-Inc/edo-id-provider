@@ -1,9 +1,10 @@
 package main
 
 import (
-	"github.com/realglobe-Inc/edo/driver"
 	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/go-lib-rg/rglog/level"
+	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 )
@@ -22,19 +23,18 @@ func TestBoot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	path, err := ioutil.TempDir("", testLabel)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(path)
 
 	sys := &system{
-		TaExplorer:            NewMemoryTaExplorer(0, 0),
-		TaKeyProvider:         NewMemoryTaKeyProvider(0, 0),
-		UserNameIndex:         NewMemoryUserNameIndex(0, 0),
-		UserAttributeRegistry: NewMemoryUserAttributeRegistry(0, 0),
-		sessCont:              driver.NewMemoryTimeLimitedKeyValueStore(0, 0),
-		codeCont:              driver.NewMemoryTimeLimitedKeyValueStore(0, 0),
-		accTokenCont:          driver.NewMemoryTimeLimitedKeyValueStore(0, 0),
-		maxSessExpiDur:        time.Hour,
-		codeExpiDur:           time.Hour,
-		accTokenExpiDur:       time.Hour,
-		maxAccTokenExpiDur:    time.Hour,
+		taCont:   newMemoryTaContainer(0, 0),
+		accCont:  newMemoryAccountContainer(0, 0),
+		sessCont: newMemorySessionContainer(10, time.Second, 0, 0),
+		codCont:  newMemoryCodeContainer(10, time.Second, 0, 0),
+		tokCont:  newMemoryTokenContainer(10, time.Second, time.Second, 0, 0),
 	}
 	go serve(sys, "tcp", "", port, "http")
 

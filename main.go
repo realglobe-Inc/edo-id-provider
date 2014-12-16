@@ -1,8 +1,6 @@
 package main
 
 import (
-	"encoding/json"
-	"github.com/realglobe-Inc/edo/driver"
 	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"github.com/realglobe-Inc/go-lib-rg/rglog"
@@ -52,91 +50,82 @@ func main() {
 
 // system を準備する。
 func mainCore(param *parameters) error {
-	var taExp TaExplorer
-	switch param.taExpType {
+	var taCont taContainer
+	switch param.taContType {
 	case "file":
-		taExp = NewFileTaExplorer(param.taExpPath, param.caStaleDur, param.caExpiDur)
-		log.Info("Use file TA explorer " + param.taExpPath + ".")
+		taCont = newFileTaContainer(param.taContPath, param.caStaleDur, param.caExpiDur)
+		log.Info("Use file TA container " + param.taContPath)
+	case "mongo":
+		taCont = newMongoTaContainer(param.taContUrl, param.taContDb, param.taContColl, param.caStaleDur, param.caExpiDur)
+		log.Info("Use mongodb TA container " + param.taContUrl)
 	default:
-		return erro.New("invalid TA explorer type " + param.taExpType + ".")
+		return erro.New("invalid TA container type " + param.taContType)
 	}
 
-	var taKeyReg TaKeyProvider
-	switch param.taKeyRegType {
+	var accCont accountContainer
+	switch param.accContType {
 	case "file":
-		taKeyReg = NewFileTaKeyProvider(param.taKeyRegPath, param.caStaleDur, param.caExpiDur)
-		log.Info("Use file TA key provider " + param.taKeyRegPath + ".")
+		accCont = newFileAccountContainer(param.accContPath, param.accNameContPath, param.caStaleDur, param.caExpiDur)
+		log.Info("Use file account container " + param.accContPath + "," + param.accNameContPath)
+	case "mongo":
+		accCont = newMongoAccountContainer(param.accContUrl, param.accContDb, param.accContColl, param.caStaleDur, param.caExpiDur)
+		log.Info("Use mongodb account container " + param.accContUrl)
 	default:
-		return erro.New("invalid TA key provider type " + param.taKeyRegType + ".")
+		return erro.New("invalid account container type " + param.accContType)
 	}
 
-	var usrNameIdx UserNameIndex
-	switch param.usrNameIdxType {
-	case "file":
-		usrNameIdx = NewFileUserNameIndex(param.usrNameIdxPath, param.caStaleDur, param.caExpiDur)
-		log.Info("Use file user name index " + param.usrNameIdxPath + ".")
-	default:
-		return erro.New("invalid user name index type " + param.usrNameIdxType + ".")
-	}
-
-	var usrAttrReg UserAttributeRegistry
-	switch param.usrAttrRegType {
-	case "file":
-		usrAttrReg = NewFileUserAttributeRegistry(param.usrAttrRegPath, param.caStaleDur, param.caExpiDur)
-		log.Info("Use file user attribute registry " + param.usrAttrRegPath + ".")
-	default:
-		return erro.New("invalid user attribute registry type " + param.usrAttrRegType + ".")
-	}
-
-	var sessCont driver.TimeLimitedKeyValueStore
+	var sessCont sessionContainer
 	switch param.sessContType {
 	case "memory":
-		sessCont = driver.NewMemoryTimeLimitedKeyValueStore(param.caStaleDur, param.caExpiDur)
+		sessCont = newMemorySessionContainer(param.sessIdLen, param.sessExpiDur, param.caStaleDur, param.caExpiDur)
 		log.Info("Use memory session container.")
 	case "file":
-		sessCont = driver.NewFileTimeLimitedKeyValueStore(param.sessContPath, param.sessContPath+".expi", keyToJsonPath, jsonPathToKey, json.Marshal, sessionUnmarshal, param.caStaleDur, param.caExpiDur)
-		log.Info("Use file session container " + param.sessContPath + ".")
+		sessCont = newFileSessionContainer(param.sessIdLen, param.sessExpiDur, param.sessContPath, param.sessContExpiPath, param.caStaleDur, param.caExpiDur)
+		log.Info("Use file session container " + param.sessContPath + "," + param.sessContExpiPath)
+	case "redis":
+		sessCont = newRedisSessionContainer(param.sessIdLen, param.sessExpiDur, param.sessContUrl, param.sessContPrefix, param.caStaleDur, param.caExpiDur)
+		log.Info("Use redis session container " + param.sessContUrl)
 	default:
-		return erro.New("invalid session container type " + param.sessContType + ".")
+		return erro.New("invalid session container type " + param.sessContType)
 	}
 
-	var codeCont driver.TimeLimitedKeyValueStore
-	switch param.codeContType {
+	var codCont codeContainer
+	switch param.codContType {
 	case "memory":
-		codeCont = driver.NewMemoryTimeLimitedKeyValueStore(param.caStaleDur, param.caExpiDur)
+		codCont = newMemoryCodeContainer(param.codIdLen, param.codExpiDur, param.caStaleDur, param.caExpiDur)
 		log.Info("Use memory code container.")
 	case "file":
-		codeCont = driver.NewFileTimeLimitedKeyValueStore(param.codeContPath, param.codeContPath+".expi", keyToJsonPath, jsonPathToKey, json.Marshal, codeUnmarshal, param.caStaleDur, param.caExpiDur)
-		log.Info("Use file code container " + param.codeContPath + ".")
+		codCont = newFileCodeContainer(param.codIdLen, param.codExpiDur, param.codContPath, param.codContExpiPath, param.caStaleDur, param.caExpiDur)
+		log.Info("Use file code container " + param.codContPath + "," + param.codContExpiPath)
+	case "redis":
+		codCont = newRedisCodeContainer(param.codIdLen, param.codExpiDur, param.codContUrl, param.codContPrefix, param.caStaleDur, param.caExpiDur)
+		log.Info("Use mongodb code container " + param.codContUrl)
 	default:
-		return erro.New("invalid code container type " + param.codeContType + ".")
+		return erro.New("invalid code container type " + param.codContType)
 	}
 
-	var accTokenCont driver.TimeLimitedKeyValueStore
-	switch param.accTokenContType {
+	var tokCont tokenContainer
+	switch param.tokContType {
 	case "memory":
-		accTokenCont = driver.NewMemoryTimeLimitedKeyValueStore(param.caStaleDur, param.caExpiDur)
-		log.Info("Use memory access token container.")
+		tokCont = newMemoryTokenContainer(param.tokIdLen, param.tokExpiDur, param.maxTokExpiDur, param.caStaleDur, param.caExpiDur)
+		log.Info("Use memory token container.")
 	case "file":
-		accTokenCont = driver.NewFileTimeLimitedKeyValueStore(param.accTokenContPath, param.accTokenContPath+".expi", keyToJsonPath, jsonPathToKey, json.Marshal, accessTokenUnmarshal, param.caStaleDur, param.caExpiDur)
-		log.Info("Use file access token container " + param.accTokenContPath + ".")
+		tokCont = newFileTokenContainer(param.tokIdLen, param.tokExpiDur, param.maxTokExpiDur, param.tokContPath, param.tokContExpiPath, param.caStaleDur, param.caExpiDur)
+		log.Info("Use file token container " + param.tokContPath + "," + param.tokContExpiPath)
+	case "redis":
+		tokCont = newRedisTokenContainer(param.tokIdLen, param.tokExpiDur, param.maxTokExpiDur, param.tokContUrl, param.tokContPrefix, param.caStaleDur, param.caExpiDur)
+		log.Info("Use mongodb token container " + param.tokContUrl)
 	default:
-		return erro.New("invalid access token container type " + param.accTokenContType + ".")
+		return erro.New("invalid token container type " + param.tokContType)
 	}
 
-	sys := &system{
-		taExp,
-		taKeyReg,
-		usrNameIdx,
-		usrAttrReg,
+	sys := newSystem(
+		taCont,
+		accCont,
 		sessCont,
-		codeCont,
-		accTokenCont,
-		param.maxSessExpiDur,
-		param.codeExpiDur,
-		param.accTokenExpiDur,
-		param.maxAccTokenExpiDur,
-	}
+		codCont,
+		tokCont,
+	)
 	return serve(sys, param.socType, param.socPath, param.socPort, param.protType)
 }
 

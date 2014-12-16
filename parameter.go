@@ -14,113 +14,28 @@ import (
 )
 
 type parameters struct {
-	// 画面表示ログ。
+	// 画面ログ表示重要度。
 	consLv level.Level
 
-	// 追加ログ。
+	// 追加ログ種別。
 	logType string
-	logLv   level.Level
-
-	// ファイルログ。
+	// 追加ログ表示重要度。
+	logLv level.Level
+	// ログファイルパス。
 	logPath string
-
-	// fluentd ログ。
+	// fluentd アドレス。
 	fluAddr string
-	fluTag  string
+	// fluentd 用タグ。
+	fluTag string
 
-	// サービス検索。
-	taExpType string
-
-	// ファイルベースサービス検索。
-	taExpPath string
-
-	// Web ベースサービス検索。
-	taExpAddr string
-
-	// mongo サービス検索。
-	taExpUrl  string
-	taExpDb   string
-	taExpColl string
-
-	// 公開鍵レジストリ。
-	taKeyRegType string
-
-	// ファイルベース公開鍵レジストリ。
-	taKeyRegPath string
-
-	// Web ベース公開鍵レジストリ。
-	taKeyRegAddr string
-
-	// mongo 公開鍵レジストリ。
-	taKeyRegUrl  string
-	taKeyRegDb   string
-	taKeyRegColl string
-
-	// ユーザー名索引。
-	usrNameIdxType string
-
-	// ファイルベースユーザー名索引。
-	usrNameIdxPath string
-
-	// mongo ユーザー名索引。
-	usrNameIdxUrl  string
-	usrNameIdxDb   string
-	usrNameIdxColl string
-
-	// ユーザー属性レジストリ。
-	usrAttrRegType string
-
-	// ファイルベースユーザー属性レジストリ。
-	usrAttrRegPath string
-
-	// mongo ユーザー属性レジストリ。
-	usrAttrRegUrl  string
-	usrAttrRegDb   string
-	usrAttrRegColl string
-
-	// セッション管理。
-	sessContType string
-
-	// ファイルベースセッション管理。
-	sessContPath string
-
-	// mongo セッション管理。
-	sessContUrl  string
-	sessContDb   string
-	sessContColl string
-
-	// アクセストークン発行用コード管理。
-	codeContType string
-
-	// ファイルベースアクセストークン発行用コード管理。
-	codeContPath string
-
-	// mongo アクセストークン発行用コード管理。
-	codeContUrl  string
-	codeContDb   string
-	codeContColl string
-
-	// アクセストークン管理。
-	accTokenContType string
-
-	// ファイルベースアクセストークン管理。
-	accTokenContPath string
-
-	// mongo アクセストークン管理。
-	accTokenContUrl  string
-	accTokenContDb   string
-	accTokenContColl string
-
-	// ソケット。
+	// ソケット種別。
 	socType string
-
 	// UNIX ソケット。
 	socPath string
-
 	// TCP ソケット。
 	socPort int
 
-	// プロトコル。
+	// プロトコル種別。
 	protType string
 
 	// キャッシュを最新とみなす期間。
@@ -128,15 +43,76 @@ type parameters struct {
 	// キャッシュを廃棄するまでの期間。
 	caExpiDur time.Duration
 
-	// 無通信での認証済みセッションの有効期間。
-	maxSessExpiDur time.Duration // デフォルトかつ最大。
+	// TA 格納庫種別。
+	taContType string
+	// TA 格納庫ディレクトリパス。
+	taContPath string
+	// TA 格納庫 mongodb アドレス。
+	taContUrl string
+	// TA 格納庫 mongodb データベース名。
+	taContDb string
+	// TA 格納庫 mongodb コレクション名。
+	taContColl string
 
-	// アクセストークン発行用コードの有効期間。
-	codeExpiDur time.Duration
+	// アカウント格納庫種別。
+	accContType string
+	// アカウント格納庫ディレクトリパス。
+	accContPath string
+	// 名前引きアカウント格納庫ディレクトリパス。
+	accNameContPath string
+	// アカウント格納庫 mongodb アドレス。
+	accContUrl string
+	// アカウント格納庫 mongodb データベース名。
+	accContDb string
+	// アカウント格納庫 mongodb コレクション名。
+	accContColl string
 
-	// アクセストークンの有効期間。
-	accTokenExpiDur    time.Duration // デフォルト。
-	maxAccTokenExpiDur time.Duration
+	// セッション番号の文字数。
+	sessIdLen int
+	// セッションの有効期間。
+	sessExpiDur time.Duration
+	// セッション格納庫種別。
+	sessContType string
+	// セッション格納庫ディレクトリパス。
+	sessContPath string
+	// セッション期限格納庫ディレクトリパス。
+	sessContExpiPath string
+	// セッション格納庫 redis アドレス。
+	sessContUrl string
+	// セッション格納庫 redis キー接頭辞。
+	sessContPrefix string
+
+	// 認可コードの文字数。
+	codIdLen int
+	// 認可コードの有効期間。
+	codExpiDur time.Duration
+	// 認可コード格納庫種別。
+	codContType string
+	// 認可コード格納庫ディレクトリパス。
+	codContPath string
+	// 認可コード期限格納庫ディレクトリパス。
+	codContExpiPath string
+	// 認可コード格納庫 redis アドレス。
+	codContUrl string
+	// 認可コード格納庫 redis キー接頭辞。
+	codContPrefix string
+
+	// アクセストークンの文字数。
+	tokIdLen int
+	// アクセストークンのデフォルトの有効期間。
+	tokExpiDur time.Duration
+	// アクセストークンの最長の有効期間。
+	maxTokExpiDur time.Duration
+	// アクセストークン格納庫種別。
+	tokContType string
+	// アクセストークン格納庫ディレクトリパス。
+	tokContPath string
+	// アクセストークン期限格納庫ディレクトリパス。
+	tokContExpiPath string
+	// アクセストークン格納庫 redis アドレス。
+	tokContUrl string
+	// アクセストークン格納庫 redis キー接頭辞。
+	tokContPrefix string
 }
 
 func parseParameters(args ...string) (param *parameters, err error) {
@@ -160,50 +136,6 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.StringVar(&param.fluAddr, "fluAddr", "localhost:24224", "fluentd address.")
 	flags.StringVar(&param.fluTag, "fluTag", "edo."+label, "fluentd tag.")
 
-	flags.StringVar(&param.taExpType, "taExpType", "web", "TA explorer type.")
-	flags.StringVar(&param.taExpPath, "taExpPath", filepath.Join(filepath.Dir(os.Args[0]), "ta_uris"), "TA explorer directory.")
-	flags.StringVar(&param.taExpAddr, "taExpAddr", "http://localhost:16034", "TA explorer address.")
-	flags.StringVar(&param.taExpUrl, "taExpUrl", "localhost", "TA explorer address.")
-	flags.StringVar(&param.taExpDb, "taExpDb", "edo", "TA explorer database name.")
-	flags.StringVar(&param.taExpColl, "taExpColl", "ta_uris", "TA explorer collection name.")
-
-	flags.StringVar(&param.taKeyRegType, "taKeyRegType", "web", "TA key provider type.")
-	flags.StringVar(&param.taKeyRegPath, "taKeyRegPath", filepath.Join(filepath.Dir(os.Args[0]), "public_keys"), "TA key provider directory.")
-	flags.StringVar(&param.taKeyRegAddr, "taKeyRegAddr", "http://localhost:16033", "TA key provider address.")
-	flags.StringVar(&param.taKeyRegUrl, "taKeyRegUrl", "localhost", "TA key provider address.")
-	flags.StringVar(&param.taKeyRegDb, "taKeyRegDb", "edo", "TA key provider database name.")
-	flags.StringVar(&param.taKeyRegColl, "taKeyRegColl", "public_keys", "TA key provider collection name.")
-
-	flags.StringVar(&param.usrNameIdxType, "usrNameIdxType", "mongo", "Username index type.")
-	flags.StringVar(&param.usrNameIdxPath, "usrNameIdxPath", filepath.Join(filepath.Dir(os.Args[0]), "user_ids"), "Username index directory.")
-	flags.StringVar(&param.usrNameIdxUrl, "usrNameIdxUrl", "localhost", "Username index address.")
-	flags.StringVar(&param.usrNameIdxDb, "usrNameIdxDb", "edo", "Username index database name.")
-	flags.StringVar(&param.usrNameIdxColl, "usrNameIdxColl", "user_ids", "Username index collection name.")
-
-	flags.StringVar(&param.usrAttrRegType, "usrAttrRegType", "mongo", "User attribute registry type.")
-	flags.StringVar(&param.usrAttrRegPath, "usrAttrRegPath", filepath.Join(filepath.Dir(os.Args[0]), "user_attributes"), "User attribute registry directory.")
-	flags.StringVar(&param.usrAttrRegUrl, "usrAttrRegUrl", "localhost", "User attribute registry address.")
-	flags.StringVar(&param.usrAttrRegDb, "usrAttrRegDb", "edo", "User attribute registry database name.")
-	flags.StringVar(&param.usrAttrRegColl, "usrAttrRegColl", "user_attributes", "User attribute registry collection name.")
-
-	flags.StringVar(&param.sessContType, "sessContType", "mongo", "Session container lister type.")
-	flags.StringVar(&param.sessContPath, "sessContPath", filepath.Join(filepath.Dir(os.Args[0]), "sessions"), "Session container lister directory.")
-	flags.StringVar(&param.sessContUrl, "sessContUrl", "localhost", "Session container lister address.")
-	flags.StringVar(&param.sessContDb, "sessContDb", "edo", "Session container lister database name.")
-	flags.StringVar(&param.sessContColl, "sessContColl", "sessions", "Session container lister collection name.")
-
-	flags.StringVar(&param.codeContType, "codeContType", "mongo", "Code container lister type.")
-	flags.StringVar(&param.codeContPath, "codeContPath", filepath.Join(filepath.Dir(os.Args[0]), "access_codes"), "Code container lister directory.")
-	flags.StringVar(&param.codeContUrl, "codeContUrl", "localhost", "Code container lister address.")
-	flags.StringVar(&param.codeContDb, "codeContDb", "edo", "Code container lister database name.")
-	flags.StringVar(&param.codeContColl, "codeContColl", "access_codes", "Code container lister collection name.")
-
-	flags.StringVar(&param.accTokenContType, "accTokenContType", "mongo", "Access token container lister type.")
-	flags.StringVar(&param.accTokenContPath, "accTokenContPath", filepath.Join(filepath.Dir(os.Args[0]), "access_tokens"), "Access token container lister directory.")
-	flags.StringVar(&param.accTokenContUrl, "accTokenContUrl", "localhost", "Access token container lister address.")
-	flags.StringVar(&param.accTokenContDb, "accTokenContDb", "edo", "Access token container lister database name.")
-	flags.StringVar(&param.accTokenContColl, "accTokenContColl", "access_tokens", "Access token container lister collection name.")
-
 	flags.StringVar(&param.socType, "socType", "tcp", "Socket type.")
 	flags.StringVar(&param.socPath, "socPath", filepath.Join(filepath.Dir(os.Args[0]), "run", label+".soc"), "UNIX socket path.")
 	flags.IntVar(&param.socPort, "socPort", 16040, "TCP socket port.")
@@ -213,10 +145,43 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.DurationVar(&param.caStaleDur, "caStaleDur", 5*time.Minute, "Cache fresh duration.")
 	flags.DurationVar(&param.caExpiDur, "caExpiDur", 30*time.Minute, "Cache expiration duration.")
 
-	flags.DurationVar(&param.maxSessExpiDur, "maxSessExpiDur", 24*time.Hour, "Max session expiration duration.")
-	flags.DurationVar(&param.codeExpiDur, "codeExpiDur", 10*time.Minute, "Code expiration duration.")
-	flags.DurationVar(&param.accTokenExpiDur, "accTokenExpiDur", 24*time.Hour, "Default access token expiration duration.")
-	flags.DurationVar(&param.maxAccTokenExpiDur, "maxAccTokenExpiDur", 30*24*time.Hour, "Max access token expiration duration.")
+	flags.StringVar(&param.taContType, "taContType", "file", "TA container type.")
+	flags.StringVar(&param.taContPath, "taContPath", filepath.Join(filepath.Dir(os.Args[0]), "tas"), "TA container directory.")
+	flags.StringVar(&param.taContUrl, "taContUrl", "localhost", "TA container address.")
+	flags.StringVar(&param.taContDb, "taContDb", "edo", "TA container database name.")
+	flags.StringVar(&param.taContColl, "taContColl", "tas", "TA container collection name.")
+
+	flags.StringVar(&param.accContType, "accContType", "file", "Account container type.")
+	flags.StringVar(&param.accContPath, "accContPath", filepath.Join(filepath.Dir(os.Args[0]), "accounts"), "Account container directory.")
+	flags.StringVar(&param.accNameContPath, "accNameContPath", filepath.Join(filepath.Dir(os.Args[0]), "account_names"), "Name indexed account container directory.")
+	flags.StringVar(&param.accContUrl, "accContUrl", "localhost", "Account container address.")
+	flags.StringVar(&param.accContDb, "accContDb", "edo", "Account container database name.")
+	flags.StringVar(&param.accContColl, "accContColl", "accounts", "Account container collection name.")
+
+	flags.IntVar(&param.sessIdLen, "sessIdLen", 32, "Session ID length.")
+	flags.DurationVar(&param.sessExpiDur, "sessExpiDur", 7*24*time.Hour, "Session expiration duration.")
+	flags.StringVar(&param.sessContType, "sessContType", "memory", "Session container type.")
+	flags.StringVar(&param.sessContPath, "sessContPath", filepath.Join(filepath.Dir(os.Args[0]), "sessions"), "Session container directory.")
+	flags.StringVar(&param.sessContExpiPath, "sessContExpiPath", filepath.Join(filepath.Dir(os.Args[0]), "session_expires"), "Session container expiration date directory.")
+	flags.StringVar(&param.sessContUrl, "sessContUrl", "localhost", "Session container address.")
+	flags.StringVar(&param.sessContPrefix, "sessContPrefix", "edo.sessions", "Session container key prefix.")
+
+	flags.IntVar(&param.codIdLen, "codIdLen", 32, "Code length.")
+	flags.DurationVar(&param.codExpiDur, "codExpiDur", 3*time.Minute, "Code expiration duration.")
+	flags.StringVar(&param.codContType, "codContType", "memory", "Code container type.")
+	flags.StringVar(&param.codContPath, "codContPath", filepath.Join(filepath.Dir(os.Args[0]), "codes"), "Code container directory.")
+	flags.StringVar(&param.codContExpiPath, "codContExpiPath", filepath.Join(filepath.Dir(os.Args[0]), "code_expires"), "Code container expiration date directory.")
+	flags.StringVar(&param.codContUrl, "codContUrl", "localhost", "Code container address.")
+	flags.StringVar(&param.codContPrefix, "codContPrefix", "edo.codes", "Code container key prefix.")
+
+	flags.IntVar(&param.tokIdLen, "tokIdLen", 32, "Token length.")
+	flags.DurationVar(&param.tokExpiDur, "tokExpiDur", 24*time.Hour, "Token expiration duration.")
+	flags.DurationVar(&param.maxTokExpiDur, "maxTokExpiDur", 30*24*time.Hour, "Max access token expiration duration.")
+	flags.StringVar(&param.tokContType, "tokContType", "memory", "Token container type.")
+	flags.StringVar(&param.tokContPath, "tokContPath", filepath.Join(filepath.Dir(os.Args[0]), "tokens"), "Token container directory.")
+	flags.StringVar(&param.tokContExpiPath, "tokContExpiPath", filepath.Join(filepath.Dir(os.Args[0]), "token_expires"), "Token container expiration date directory.")
+	flags.StringVar(&param.tokContUrl, "tokContUrl", "localhost", "Token container address.")
+	flags.StringVar(&param.tokContPrefix, "tokContPrefix", "edo.tokens", "Token container key prefix.")
 
 	var config string
 	flags.StringVar(&config, "f", "", "Config file path.")

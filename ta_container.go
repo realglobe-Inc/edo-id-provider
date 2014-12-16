@@ -15,6 +15,10 @@ type ta struct {
 	pubKeys map[string]*rsa.PublicKey
 }
 
+func (this *ta) hasRedirectUri(rediUri string) bool {
+	return this.rediUris[rediUri]
+}
+
 type taContainer interface {
 	get(taId string) (*ta, error)
 }

@@ -8,12 +8,12 @@ IdP。
 起動
 ---
 
-UI 用の HTML 等を ui ディレクトリの下に置く。
+UI 用の HTML 等を html ディレクトリの下に置く。
 
 ```
 <任意のディレクトリ>/
 ├── edo-id-provider
-└── ui
+└── html
      ├── index.html
      ...
 ```
@@ -29,19 +29,20 @@ URI
 
 |URI|機能|
 |:--|:--|
+|/account|アカウント情報を提供する|
+|/login/html|UI 用の HTML を提供する|
 |/login|アカウント認証する|
-|/login/ui|UI 用の HTML を提供する|
-|/access_token|アクセストークンを発行する|
+|/token|アクセストークンを発行する|
 
 
 ### GET /login
 
-prompt クエリが login、または、select_account の場合、クエリを維持したまま /ui/index.html にリダイレクトする。
+prompt クエリが login、または、select_account の場合、クエリを維持したまま /login/html/index.html にリダイレクトする。
 
 そうでなく、cookie の X-Edo-Idp-Session に有効なセッションが設定されている場合、
 対応するアカウントでの認証が済んでいるとみなして、POST /login の認証後処理と同じことをする。
 
-そうでない場合、クエリを維持したまま /ui/index.html にリダイレクトする。
+そうでない場合、クエリを維持したまま /html/login/index.html にリダイレクトする。
 
 
 ### POST /login
@@ -52,7 +53,7 @@ username と passwd フォームパラメータでアカウント名とパスワ
 違いは認可コードの形式が一部指定されていること。
 
 
-### GET /login/ui/...
+### GET /login/html/...
 
 UI 用の HTML を提供する。
 

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"reflect"
 	"testing"
 	"time"
 )
@@ -17,22 +16,22 @@ func testSessionContainer(t *testing.T, sessCont sessionContainer) {
 	}
 
 	// 発行する。
-	sess, err := sessCont.new("abcde", expiDur)
-	if err != nil {
+	sess := newSession()
+	if err := sessCont.put(sess); err != nil {
 		t.Fatal(err)
 	}
 
 	// ある。
 	for i := 0; i < 4; i++ {
-		sess2, err := sessCont.get(sess.Id)
+		sess2, err := sessCont.get(sess.id())
 		if err != nil {
 			t.Fatal(err)
-		} else if sess2 == nil || !reflect.DeepEqual(sess2, sess) {
+		} else if sess2 == nil || sess2.id() != sess.id() {
 			t.Error(i, sess2)
 		}
 		s := *sess2
-		s.ExpiDate = time.Now().Add(expiDur)
-		if err := sessCont.update(&s); err != nil {
+		s.setExpirationDate(time.Now().Add(expiDur))
+		if err := sessCont.put(&s); err != nil {
 			t.Fatal(err)
 		}
 		sess = &s
@@ -42,7 +41,7 @@ func testSessionContainer(t *testing.T, sessCont sessionContainer) {
 	time.Sleep(expiDur / 2)
 
 	// もう無い。
-	if sess3, err := sessCont.get(sess.Id); err != nil {
+	if sess3, err := sessCont.get(sess.id()); err != nil {
 		t.Fatal(err)
 	} else if sess3 != nil {
 		t.Error(sess3)

@@ -81,8 +81,8 @@ func mainCore(param *parameters) error {
 		sessCont = newMemorySessionContainer(param.sessIdLen, param.sessExpiDur, param.caStaleDur, param.caExpiDur)
 		log.Info("Use memory session container.")
 	case "file":
-		sessCont = newFileSessionContainer(param.sessIdLen, param.sessExpiDur, param.sessContPath, param.sessContExpiPath, param.caStaleDur, param.caExpiDur)
-		log.Info("Use file session container " + param.sessContPath + "," + param.sessContExpiPath)
+		sessCont = newFileSessionContainer(param.sessIdLen, param.sessExpiDur, param.sessContPath, param.sessExpiContPath, param.caStaleDur, param.caExpiDur)
+		log.Info("Use file session container " + param.sessContPath + "," + param.sessExpiContPath)
 	case "redis":
 		sessCont = newRedisSessionContainer(param.sessIdLen, param.sessExpiDur, param.sessContUrl, param.sessContPrefix, param.caStaleDur, param.caExpiDur)
 		log.Info("Use redis session container " + param.sessContUrl)
@@ -96,8 +96,8 @@ func mainCore(param *parameters) error {
 		codCont = newMemoryCodeContainer(param.codIdLen, param.codExpiDur, param.caStaleDur, param.caExpiDur)
 		log.Info("Use memory code container.")
 	case "file":
-		codCont = newFileCodeContainer(param.codIdLen, param.codExpiDur, param.codContPath, param.codContExpiPath, param.caStaleDur, param.caExpiDur)
-		log.Info("Use file code container " + param.codContPath + "," + param.codContExpiPath)
+		codCont = newFileCodeContainer(param.codIdLen, param.codExpiDur, param.codContPath, param.codExpiContPath, param.caStaleDur, param.caExpiDur)
+		log.Info("Use file code container " + param.codContPath + "," + param.codExpiContPath)
 	case "redis":
 		codCont = newRedisCodeContainer(param.codIdLen, param.codExpiDur, param.codContUrl, param.codContPrefix, param.caStaleDur, param.caExpiDur)
 		log.Info("Use mongodb code container " + param.codContUrl)
@@ -111,8 +111,8 @@ func mainCore(param *parameters) error {
 		tokCont = newMemoryTokenContainer(param.tokIdLen, param.tokExpiDur, param.maxTokExpiDur, param.caStaleDur, param.caExpiDur)
 		log.Info("Use memory token container.")
 	case "file":
-		tokCont = newFileTokenContainer(param.tokIdLen, param.tokExpiDur, param.maxTokExpiDur, param.tokContPath, param.tokContExpiPath, param.caStaleDur, param.caExpiDur)
-		log.Info("Use file token container " + param.tokContPath + "," + param.tokContExpiPath)
+		tokCont = newFileTokenContainer(param.tokIdLen, param.tokExpiDur, param.maxTokExpiDur, param.tokContPath, param.tokExpiContPath, param.caStaleDur, param.caExpiDur)
+		log.Info("Use file token container " + param.tokContPath + "," + param.tokExpiContPath)
 	case "redis":
 		tokCont = newRedisTokenContainer(param.tokIdLen, param.tokExpiDur, param.maxTokExpiDur, param.tokContUrl, param.tokContPrefix, param.caStaleDur, param.caExpiDur)
 		log.Info("Use mongodb token container " + param.tokContUrl)
@@ -121,6 +121,9 @@ func mainCore(param *parameters) error {
 	}
 
 	sys := newSystem(
+		param.secCook,
+		param.codIdLen/2,
+		param.codIdLen/2,
 		param.uiUri,
 		param.uiPath,
 		taCont,

@@ -38,6 +38,9 @@ type parameters struct {
 	// プロトコル種別。
 	protType string
 
+	// Set-Cookie に Secure をつけるか。
+	secCook bool
+
 	// キャッシュを最新とみなす期間。
 	caStaleDur time.Duration
 	// キャッシュを廃棄するまでの期間。
@@ -81,7 +84,7 @@ type parameters struct {
 	// セッション格納庫ディレクトリパス。
 	sessContPath string
 	// セッション期限格納庫ディレクトリパス。
-	sessContExpiPath string
+	sessExpiContPath string
 	// セッション格納庫 redis アドレス。
 	sessContUrl string
 	// セッション格納庫 redis キー接頭辞。
@@ -96,7 +99,7 @@ type parameters struct {
 	// 認可コード格納庫ディレクトリパス。
 	codContPath string
 	// 認可コード期限格納庫ディレクトリパス。
-	codContExpiPath string
+	codExpiContPath string
 	// 認可コード格納庫 redis アドレス。
 	codContUrl string
 	// 認可コード格納庫 redis キー接頭辞。
@@ -113,7 +116,7 @@ type parameters struct {
 	// アクセストークン格納庫ディレクトリパス。
 	tokContPath string
 	// アクセストークン期限格納庫ディレクトリパス。
-	tokContExpiPath string
+	tokExpiContPath string
 	// アクセストークン格納庫 redis アドレス。
 	tokContUrl string
 	// アクセストークン格納庫 redis キー接頭辞。
@@ -147,6 +150,8 @@ func parseParameters(args ...string) (param *parameters, err error) {
 
 	flags.StringVar(&param.protType, "protType", "http", "Protocol type.")
 
+	flags.BoolVar(&param.secCook, "secCook", true, "Add Secure in Set-Cookie.")
+
 	flags.DurationVar(&param.caStaleDur, "caStaleDur", 5*time.Minute, "Cache fresh duration.")
 	flags.DurationVar(&param.caExpiDur, "caExpiDur", 30*time.Minute, "Cache expiration duration.")
 
@@ -166,28 +171,28 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.StringVar(&param.accContDb, "accContDb", "edo", "Account container database name.")
 	flags.StringVar(&param.accContColl, "accContColl", "accounts", "Account container collection name.")
 
-	flags.IntVar(&param.sessIdLen, "sessIdLen", 32, "Session ID length.")
+	flags.IntVar(&param.sessIdLen, "sessIdLen", 40, "Session ID length.")
 	flags.DurationVar(&param.sessExpiDur, "sessExpiDur", 7*24*time.Hour, "Session expiration duration.")
 	flags.StringVar(&param.sessContType, "sessContType", "memory", "Session container type.")
 	flags.StringVar(&param.sessContPath, "sessContPath", filepath.Join(filepath.Dir(os.Args[0]), "sessions"), "Session container directory.")
-	flags.StringVar(&param.sessContExpiPath, "sessContExpiPath", filepath.Join(filepath.Dir(os.Args[0]), "session_expires"), "Session container expiration date directory.")
+	flags.StringVar(&param.sessExpiContPath, "sessExpiContPath", filepath.Join(filepath.Dir(os.Args[0]), "session_expires"), "Session container expiration date directory.")
 	flags.StringVar(&param.sessContUrl, "sessContUrl", "localhost", "Session container address.")
 	flags.StringVar(&param.sessContPrefix, "sessContPrefix", "edo.sessions", "Session container key prefix.")
 
-	flags.IntVar(&param.codIdLen, "codIdLen", 32, "Code length.")
+	flags.IntVar(&param.codIdLen, "codIdLen", 40, "Code length.")
 	flags.DurationVar(&param.codExpiDur, "codExpiDur", 3*time.Minute, "Code expiration duration.")
 	flags.StringVar(&param.codContType, "codContType", "memory", "Code container type.")
 	flags.StringVar(&param.codContPath, "codContPath", filepath.Join(filepath.Dir(os.Args[0]), "codes"), "Code container directory.")
-	flags.StringVar(&param.codContExpiPath, "codContExpiPath", filepath.Join(filepath.Dir(os.Args[0]), "code_expires"), "Code container expiration date directory.")
+	flags.StringVar(&param.codExpiContPath, "codExpiContPath", filepath.Join(filepath.Dir(os.Args[0]), "code_expires"), "Code container expiration date directory.")
 	flags.StringVar(&param.codContUrl, "codContUrl", "localhost", "Code container address.")
 	flags.StringVar(&param.codContPrefix, "codContPrefix", "edo.codes", "Code container key prefix.")
 
-	flags.IntVar(&param.tokIdLen, "tokIdLen", 32, "Token length.")
+	flags.IntVar(&param.tokIdLen, "tokIdLen", 40, "Token length.")
 	flags.DurationVar(&param.tokExpiDur, "tokExpiDur", 24*time.Hour, "Token expiration duration.")
 	flags.DurationVar(&param.maxTokExpiDur, "maxTokExpiDur", 30*24*time.Hour, "Max access token expiration duration.")
 	flags.StringVar(&param.tokContType, "tokContType", "memory", "Token container type.")
 	flags.StringVar(&param.tokContPath, "tokContPath", filepath.Join(filepath.Dir(os.Args[0]), "tokens"), "Token container directory.")
-	flags.StringVar(&param.tokContExpiPath, "tokContExpiPath", filepath.Join(filepath.Dir(os.Args[0]), "token_expires"), "Token container expiration date directory.")
+	flags.StringVar(&param.tokExpiContPath, "tokExpiContPath", filepath.Join(filepath.Dir(os.Args[0]), "token_expires"), "Token container expiration date directory.")
 	flags.StringVar(&param.tokContUrl, "tokContUrl", "localhost", "Token container address.")
 	flags.StringVar(&param.tokContPrefix, "tokContPrefix", "edo.tokens", "Token container key prefix.")
 

@@ -7,6 +7,10 @@ import (
 
 // 便宜的に集めただけ。
 type system struct {
+	secCook    bool
+	selCodLen  int
+	consCodLen int
+
 	uiUri  string
 	uiPath string
 
@@ -17,7 +21,7 @@ type system struct {
 	tokCont  tokenContainer
 }
 
-func newSystem(uiUri string, uiPath string,
+func newSystem(secCook bool, selCodLen, consCodLen int, uiUri string, uiPath string,
 	taCont taContainer,
 	accCont accountContainer,
 	sessCont sessionContainer,
@@ -33,6 +37,6 @@ func newSystem(uiUri string, uiPath string,
 		uiUri = "/" + uiUri
 	}
 	log.Info("Use " + uiUri + " as UI uri")
-	return &system{uiUri, uiPath, taCont, accCont, sessCont, codCont, tokCont}
+	return &system{secCook, selCodLen, consCodLen, uiUri, uiPath, taCont, accCont, sessCont, codCont, tokCont}
 
 }

@@ -29,15 +29,18 @@ func TestBoot(t *testing.T) {
 	}
 	defer os.RemoveAll(path)
 
-	sys := &system{
-		uiUri:    "/login/html",
-		uiPath:   path,
-		taCont:   newMemoryTaContainer(0, 0),
-		accCont:  newMemoryAccountContainer(0, 0),
-		sessCont: newMemorySessionContainer(10, time.Second, 0, 0),
-		codCont:  newMemoryCodeContainer(10, time.Second, 0, 0),
-		tokCont:  newMemoryTokenContainer(10, time.Second, time.Second, 0, 0),
-	}
+	sys := newSystem(
+		false,
+		10,
+		10,
+		"/login/html",
+		path,
+		newMemoryTaContainer(0, 0),
+		newMemoryAccountContainer(0, 0),
+		newMemorySessionContainer(10, time.Second, 0, 0),
+		newMemoryCodeContainer(10, time.Second, 0, 0),
+		newMemoryTokenContainer(10, time.Second, time.Second, 0, 0),
+	)
 	go serve(sys, "tcp", "", port, "http")
 
 	// サーバ起動待ち。

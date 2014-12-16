@@ -11,7 +11,7 @@ type MemoryTaExplorer struct {
 
 // スレッドセーフ。
 func NewMemoryTaExplorer(staleDur, expiDur time.Duration) *MemoryTaExplorer {
-	return &MemoryTaExplorer{driver.NewMemoryKeyValueStore(staleDur, expiDur)}
+	return &MemoryTaExplorer{driver.NewMemoryListedKeyValueStore(staleDur, expiDur)}
 }
 
 func (reg *MemoryTaExplorer) ServiceUuid(servUri string, caStmp *driver.Stamp) (servUuid string, newCaStmp *driver.Stamp, err error) {

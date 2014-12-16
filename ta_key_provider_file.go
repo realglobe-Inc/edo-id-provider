@@ -1,6 +1,9 @@
 package main
 
 import (
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"github.com/realglobe-Inc/edo/driver"
 	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
@@ -19,6 +22,18 @@ func escapedPubPathToKey(path string) string {
 	}
 	key, _ := url.QueryUnescape(path[:len(path)-len(".pub")])
 	return key
+}
+
+func publicKeyToPem(pubKey interface{}) (pemStr interface{}, err error) {
+	block := &pem.Block{
+		Type: "PUBLIC KEY",
+	}
+	block.Bytes, err = x509.MarshalPKIXPublicKey(pubKey.(*rsa.PublicKey))
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
+
+	return pem.EncodeToMemory(block), nil
 }
 
 func publicKeyMarshal(value interface{}) (data []byte, err error) {
@@ -40,5 +55,5 @@ func publicKeyUnmarshal(data []byte) (interface{}, error) {
 
 // スレッドセーフ。
 func NewFileTaKeyProvider(path string, staleDur, expiDur time.Duration) TaKeyProvider {
-	return newTaKeyProvider(driver.NewFileKeyValueStore(path, keyToEscapedPubPath, escapedPubPathToKey, publicKeyMarshal, publicKeyUnmarshal, staleDur, expiDur))
+	return newTaKeyProvider(driver.NewFileListedKeyValueStore(path, keyToEscapedPubPath, escapedPubPathToKey, publicKeyMarshal, publicKeyUnmarshal, staleDur, expiDur))
 }

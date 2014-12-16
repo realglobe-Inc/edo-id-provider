@@ -12,7 +12,7 @@ type MemoryTaKeyProvider struct {
 
 // スレッドセーフ。
 func NewMemoryTaKeyProvider(staleDur, expiDur time.Duration) *MemoryTaKeyProvider {
-	return &MemoryTaKeyProvider{driver.NewMemoryKeyValueStore(staleDur, expiDur)}
+	return &MemoryTaKeyProvider{driver.NewMemoryListedKeyValueStore(staleDur, expiDur)}
 }
 
 func (reg *MemoryTaKeyProvider) ServiceKey(servUuid string, caStmp *driver.Stamp) (servKey *rsa.PublicKey, newCaStmp *driver.Stamp, err error) {

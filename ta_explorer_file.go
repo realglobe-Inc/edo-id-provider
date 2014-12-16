@@ -51,5 +51,5 @@ func taExplorerTreeUnmarshal(data []byte) (interface{}, error) {
 
 // スレッドセーフ。
 func NewFileTaExplorer(path string, staleDur, expiDur time.Duration) TaExplorer {
-	return newTaExplorer(driver.NewFileKeyValueStore(path, keyToEscapedJsonPath, escapedJsonPathToKey, taExplorerTreeMarshal, taExplorerTreeUnmarshal, staleDur, expiDur))
+	return newTaExplorer(driver.NewFileListedKeyValueStore(path, keyToEscapedJsonPath, escapedJsonPathToKey, taExplorerTreeMarshal, taExplorerTreeUnmarshal, staleDur, expiDur))
 }

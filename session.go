@@ -22,6 +22,8 @@ type session struct {
 type sessionAccount struct {
 	// 現在認証されているか。
 	auth bool
+	// ログイン名。
+	name string
 	// 最後に認証した日時。
 	authDate time.Time
 	// TA ごとの同意。
@@ -82,23 +84,32 @@ func (this *session) account() string {
 	return this.selAccId
 }
 
+// 選択されているアカウントのログイン名を返す。
+func (this *session) accountName() string {
+	if this.selAccId == "" {
+		return ""
+	}
+	return this.accs[this.selAccId].name
+}
+
 // アカウントを認証済みアカウントとして加え、選択する。
 // 選択コードも解除する。
 // 状態が変わったときのみ true を返す。
-func (this *session) setAccount(accId string) bool {
-	if acc := this.accs[accId]; acc != nil {
-		if acc.auth {
+func (this *session) setAccount(acc *account) bool {
+	if sessAcc := this.accs[acc.Id]; sessAcc != nil {
+		if sessAcc.auth {
 			return false
 		} else {
-			acc.auth = true
+			sessAcc.auth = true
 			return true
 		}
 	} else {
-		acc = &sessionAccount{
+		sessAcc = &sessionAccount{
 			auth:    true,
+			name:    acc.Name,
 			taConss: map[string]map[string]bool{},
 		}
-		this.accs[accId] = acc
+		this.accs[acc.Id] = sessAcc
 		return true
 	}
 }
@@ -117,6 +128,23 @@ func (this *session) setSelectionCode(selCod string) {
 // 選択コードも解除する。
 // 状態が変わったときのみ true を返す。
 func (this *session) selectAccount(accId string) bool {
+	if accId == this.selAccId {
+		return false
+	} else if _, ok := this.accs[accId]; ok {
+		this.selAccId = accId
+		return true
+	} else {
+		return false
+	}
+}
+func (this *session) selectAccountByName(accName string) bool {
+	var accId string
+	for id, acc := range this.accs {
+		if acc.name == accName {
+			accId = id
+			break
+		}
+	}
 	if accId == this.selAccId {
 		return false
 	} else if _, ok := this.accs[accId]; ok {
@@ -204,18 +232,19 @@ func (this *session) notConsented(accId, taId string, clms map[string]bool) map[
 // アカウントで同意する。
 // 同意コードも解除する。
 // 状態が変わったときのみ true を返す。
-func (this *session) consent(accId, taId string, clms map[string]bool) bool {
+func (this *session) consent(accId, accName, taId string, clms map[string]bool) bool {
 	mod := false
-	acc := this.accs[accId]
-	if acc == nil {
+	sessAcc := this.accs[accId]
+	if sessAcc == nil {
 		mod = true
-		acc = &sessionAccount{
+		sessAcc = &sessionAccount{
 			auth:    true,
+			name:    accName,
 			taConss: map[string]map[string]bool{},
 		}
-		this.accs[accId] = acc
+		this.accs[accId] = sessAcc
 	}
-	conss := acc.taConss[taId]
+	conss := sessAcc.taConss[taId]
 	if conss == nil {
 		mod = true
 		conss = map[string]bool{}

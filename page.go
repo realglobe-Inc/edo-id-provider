@@ -233,15 +233,15 @@ func accountSelect(sys *system, w http.ResponseWriter, r *authenticationRequest,
 		// アカウント選択 UI 表示後だった。
 		log.Debug("Account selection returned")
 
-		accId, _ := r.authenticationData()
-		if accId == "" {
+		accName, _ := r.authenticationData()
+		if accName == "" {
 			return redirectError(w, r, errAccDeny, "account was not selected")
-		} else if sess.selectAccount(accId) {
+		} else if sess.selectAccountByName(accName) {
 			// アカウント選択できた。
-			log.Debug("Account " + accId + " is selected")
+			log.Debug("Account " + accName + " is selected")
 		} else {
 			// 認証済みでないアカウントを選択した。
-			log.Debug("Maybe login " + accId)
+			log.Debug("Maybe new login as " + accName)
 		}
 
 		return accountSelected(sys, w, r, sess)
@@ -325,8 +325,8 @@ func unauthenticated(sys *system, w http.ResponseWriter, r *authenticationReques
 
 // ユーザー認証と同意処理。
 func authenticateAndConsent(sys *system, w http.ResponseWriter, r *authenticationRequest, sess *session) error {
-	accId, passwd := r.authenticationData()
-	if accId == "" || passwd == "" {
+	accName, passwd := r.authenticationData()
+	if accName == "" || passwd == "" {
 		// 認証情報入力前だった。
 		log.Debug("Authentication data was not found")
 		return redirectAuthenticationAndConsentUi(sys, w, r, sess)
@@ -335,27 +335,27 @@ func authenticateAndConsent(sys *system, w http.ResponseWriter, r *authenticatio
 	// 認証情報を入力した後だった。
 	log.Debug("Authentication data was found")
 
-	acc, err := sys.accCont.get(accId)
+	acc, err := sys.accCont.getByName(accName)
 	if err != nil {
 		return redirectServerError(w, r, erro.Wrap(err))
 	} else if acc == nil {
-		return redirectError(w, r, errAccDeny, "user "+accId+" is not exist")
+		return redirectError(w, r, errAccDeny, "user "+accName+" is not exist")
 	}
 	if passwd != acc.Passwd {
 		return redirectError(w, r, errAccDeny, "invalid password")
 	}
 
 	// 認証成功
-	log.Debug("User " + accId + " is authenticated")
+	log.Debug("User " + accName + " (" + acc.Id + ") is authenticated")
 
-	sess.setAccount(acc.Id)
+	sess.setAccount(acc)
 	return consent(sys, w, r, sess)
 }
 
 // ユーザー認証処理。
 func authenticate(sys *system, w http.ResponseWriter, r *authenticationRequest, sess *session) error {
-	accId, passwd := r.authenticationData()
-	if accId == "" || passwd == "" {
+	accName, passwd := r.authenticationData()
+	if accName == "" || passwd == "" {
 		// 認証情報入力前だった。
 		log.Debug("Authentication data was not found")
 		return redirectAuthenticationUi(sys, w, r, sess)
@@ -364,27 +364,27 @@ func authenticate(sys *system, w http.ResponseWriter, r *authenticationRequest, 
 	// 認証情報を入力した後だった。
 	log.Debug("Authentication data was found")
 
-	acc, err := sys.accCont.get(accId)
+	acc, err := sys.accCont.getByName(accName)
 	if err != nil {
 		return redirectServerError(w, r, erro.Wrap(err))
 	} else if acc == nil {
-		return redirectError(w, r, errAccDeny, "user "+accId+" is not exist")
+		return redirectError(w, r, errAccDeny, "user "+accName+" is not exist")
 	}
 	if passwd != acc.Passwd {
 		return redirectError(w, r, errAccDeny, "invalid password")
 	}
 
 	// 認証成功
-	log.Debug("User " + accId + " is authenticated")
+	log.Debug("User " + accName + " (" + acc.Id + ") is authenticated")
 
-	sess.setAccount(acc.Id)
+	sess.setAccount(acc)
 	return publishCode(sys, w, r, sess)
 }
 
 // UI 無しユーザー認証処理。
 func authenticateWithoutUi(sys *system, w http.ResponseWriter, r *authenticationRequest, sess *session) error {
-	accId, passwd := r.authenticationData()
-	if accId == "" || passwd == "" {
+	accName, passwd := r.authenticationData()
+	if accName == "" || passwd == "" {
 		// 認証情報入力前だった。
 		log.Debug("Authentication data was not found")
 		return redirectError(w, r, errLoginReq, "cannot authenticate user without UI")
@@ -393,20 +393,20 @@ func authenticateWithoutUi(sys *system, w http.ResponseWriter, r *authentication
 	// 認証情報を入力した後だった。
 	log.Debug("Authentication data was found")
 
-	acc, err := sys.accCont.get(accId)
+	acc, err := sys.accCont.getByName(accName)
 	if err != nil {
 		return redirectServerError(w, r, erro.Wrap(err))
 	} else if acc == nil {
-		return redirectError(w, r, errAccDeny, "user "+accId+" is not exist")
+		return redirectError(w, r, errAccDeny, "user "+accName+" is not exist")
 	}
 	if passwd != acc.Passwd {
 		return redirectError(w, r, errAccDeny, "invalid password")
 	}
 
 	// 認証成功
-	log.Debug("User " + accId + " is authenticated")
+	log.Debug("User " + accName + " (" + acc.Id + ") is authenticated")
 
-	sess.setAccount(acc.Id)
+	sess.setAccount(acc)
 	return publishCode(sys, w, r, sess)
 }
 
@@ -428,7 +428,7 @@ func consent(sys *system, w http.ResponseWriter, r *authenticationRequest, sess 
 		// 同意 UI 表示後だった。
 		log.Debug("Consent request returned")
 
-		sess.consent(sess.account(), r.ta().id, r.claims())
+		sess.consent(sess.account(), sess.accountName(), r.ta().id, r.claims())
 		return publishCode(sys, w, r, sess)
 	}
 }

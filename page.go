@@ -42,8 +42,7 @@ const (
 )
 
 const (
-	// HttpStatusError に入れて使うので HTTP のステータスと被らないように。
-	errInvReq = 1000 + iota
+	errInvReq = iota
 	errAccDeny
 	errUnsuppRespType
 	errInvScop
@@ -58,7 +57,7 @@ const (
 	errRegNotSupp
 )
 
-var errCods map[int]string = map[int]string{
+var errCods []string = []string{
 	errInvReq:         "invalid_request",
 	errAccDeny:        "access_dnied",
 	errUnsuppRespType: "unsupported_response_type",

@@ -121,6 +121,7 @@ func mainCore(param *parameters) error {
 	}
 
 	sys := newSystem(
+		param.selfId,
 		param.secCook,
 		param.codIdLen/2,
 		param.codIdLen/2,

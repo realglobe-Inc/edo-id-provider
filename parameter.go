@@ -46,6 +46,9 @@ type parameters struct {
 	// キャッシュを廃棄するまでの期間。
 	caExpiDur time.Duration
 
+	// IdP としての ID。
+	selfId string
+
 	// UI 用 HTML を提供する URI。
 	uiUri string
 	// UI 用 HTML を置くディレクトリパス。
@@ -155,6 +158,7 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.DurationVar(&param.caStaleDur, "caStaleDur", 5*time.Minute, "Cache fresh duration.")
 	flags.DurationVar(&param.caExpiDur, "caExpiDur", 30*time.Minute, "Cache expiration duration.")
 
+	flags.StringVar(&param.selfId, "selfId", "https://example.com", "IdP ID.")
 	flags.StringVar(&param.uiUri, "uiUri", authPath+"/html", "UI uri.")
 	flags.StringVar(&param.uiPath, "uiPath", filepath.Join(filepath.Dir(os.Args[0]), "html"), "Protocol type. http/fcgi")
 

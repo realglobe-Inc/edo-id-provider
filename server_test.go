@@ -30,6 +30,7 @@ func TestBoot(t *testing.T) {
 	defer os.RemoveAll(path)
 
 	sys := newSystem(
+		"http://edo-id-provider.example.com",
 		false,
 		10,
 		10,

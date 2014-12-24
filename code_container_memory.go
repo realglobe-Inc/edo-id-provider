@@ -15,8 +15,8 @@ func newMemoryCodeContainer(idLen int, expiDur, caStaleDur, caExpiDur time.Durat
 	})
 }
 
-func (this *memoryCodeContainer) new(accId, taId string) (*code, error) {
-	return ((*codeContainerImpl)(this)).new(accId, taId)
+func (this *memoryCodeContainer) new(accId, taId, rediUri string) (*code, error) {
+	return ((*codeContainerImpl)(this)).new(accId, taId, rediUri)
 }
 
 func (this *memoryCodeContainer) get(codId string) (*code, error) {

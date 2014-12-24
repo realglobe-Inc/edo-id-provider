@@ -15,7 +15,7 @@ func testCodeContainer(t *testing.T, codCont codeContainer) {
 	}
 
 	// 発行する。
-	cod, err := codCont.new("abcde", "ABCDE")
+	cod, err := codCont.new("abcde", "ABCDE", "https://example.com/a/b/c?a=b")
 	if err != nil {
 		t.Fatal(err)
 	}

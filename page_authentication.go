@@ -338,7 +338,7 @@ func consent(sys *system, w http.ResponseWriter, r *authenticationRequest, sess 
 // 認可コード発行。
 func publishCode(sys *system, w http.ResponseWriter, r *authenticationRequest, sess *session) error {
 
-	cod, err := sys.codCont.new(sess.account(), r.ta().id)
+	cod, err := sys.codCont.new(sess.account(), r.ta().id, r.redirectUri().String())
 	if err != nil {
 		return redirectServerError(w, r, erro.Wrap(err))
 	}

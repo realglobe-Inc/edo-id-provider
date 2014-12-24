@@ -15,12 +15,14 @@ type code struct {
 	AccId string `json:"account_id"`
 	// 発行先 TA。
 	TaId string `json:"ta_id"`
+	// 発行時の redirect_uri。
+	RediUri string `json:"redirect_uri"`
 	// 有効期限。
 	ExpiDate time.Time `json:"expires"`
 }
 
 type codeContainer interface {
-	new(accId, taId string) (*code, error)
+	new(accId, taId, rediUri string) (*code, error)
 	get(codId string) (*code, error)
 }
 
@@ -33,7 +35,7 @@ type codeContainerImpl struct {
 	base driver.TimeLimitedKeyValueStore
 }
 
-func (this *codeContainerImpl) new(accId, taId string) (*code, error) {
+func (this *codeContainerImpl) new(accId, taId, rediUri string) (*code, error) {
 	var codId string
 	for {
 		buff, err := util.SecureRandomBytes(this.idLen * 6 / 8)
@@ -54,7 +56,7 @@ func (this *codeContainerImpl) new(accId, taId string) (*code, error) {
 	// コードが決まった。
 	log.Debug("Code was generated.")
 
-	cod := &code{codId, accId, taId, time.Now().Add(this.expiDur)}
+	cod := &code{codId, accId, taId, rediUri, time.Now().Add(this.expiDur)}
 	if _, err := this.base.Put(codId, cod, cod.ExpiDate); err != nil {
 		return nil, erro.Wrap(err)
 	}

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"crypto/rsa"
+	"crypto"
 	"github.com/realglobe-Inc/edo/util"
 	"reflect"
 	"testing"
@@ -25,7 +25,7 @@ u3wa4HhSwmMLXwPTUXeTukTU1gU57++SWzrUogi71aQPcv8Y1k78Li5bS/VN1WTN
 -----END PUBLIC KEY-----`); err != nil {
 		panic(err)
 	} else {
-		testTa.pubKeys = map[string]*rsa.PublicKey{"": pubKey}
+		testTa.pubKeys = map[string]crypto.PublicKey{"": pubKey}
 	}
 }
 

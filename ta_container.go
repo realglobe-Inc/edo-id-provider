@@ -1,7 +1,7 @@
 package main
 
 import (
-	"crypto/rsa"
+	"crypto"
 	"github.com/realglobe-Inc/edo/driver"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 )
@@ -12,7 +12,7 @@ type ta struct {
 	// 登録された全ての redirect_uri。
 	rediUris map[string]bool
 	// kid から公開鍵へのマップ。
-	pubKeys map[string]*rsa.PublicKey
+	pubKeys map[string]crypto.PublicKey
 }
 
 func (this *ta) hasRedirectUri(rediUri string) bool {

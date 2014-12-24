@@ -75,7 +75,7 @@ var errCods map[int]string = map[int]string{
 }
 
 // rediUri にリダイレクトしてエラーを通知する。
-func redirectError(w http.ResponseWriter, r *authenticationRequest, errCod int, errDesc string) error {
+func redirectError(w http.ResponseWriter, r errorRedirectRequest, errCod int, errDesc string) error {
 	q := r.redirectUri().Query()
 	q.Set(formErr, errCods[errCod])
 	if errDesc != "" {
@@ -87,7 +87,7 @@ func redirectError(w http.ResponseWriter, r *authenticationRequest, errCod int, 
 }
 
 // rediUri にリダイレクトしてサーバーエラーを通知する。
-func redirectServerError(w http.ResponseWriter, r *authenticationRequest, err error) error {
+func redirectServerError(w http.ResponseWriter, r errorRedirectRequest, err error) error {
 	log.Err(erro.Unwrap(err))
 	log.Debug(err)
 	return redirectError(w, r, errServErr, erro.Unwrap(err).Error())

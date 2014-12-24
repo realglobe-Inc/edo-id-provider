@@ -31,7 +31,7 @@ const (
 )
 
 const (
-	ressTypeCod = "code"
+	respTypeCod = "code"
 )
 
 const (

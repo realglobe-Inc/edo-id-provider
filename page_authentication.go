@@ -51,12 +51,12 @@ func authPage(sys *system, w http.ResponseWriter, r *http.Request) error {
 	// scope には問題無い。
 	log.Debug("Scope has " + scopOpId)
 
-	if req.responseType() != ressTypeCod {
-		return redirectError(w, req, errUnsuppRespType, formRespType+" is not "+ressTypeCod)
+	if req.responseType() != respTypeCod {
+		return redirectError(w, req, errUnsuppRespType, formRespType+" is not "+respTypeCod)
 	}
 
 	// response_type には問題無い。
-	log.Debug("Response type is " + ressTypeCod)
+	log.Debug("Response type is " + respTypeCod)
 
 	return auth(sys, w, req)
 }

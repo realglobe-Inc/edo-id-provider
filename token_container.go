@@ -15,6 +15,10 @@ type token struct {
 	AccId string `json:"account_id"`
 	// 有効期限。
 	ExpiDate time.Time `json:"expires"`
+	// リフレッシュトークン。
+	RefTok string `json:"refresh_token,omitempty"`
+	// scope
+	Scops map[string]bool `json:"scope,omitempty"`
 }
 
 type tokenContainer interface {
@@ -60,7 +64,11 @@ func (this *tokenContainerImpl) new(accId string, expiDur time.Duration) (*token
 		expiDur = this.maxExpiDur
 	}
 
-	tok := &token{tokId, accId, time.Now().Add(expiDur)}
+	tok := &token{
+		Id:       tokId,
+		AccId:    accId,
+		ExpiDate: time.Now().Add(expiDur),
+	}
 	if _, err := this.base.Put(tokId, tok, tok.ExpiDate); err != nil {
 		return nil, erro.Wrap(err)
 	}

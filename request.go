@@ -17,11 +17,6 @@ func formValueSet(r *http.Request, key string) map[string]bool {
 	return set
 }
 
-// 指定されているアカウント名を読む。
-func getAccountId(r *http.Request) string {
-	return r.FormValue(formAccId)
-}
-
 // 申告されている要求元 TA の ID を読む。
 func getTaId(r *http.Request) string {
 	return r.FormValue(formTaId)
@@ -42,10 +37,18 @@ type authenticationRequest struct {
 	rediUri *url.URL
 	// scope
 	scops map[string]bool
-	// prmpt
+	// prompt
 	prmpts map[string]bool
 	// 要求されているクレーム。
 	clms map[string]bool
+
+	sessId  string
+	resType string
+	selCod  string
+	consCod string
+	accName string
+	passwd  string
+	stat    string
 }
 
 func newAuthenticationRequest(r *http.Request, t *ta, rediUri *url.URL) *authenticationRequest {
@@ -85,34 +88,51 @@ func (this *authenticationRequest) claims() map[string]bool {
 }
 
 func (this *authenticationRequest) sessionId() string {
-	if cook, err := this.r.Cookie(cookSess); err != nil {
-		if err != http.ErrNoCookie {
-			err = erro.Wrap(err)
-			log.Err(erro.Unwrap(err))
-			log.Debug(err)
+	if this.sessId == "" {
+		if cook, err := this.r.Cookie(cookSess); err != nil {
+			if err != http.ErrNoCookie {
+				err = erro.Wrap(err)
+				log.Err(erro.Unwrap(err))
+				log.Debug(err)
+			}
+		} else {
+			this.sessId = cook.Value
 		}
-		return ""
-	} else {
-		return cook.Value
 	}
+	return this.sessId
 }
 
 func (this *authenticationRequest) responseType() string {
-	return this.r.FormValue(formRespType)
+	if this.resType == "" {
+		this.resType = this.r.FormValue(formRespType)
+	}
+	return this.resType
 }
 
 func (this *authenticationRequest) selectionCode() string {
-	return this.r.FormValue(formSelCod)
+	if this.selCod == "" {
+		this.selCod = this.r.FormValue(formSelCod)
+	}
+	return this.selCod
 }
 
 func (this *authenticationRequest) consentCode() string {
-	return this.r.FormValue(formConsCod)
+	if this.consCod == "" {
+		this.consCod = this.r.FormValue(formConsCod)
+	}
+	return this.consCod
 }
 
-func (this *authenticationRequest) authenticationData() (username, passwd string) {
-	return this.r.FormValue(formAccId), this.r.FormValue(formPasswd)
+func (this *authenticationRequest) authenticationData() (accName, passwd string) {
+	if this.accName == "" && this.passwd == "" {
+		this.accName, this.passwd = this.r.FormValue(formAccId), this.r.FormValue(formPasswd)
+	}
+	return this.accName, this.passwd
 }
 
 func (this *authenticationRequest) state() string {
-	return this.r.FormValue(formStat)
+	if this.stat == "" {
+		this.stat = this.r.FormValue(formStat)
+	}
+	return this.stat
 }

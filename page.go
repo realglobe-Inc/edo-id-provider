@@ -21,7 +21,7 @@ const (
 
 	// 独自。
 	formAccId   = "username"
-	formPasswd  = "passwd"
+	formPasswd  = "password"
 	formSelCod  = "account_selection_code"
 	formConsCod = "consent_code"
 )

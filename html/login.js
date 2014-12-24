@@ -9,7 +9,7 @@ function login() {
 
     document.write('<form method="post" action="' + uri + '">');
     document.write('アカウント: <input type="text" name="username" size="20" /> ');
-    document.write('パスワード: <input type="password" name="passwd" size="20" /> ');
+    document.write('パスワード: <input type="password" name="password" size="20" /> ');
     document.write('<input type="submit" value="ログイン" />');
     document.write('</form>');
 }

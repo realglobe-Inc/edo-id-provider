@@ -9,15 +9,22 @@ const cookSess = "X-Edo-Idp-Session"
 
 const (
 	// OAuth と OpenID Connect で定義されているパラメータ。
-	formScop     = "scope"
-	formTaId     = "client_id"
-	formPrmpt    = "prompt"
-	formRediUri  = "redirect_uri"
-	formRespType = "response_type"
-	formStat     = "state"
-	formCod      = "code"
-	formErr      = "error"
-	formErrDesc  = "error_description"
+	formScop      = "scope"
+	formTaId      = "client_id"
+	formPrmpt     = "prompt"
+	formRediUri   = "redirect_uri"
+	formRespType  = "response_type"
+	formStat      = "state"
+	formCod       = "code"
+	formGrntType  = "grant_type"
+	formTaAssType = "client_assertion_type"
+	formTaAss     = "client_assertion"
+	formTokId     = "access_token"
+	formTokType   = "token_type"
+	formExpi      = "expires_in"
+	formRefTok    = "refresh_token"
+	formErr       = "error"
+	formErrDesc   = "error_description"
 
 	// 独自。
 	formAccId   = "username"
@@ -42,6 +49,29 @@ const (
 )
 
 const (
+	grntTypeCod = "code"
+)
+
+const (
+	taAssTypeJwt = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+)
+
+const (
+	clmIss = "iss"
+	clmSub = "sub"
+	clmAud = "aud"
+	clmJti = "jti"
+	clmExp = "exp"
+
+	// プライベートクレーム。
+	clmCod = "code"
+)
+
+const (
+	tokTypeBear = "Bearer"
+)
+
+const (
 	errInvReq = iota
 	errAccDeny
 	errUnsuppRespType
@@ -55,6 +85,10 @@ const (
 	errReqNotSupp
 	errReqUriNotSupp
 	errRegNotSupp
+
+	errUnsuppGrntType
+	errInvGrnt
+	errInvTa
 )
 
 var errCods []string = []string{
@@ -71,6 +105,10 @@ var errCods []string = []string{
 	errReqNotSupp:    "request_not_supported",
 	errReqUriNotSupp: "request_uri_not_supported",
 	errRegNotSupp:    "registration_not_supported",
+
+	errUnsuppGrntType: "unsupported_grant_type",
+	errInvGrnt:        "invalid_grant",
+	errInvTa:          "invalid_client",
 }
 
 // rediUri にリダイレクトしてエラーを通知する。

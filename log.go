@@ -5,3 +5,13 @@ import (
 )
 
 var log = rglog.Logger("github.com/realglobe-Inc/edo/edo-id-provider")
+
+// ログにそのまま書くのが憚られるので隠す。
+func mosaic(str string) string {
+	const thres = 10
+	if len(str) <= thres {
+		return str
+	} else {
+		return str[:thres] + "..."
+	}
+}

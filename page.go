@@ -76,16 +76,6 @@ var errCods map[int]string = map[int]string{
 	errRegNotSupp:    "registration_not_supported",
 }
 
-// ログにそのまま書くのが憚られるので隠す。
-func mosaic(str string) string {
-	const thres = 10
-	if len(str) <= thres {
-		return str
-	} else {
-		return str[:thres] + "..."
-	}
-}
-
 // rediUri にリダイレクトしてエラーを通知する。
 func redirectError(w http.ResponseWriter, r *authenticationRequest, errCod int, errDesc string) error {
 	q := r.redirectUri().Query()

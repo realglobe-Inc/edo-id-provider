@@ -5,7 +5,6 @@ import (
 	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"net/http"
-	"strconv"
 	"time"
 )
 
@@ -19,12 +18,12 @@ const (
 )
 
 func responseToken(w http.ResponseWriter, tok *token) error {
-	m := map[string]string{
+	m := map[string]interface{}{
 		formTokId:   tok.Id,
 		formTokType: tokTypeBear,
 	}
 	if !tok.ExpiDate.IsZero() {
-		m[formExpi] = strconv.FormatInt(int64(tok.ExpiDate.Sub(time.Now()).Seconds()), 10)
+		m[formExpi] = int64(tok.ExpiDate.Sub(time.Now()).Seconds())
 	}
 	if tok.RefTok != "" {
 		m[formRefTok] = tok.RefTok

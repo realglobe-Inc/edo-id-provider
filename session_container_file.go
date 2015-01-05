@@ -7,16 +7,12 @@ import (
 	"time"
 )
 
-func marshalSession(val interface{}) (data []byte, err error) {
-	return json.Marshal(sessionToIntermediate(val.(*session)))
-}
-
 func unmarshalSession(data []byte) (val interface{}, err error) {
-	var res sessionIntermediate
+	var res session
 	if err := json.Unmarshal(data, &res); err != nil {
 		return nil, erro.Wrap(err)
 	}
-	return intermediateToSession(&res), nil
+	return &res, nil
 }
 
 // スレッドセーフ。
@@ -24,7 +20,7 @@ func newFileSessionContainer(idLen int, expiDur time.Duration, path, expiPath st
 	return &sessionContainerWrapper{idLen, expiDur,
 		&sessionContainerImpl{
 			driver.NewFileTimeLimitedKeyValueStore(path, expiPath,
-				keyToJsonPath, nil, marshalSession, unmarshalSession,
+				keyToJsonPath, nil, json.Marshal, unmarshalSession,
 				caStaleDur, caExpiDur),
 		}}
 }

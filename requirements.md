@@ -29,3 +29,7 @@ OpenID Connect
 + promp パラメータの値が consent であり、同意を得られない場合はエラー。
 + promp パラメータの値が select_account であり、アカウントを選択できない場合はエラー。
 + リクエストに max_age が含まれ、アカウントが明示的に認証されてからの経過時間がその値より大きければ、アカウントを明示的に認証する。
+
+
++ トークンリクエストに grant_type パラメータが無ければエラー。
++ grant_type パラメータの値が authorization_code でなければエラー。

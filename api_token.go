@@ -170,7 +170,7 @@ func tokenApi(sys *system, w http.ResponseWriter, r *http.Request) error {
 		return erro.Wrap(err)
 	}
 
-	if alg := jws.Header(jwtAlg); alg == algNone {
+	if jws.Header(jwtAlg) == algNone {
 		return responseError(w, http.StatusBadRequest, errInvTa, "JWS algorithm "+algNone+" is not allowed")
 	} else if err := jws.Verify(ta.pubKeys); err != nil {
 		err = erro.Wrap(err)

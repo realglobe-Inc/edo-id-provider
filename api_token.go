@@ -148,13 +148,13 @@ func tokenApi(sys *system, w http.ResponseWriter, r *http.Request) error {
 		ok := false
 		for _, b := range a {
 			c, _ := b.(string)
-			if c == sys.selfId {
+			if c == sys.selfId+tokPath {
 				ok = true
 				break
 			}
 		}
 		if !ok {
-			return responseError(w, http.StatusBadRequest, errInvTa, clmAud+" does not have "+sys.selfId)
+			return responseError(w, http.StatusBadRequest, errInvTa, clmAud+" does not have "+sys.selfId+tokPath)
 		}
 	default:
 		return responseError(w, http.StatusBadRequest, errInvTa, "invalid"+clmAud)

@@ -24,7 +24,3 @@ func responseError(w http.ResponseWriter, statCod, errCod int, errDesc string) e
 	}
 	return nil
 }
-
-func accountInfoApi(sys *system, w http.ResponseWriter, r *http.Request) error {
-	panic("not yet implemented")
-}

@@ -24,5 +24,5 @@ func (this *memoryTokenContainer) get(tokId string) (*token, error) {
 }
 
 func (this *memoryTokenContainer) add(tok *token) {
-	((*tokenContainerImpl)(this)).base.(driver.TimeLimitedKeyValueStore).Put(tok.Id, tok, tok.ExpiDate)
+	((*tokenContainerImpl)(this)).base.(driver.TimeLimitedKeyValueStore).Put(tok.id(), tok, tok.expirationDate())
 }

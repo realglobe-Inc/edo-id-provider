@@ -51,11 +51,7 @@ func (this *tokenContainerImpl) new(accId string, expiDur time.Duration) (*token
 		expiDur = this.maxExpiDur
 	}
 
-	tok := &token{
-		Id:       tokId,
-		AccId:    accId,
-		ExpiDate: time.Now().Add(expiDur),
-	}
+	tok := newToken(tokId, accId, time.Now().Add(expiDur))
 	if _, err := this.base.Put(tokId, tok, tok.ExpiDate); err != nil {
 		return nil, erro.Wrap(err)
 	}

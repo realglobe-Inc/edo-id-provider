@@ -19,11 +19,11 @@ const (
 
 func responseToken(w http.ResponseWriter, tok *token) error {
 	m := map[string]interface{}{
-		formTokId:   tok.Id,
+		formTokId:   tok.id(),
 		formTokType: tokTypeBear,
 	}
-	if !tok.ExpiDate.IsZero() {
-		m[formExpi] = int64(tok.ExpiDate.Sub(time.Now()).Seconds())
+	if !tok.expirationDate().IsZero() {
+		m[formExpi] = int64(tok.expirationDate().Sub(time.Now()).Seconds())
 	}
 	if tok.RefTok != "" {
 		m[formRefTok] = tok.RefTok
@@ -186,7 +186,7 @@ func tokenApi(sys *system, w http.ResponseWriter, r *http.Request) error {
 		return erro.Wrap(err)
 	}
 
-	log.Debug("Token " + mosaic(tok.Id) + " is generated")
+	log.Debug("Token " + mosaic(tok.id()) + " is generated")
 
 	return responseToken(w, tok)
 }

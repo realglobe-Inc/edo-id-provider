@@ -16,3 +16,23 @@ type token struct {
 	// scope
 	Scops map[string]bool `json:"scope,omitempty"`
 }
+
+func newToken(tokId, accId string, expiDate time.Time) *token {
+	return &token{
+		Id:       tokId,
+		AccId:    accId,
+		ExpiDate: expiDate,
+	}
+}
+
+func (this *token) id() string {
+	return this.Id
+}
+
+func (this *token) accountId() string {
+	return this.AccId
+}
+
+func (this *token) expirationDate() time.Time {
+	return this.ExpiDate
+}

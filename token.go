@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/realglobe-Inc/edo/util"
 	"time"
 )
 
@@ -14,7 +15,7 @@ type token struct {
 	// リフレッシュトークン。
 	RefTok string `json:"refresh_token,omitempty"`
 	// scope
-	Scops map[string]bool `json:"scope,omitempty"`
+	Scops *util.StringSet `json:"scope,omitempty"`
 }
 
 func newToken(tokId, accId string, expiDate time.Time) *token {

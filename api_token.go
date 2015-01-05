@@ -28,9 +28,9 @@ func responseToken(w http.ResponseWriter, tok *token) error {
 	if tok.RefTok != "" {
 		m[formRefTok] = tok.RefTok
 	}
-	if len(tok.Scops) > 0 {
+	if tok.Scops.Len() > 0 {
 		var buff string
-		for scop := range tok.Scops {
+		for scop := range tok.Scops.Elements() {
 			if len(buff) > 0 {
 				buff += " "
 			}

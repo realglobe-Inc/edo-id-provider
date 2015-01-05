@@ -75,7 +75,7 @@ func tokenApi(sys *system, w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return erro.Wrap(err)
 	} else if cod == nil {
-		return responseError(w, http.StatusBadRequest, errInvGrnt, "code "+codId+" is not exist")
+		return responseError(w, http.StatusBadRequest, errInvGrnt, "code "+mosaic(codId)+" is not exist")
 	}
 
 	log.Debug("Code " + mosaic(codId) + " is exist")

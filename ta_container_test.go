@@ -10,7 +10,7 @@ import (
 var testTa = &ta{
 	id:       "abcde",
 	name:     "aaaaa",
-	rediUris: map[string]bool{"https://example.com/": true, "https://example.com/a/b/c": true},
+	rediUris: util.NewStringSet(map[string]bool{"https://example.com/": true, "https://example.com/a/b/c": true}),
 }
 
 func init() {

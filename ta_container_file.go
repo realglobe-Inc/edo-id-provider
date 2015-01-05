@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"github.com/realglobe-Inc/edo/driver"
+	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"math/big"
 	"net/url"
@@ -19,7 +20,7 @@ import (
 type taIntermediate struct {
 	Id       string                   `json:"id"            bson:"id"`
 	Name     string                   `json:"name"          bson:"name"`
-	RediUris []string                 `json:"redirect_uris" bson:"redirect_uris"`
+	RediUris *util.StringSet          `json:"redirect_uris" bson:"redirect_uris"`
 	PubKeys  []map[string]interface{} `json:"keys"          bson:"keys"`
 
 	Date   time.Time `json:"-" bson:"date"`
@@ -27,10 +28,7 @@ type taIntermediate struct {
 }
 
 func taToIntermediate(t *ta) *taIntermediate {
-	rediUris := []string{}
-	for k := range t.rediUris {
-		rediUris = append(rediUris, k)
-	}
+	rediUris := t.rediUris
 	pubKeys := []map[string]interface{}{}
 	for k, v := range t.pubKeys {
 		switch pubKey := v.(type) {
@@ -81,10 +79,6 @@ func taToIntermediate(t *ta) *taIntermediate {
 }
 
 func intermediateToTa(ti *taIntermediate) (*ta, error) {
-	rediUris := map[string]bool{}
-	for _, v := range ti.RediUris {
-		rediUris[v] = true
-	}
 	pubKeys := map[string]crypto.PublicKey{}
 	for _, v := range ti.PubKeys {
 		if kid, pubKey, err := mapToPublicKey(v); err != nil {
@@ -96,7 +90,7 @@ func intermediateToTa(ti *taIntermediate) (*ta, error) {
 	return &ta{
 		id:       ti.Id,
 		name:     ti.Name,
-		rediUris: rediUris,
+		rediUris: ti.RediUris,
 		pubKeys:  pubKeys,
 	}, nil
 }

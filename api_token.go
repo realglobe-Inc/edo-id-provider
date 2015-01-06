@@ -10,7 +10,6 @@ import (
 
 const (
 	jwtAlg = "alg"
-	jwtKid = "kid"
 )
 
 const (

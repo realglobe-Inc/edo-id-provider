@@ -5,15 +5,6 @@ import (
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 )
 
-type account struct {
-	// IdP 内で一意かつ変更されることのない ID。
-	Id string `json:"id"`
-	// IdP 内で一意のログイン ID。
-	Name string `json:"name"`
-	// パスワード。
-	Passwd string `json:"passwd"`
-}
-
 type accountContainer interface {
 	get(accId string) (*account, error)
 	getByName(accName string) (*account, error)

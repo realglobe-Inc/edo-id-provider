@@ -8,19 +8,6 @@ import (
 	"time"
 )
 
-type code struct {
-	// 認可コード。
-	Id string `json:"id"`
-	// 発行したアカウント。
-	AccId string `json:"account_id"`
-	// 発行先 TA。
-	TaId string `json:"ta_id"`
-	// 発行時の redirect_uri。
-	RediUri string `json:"redirect_uri"`
-	// 有効期限。
-	ExpiDate time.Time `json:"expires"`
-}
-
 type codeContainer interface {
 	new(accId, taId, rediUri string) (*code, error)
 	get(codId string) (*code, error)

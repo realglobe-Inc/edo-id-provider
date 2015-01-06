@@ -3,6 +3,7 @@ package main
 import (
 	"regexp"
 	"strings"
+	"time"
 )
 
 // 便宜的に集めただけ。
@@ -21,6 +22,8 @@ type system struct {
 	sessCont sessionContainer
 	codCont  codeContainer
 	tokCont  tokenContainer
+
+	tokExpiDur time.Duration
 }
 
 func newSystem(selfId string, secCook bool, selCodLen, consCodLen int, uiUri string, uiPath string,
@@ -28,7 +31,8 @@ func newSystem(selfId string, secCook bool, selCodLen, consCodLen int, uiUri str
 	accCont accountContainer,
 	sessCont sessionContainer,
 	codCont codeContainer,
-	tokCont tokenContainer) *system {
+	tokCont tokenContainer,
+	tokExpiDur time.Duration) *system {
 
 	uiUri = strings.TrimRight(uiUri, "/")
 	uiUri = regexp.MustCompile("/+").ReplaceAllString(uiUri, "/")
@@ -39,5 +43,5 @@ func newSystem(selfId string, secCook bool, selCodLen, consCodLen int, uiUri str
 		uiUri = "/" + uiUri
 	}
 	log.Info("Use " + uiUri + " as UI uri")
-	return &system{selfId, secCook, selCodLen, consCodLen, uiUri, uiPath, taCont, accCont, sessCont, codCont, tokCont}
+	return &system{selfId, secCook, selCodLen, consCodLen, uiUri, uiPath, taCont, accCont, sessCont, codCont, tokCont, tokExpiDur}
 }

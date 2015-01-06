@@ -132,6 +132,7 @@ func mainCore(param *parameters) error {
 		sessCont,
 		codCont,
 		tokCont,
+		param.tokExpiDur,
 	)
 	return serve(sys, param.socType, param.socPath, param.socPort, param.protType)
 }

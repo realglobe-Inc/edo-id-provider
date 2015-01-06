@@ -41,6 +41,7 @@ func TestBoot(t *testing.T) {
 		newMemorySessionContainer(10, time.Second, 0, 0),
 		newMemoryCodeContainer(10, time.Second, 0, 0),
 		newMemoryTokenContainer(10, time.Second, time.Second, 0, 0),
+		time.Second,
 	)
 	go serve(sys, "tcp", "", port, "http")
 

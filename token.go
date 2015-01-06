@@ -10,19 +10,25 @@ type token struct {
 	Id string `json:"id"`
 	// 発行したアカウント。
 	AccId string `json:"account_id"`
+	// 発行先 TA。
+	TaId string `json:"ta_id"`
 	// 有効期限。
 	ExpiDate time.Time `json:"expires"`
+
 	// リフレッシュトークン。
 	RefTok string `json:"refresh_token,omitempty"`
 	// scope
 	Scops *util.StringSet `json:"scope,omitempty"`
 }
 
-func newToken(tokId, accId string, expiDate time.Time) *token {
+func newToken(tokId, accId, taId string, expiDate time.Time, scops map[string]bool) *token {
 	return &token{
 		Id:       tokId,
 		AccId:    accId,
+		TaId:     taId,
 		ExpiDate: expiDate,
+
+		Scops: util.NewStringSet(scops),
 	}
 }
 
@@ -34,6 +40,18 @@ func (this *token) accountId() string {
 	return this.AccId
 }
 
+func (this *token) taId() string {
+	return this.TaId
+}
+
 func (this *token) expirationDate() time.Time {
 	return this.ExpiDate
+}
+
+func (this *token) refreshToken() string {
+	return this.RefTok
+}
+
+func (this *token) scopes() *util.StringSet {
+	return this.Scops
 }

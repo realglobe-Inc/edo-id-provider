@@ -25,12 +25,12 @@ func responseToken(w http.ResponseWriter, tok *token) error {
 	if !tok.expirationDate().IsZero() {
 		m[formExpi] = int64(tok.expirationDate().Sub(time.Now()).Seconds())
 	}
-	if tok.RefTok != "" {
-		m[formRefTok] = tok.RefTok
+	if tok.refreshToken() != "" {
+		m[formRefTok] = tok.refreshToken()
 	}
-	if tok.Scops.Len() > 0 {
+	if tok.scopes().Len() > 0 {
 		var buff string
-		for scop := range tok.Scops.Elements() {
+		for scop := range tok.scopes().Elements() {
 			if len(buff) > 0 {
 				buff += " "
 			}

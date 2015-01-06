@@ -110,10 +110,8 @@ type parameters struct {
 
 	// アクセストークンの文字数。
 	tokIdLen int
-	// アクセストークンのデフォルトの有効期間。
+	// アクセストークンの有効期間。
 	tokExpiDur time.Duration
-	// アクセストークンの最長の有効期間。
-	maxTokExpiDur time.Duration
 	// アクセストークン格納庫種別。
 	tokContType string
 	// アクセストークン格納庫ディレクトリパス。
@@ -193,7 +191,6 @@ func parseParameters(args ...string) (param *parameters, err error) {
 
 	flags.IntVar(&param.tokIdLen, "tokIdLen", 40, "Token length.")
 	flags.DurationVar(&param.tokExpiDur, "tokExpiDur", 24*time.Hour, "Token expiration duration.")
-	flags.DurationVar(&param.maxTokExpiDur, "maxTokExpiDur", 30*24*time.Hour, "Max access token expiration duration.")
 	flags.StringVar(&param.tokContType, "tokContType", "memory", "Token container type.")
 	flags.StringVar(&param.tokContPath, "tokContPath", filepath.Join(filepath.Dir(os.Args[0]), "tokens"), "Token container directory.")
 	flags.StringVar(&param.tokExpiContPath, "tokExpiContPath", filepath.Join(filepath.Dir(os.Args[0]), "token_expires"), "Token container expiration date directory.")

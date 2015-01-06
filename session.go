@@ -103,9 +103,10 @@ func (this *session) accountAuthenticationDate() time.Time {
 func (this *session) setAccount(acc *account) bool {
 	if sessAcc := this.Accs[acc.id()]; sessAcc != nil {
 		if sessAcc.Auth {
-			return false
+			return this.selectAccount(acc.id()) || false
 		} else {
 			sessAcc.Auth = true
+			this.selectAccount(acc.id())
 			return true
 		}
 	} else {
@@ -115,6 +116,7 @@ func (this *session) setAccount(acc *account) bool {
 			TaConss: map[string]*util.StringSet{},
 		}
 		this.Accs[acc.id()] = sessAcc
+		this.selectAccount(acc.id())
 		return true
 	}
 }

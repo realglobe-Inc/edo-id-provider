@@ -9,7 +9,7 @@ import (
 )
 
 type codeContainer interface {
-	new(accId, taId, rediUri string) (*code, error)
+	new(accId, taId, rediUri string, expiDur time.Duration, scops map[string]bool, nonc string, authDate time.Time) (*code, error)
 	get(codId string) (*code, error)
 }
 
@@ -22,7 +22,7 @@ type codeContainerImpl struct {
 	base driver.TimeLimitedKeyValueStore
 }
 
-func (this *codeContainerImpl) new(accId, taId, rediUri string) (*code, error) {
+func (this *codeContainerImpl) new(accId, taId, rediUri string, expiDur time.Duration, scops map[string]bool, nonc string, authDate time.Time) (*code, error) {
 	var codId string
 	for {
 		buff, err := util.SecureRandomBytes(this.idLen * 6 / 8)
@@ -43,8 +43,8 @@ func (this *codeContainerImpl) new(accId, taId, rediUri string) (*code, error) {
 	// コードが決まった。
 	log.Debug("Code was generated.")
 
-	cod := &code{codId, accId, taId, rediUri, time.Now().Add(this.expiDur)}
-	if _, err := this.base.Put(codId, cod, cod.ExpiDate); err != nil {
+	cod := newCode(codId, accId, taId, rediUri, time.Now().Add(this.expiDur), expiDur, scops, nonc, authDate)
+	if _, err := this.base.Put(codId, cod, cod.expirationDate()); err != nil {
 		return nil, erro.Wrap(err)
 	}
 

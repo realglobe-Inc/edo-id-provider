@@ -82,9 +82,9 @@ func tokenApi(sys *system, w http.ResponseWriter, r *http.Request) error {
 
 	taId := req.taId()
 	if taId == "" {
-		taId = cod.TaId
+		taId = cod.taId()
 		log.Debug("TA ID is " + taId + " in code")
-	} else if taId != cod.TaId {
+	} else if taId != cod.taId() {
 		return responseError(w, http.StatusBadRequest, errInvTa, "you are not code holder")
 	} else {
 		log.Debug("TA ID " + taId + " is declared")
@@ -93,7 +93,7 @@ func tokenApi(sys *system, w http.ResponseWriter, r *http.Request) error {
 	rediUri := req.redirectUri()
 	if rediUri == "" {
 		return responseError(w, http.StatusBadRequest, errInvReq, "no "+formRediUri)
-	} else if rediUri != cod.RediUri {
+	} else if rediUri != cod.redirectUri() {
 		return responseError(w, http.StatusBadRequest, errInvTa, "invalid "+formRediUri)
 	}
 

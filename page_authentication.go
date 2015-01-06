@@ -338,13 +338,13 @@ func consent(sys *system, w http.ResponseWriter, r *authenticationRequest, sess 
 // 認可コード発行。
 func publishCode(sys *system, w http.ResponseWriter, r *authenticationRequest, sess *session) error {
 
-	cod, err := sys.codCont.new(sess.account(), r.ta().id, r.redirectUri().String())
+	cod, err := sys.codCont.new(sess.account(), r.ta().id, r.redirectUri().String(), sys.tokExpiDur, r.scopes(), r.nonce(), sess.accountAuthenticationDate())
 	if err != nil {
 		return redirectServerError(w, r, erro.Wrap(err))
 	}
 
 	// 認可コードを発行した。
-	log.Debug("Code " + mosaic(cod.Id) + " was published")
+	log.Debug("Code " + mosaic(cod.id()) + " was published")
 
 	if err := sys.sessCont.put(sess); err != nil {
 		return redirectServerError(w, r, erro.Wrap(err))
@@ -353,7 +353,7 @@ func publishCode(sys *system, w http.ResponseWriter, r *authenticationRequest, s
 	log.Debug("Session " + mosaic(sess.id()) + " was registered")
 
 	q := r.redirectUri().Query()
-	q.Set(formCod, cod.Id)
+	q.Set(formCod, cod.id())
 	if stat := r.state(); stat != "" {
 		q.Set(formStat, stat)
 	}

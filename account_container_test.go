@@ -13,9 +13,9 @@ const (
 )
 
 var testAcc = newAccount(map[string]interface{}{
-	"id":     "abcde",
-	"name":   "aaaaa",
-	"passwd": "12345",
+	"id":       "abcde",
+	"username": "aaaaa",
+	"password": "12345",
 })
 
 func testAccountContainer(t *testing.T, accCont accountContainer) {

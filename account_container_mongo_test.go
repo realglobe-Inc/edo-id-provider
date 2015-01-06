@@ -33,11 +33,11 @@ func TestMongoAccountContainer(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := sess.DB(testLabel).C("edo-id-provider").Upsert(bson.M{"id": testAcc.id()}, newAccount(map[string]interface{}{
-		"id":     testAcc.id(),
-		"name":   testAcc.name(),
-		"passwd": testAcc.password(),
-		"date":   time.Now(),
-		"digest": "xyz"})); err != nil {
+		"id":       testAcc.id(),
+		"username": testAcc.name(),
+		"password": testAcc.password(),
+		"date":     time.Now(),
+		"digest":   "xyz"})); err != nil {
 		t.Fatal(err)
 	}
 	defer sess.DB(testLabel).C("edo-id-provider").DropCollection()

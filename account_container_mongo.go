@@ -34,7 +34,7 @@ func newMongoAccountContainer(url, dbName, collName string, staleDur, expiDur ti
 			"id", nil, nil, readAccount, getAccountStamp,
 			staleDur, expiDur),
 		driver.NewMongoKeyValueStore(url, dbName, collName,
-			"name", nil, nil, readAccount, getAccountStamp,
+			"username", nil, nil, readAccount, getAccountStamp,
 			staleDur, expiDur),
 	}
 }

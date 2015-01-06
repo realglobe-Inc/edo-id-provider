@@ -108,13 +108,13 @@ func mainCore(param *parameters) error {
 	var tokCont tokenContainer
 	switch param.tokContType {
 	case "memory":
-		tokCont = newMemoryTokenContainer(param.tokIdLen, param.tokExpiDur, param.maxTokExpiDur, param.caStaleDur, param.caExpiDur)
+		tokCont = newMemoryTokenContainer(param.tokIdLen, param.caStaleDur, param.caExpiDur)
 		log.Info("Use memory token container.")
 	case "file":
-		tokCont = newFileTokenContainer(param.tokIdLen, param.tokExpiDur, param.maxTokExpiDur, param.tokContPath, param.tokExpiContPath, param.caStaleDur, param.caExpiDur)
+		tokCont = newFileTokenContainer(param.tokIdLen, param.tokContPath, param.tokExpiContPath, param.caStaleDur, param.caExpiDur)
 		log.Info("Use file token container " + param.tokContPath + "," + param.tokExpiContPath)
 	case "redis":
-		tokCont = newRedisTokenContainer(param.tokIdLen, param.tokExpiDur, param.maxTokExpiDur, param.tokContUrl, param.tokContPrefix, param.caStaleDur, param.caExpiDur)
+		tokCont = newRedisTokenContainer(param.tokIdLen, param.tokContUrl, param.tokContPrefix, param.caStaleDur, param.caExpiDur)
 		log.Info("Use mongodb token container " + param.tokContUrl)
 	default:
 		return erro.New("invalid token container type " + param.tokContType)

@@ -6,5 +6,5 @@ import (
 )
 
 func TestMemoryTokenContainer(t *testing.T) {
-	testTokenContainer(t, newMemoryTokenContainer(10, time.Second, time.Second, time.Second, time.Second))
+	testTokenContainer(t, newMemoryTokenContainer(10, time.Second, time.Second))
 }

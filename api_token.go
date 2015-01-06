@@ -181,7 +181,7 @@ func tokenApi(sys *system, w http.ResponseWriter, r *http.Request) error {
 
 	log.Debug(taId + " is authenticated")
 
-	tok, err := sys.tokCont.new(cod.AccId, 0)
+	tok, err := sys.tokCont.new(cod)
 	if err != nil {
 		return erro.Wrap(err)
 	}

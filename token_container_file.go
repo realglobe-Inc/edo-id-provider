@@ -16,9 +16,9 @@ func unmarshalToken(data []byte) (val interface{}, err error) {
 }
 
 // スレッドセーフ。
-func newFileTokenContainer(idLen int, expiDur, maxExpiDur time.Duration, path, expiPath string, caStaleDur, caExpiDur time.Duration) tokenContainer {
+func newFileTokenContainer(idLen int, path, expiPath string, caStaleDur, caExpiDur time.Duration) tokenContainer {
 	return &tokenContainerImpl{
-		idLen, expiDur, maxExpiDur,
+		idLen,
 		driver.NewFileTimeLimitedKeyValueStore(path, expiPath,
 			keyToJsonPath, nil, json.Marshal, unmarshalToken,
 			caStaleDur, caExpiDur),

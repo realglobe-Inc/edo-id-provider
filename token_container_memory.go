@@ -8,15 +8,15 @@ import (
 type memoryTokenContainer tokenContainerImpl
 
 // スレッドセーフ。
-func newMemoryTokenContainer(idLen int, expiDur, maxExpiDur, caStaleDur, caExpiDur time.Duration) *memoryTokenContainer {
+func newMemoryTokenContainer(idLen int, caStaleDur, caExpiDur time.Duration) *memoryTokenContainer {
 	return (*memoryTokenContainer)(&tokenContainerImpl{
-		idLen, expiDur, maxExpiDur,
+		idLen,
 		driver.NewMemoryTimeLimitedKeyValueStore(caStaleDur, caExpiDur),
 	})
 }
 
-func (this *memoryTokenContainer) new(accId string, expiDur time.Duration) (*token, error) {
-	return ((*tokenContainerImpl)(this)).new(accId, expiDur)
+func (this *memoryTokenContainer) new(cod *code) (*token, error) {
+	return ((*tokenContainerImpl)(this)).new(cod)
 }
 
 func (this *memoryTokenContainer) get(tokId string) (*token, error) {

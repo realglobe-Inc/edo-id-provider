@@ -4,7 +4,6 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
-	"time"
 )
 
 func TestFileTokenContainer(t *testing.T) {
@@ -19,5 +18,5 @@ func TestFileTokenContainer(t *testing.T) {
 	}
 	defer os.RemoveAll(expiPath)
 
-	testTokenContainer(t, newFileTokenContainer(10, time.Second, time.Second, path, expiPath, 0, 0))
+	testTokenContainer(t, newFileTokenContainer(10, path, expiPath, 0, 0))
 }

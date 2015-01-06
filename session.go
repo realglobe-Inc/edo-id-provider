@@ -89,6 +89,14 @@ func (this *session) accountName() string {
 	return this.Accs[this.SelAccId].Name
 }
 
+// 選択されているアカウントの認証日時を返す。
+func (this *session) accountAuthenticationDate() time.Time {
+	if this.SelAccId == "" {
+		return time.Time{}
+	}
+	return this.Accs[this.SelAccId].AuthDate
+}
+
 // アカウントを認証済みアカウントとして加え、選択する。
 // 選択コードも解除する。
 // 状態が変わったときのみ true を返す。

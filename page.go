@@ -15,6 +15,7 @@ const (
 	formRediUri   = "redirect_uri"
 	formRespType  = "response_type"
 	formStat      = "state"
+	formNonc      = "nonce"
 	formCod       = "code"
 	formGrntType  = "grant_type"
 	formTaAssType = "client_assertion_type"

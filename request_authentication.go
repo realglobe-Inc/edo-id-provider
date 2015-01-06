@@ -49,6 +49,7 @@ type authenticationRequest struct {
 	accName string
 	passwd  string
 	stat    string
+	nonc    string
 }
 
 func newAuthenticationRequest(r *http.Request, t *ta, rediUri *url.URL) *authenticationRequest {
@@ -135,4 +136,11 @@ func (this *authenticationRequest) state() string {
 		this.stat = this.r.FormValue(formStat)
 	}
 	return this.stat
+}
+
+func (this *authenticationRequest) nonce() string {
+	if this.nonc == "" {
+		this.nonc = this.r.FormValue(formNonc)
+	}
+	return this.nonc
 }

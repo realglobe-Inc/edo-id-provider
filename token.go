@@ -19,6 +19,8 @@ type token struct {
 	RefTok string `json:"refresh_token,omitempty"`
 	// scope
 	Scops *util.StringSet `json:"scope,omitempty"`
+	// 許可されたクレーム。
+	Clms *util.StringSet `json:"claims,omitempty"`
 }
 
 func newToken(tokId, accId, taId string, expiDate time.Time, scops map[string]bool) *token {
@@ -54,4 +56,8 @@ func (this *token) refreshToken() string {
 
 func (this *token) scopes() *util.StringSet {
 	return this.Scops
+}
+
+func (this *token) claims() *util.StringSet {
+	return this.Clms
 }

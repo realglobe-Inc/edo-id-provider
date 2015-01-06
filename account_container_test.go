@@ -1,7 +1,6 @@
 package main
 
 import (
-	"reflect"
 	"testing"
 )
 
@@ -13,31 +12,40 @@ const (
 	testLabel = "edo-test"
 )
 
-var testAcc = &account{
-	Id:     "abcde",
-	Name:   "aaaaa",
-	Passwd: "12345",
-}
+var testAcc = newAccount(map[string]interface{}{
+	"id":     "abcde",
+	"name":   "aaaaa",
+	"passwd": "12345",
+})
 
 func testAccountContainer(t *testing.T, accCont accountContainer) {
-	if acc, err := accCont.get(testAcc.Id); err != nil {
+	if acc, err := accCont.get(testAcc.id()); err != nil {
 		t.Fatal(err)
-	} else if !reflect.DeepEqual(acc, testAcc) {
+	} else if acc.id() != testAcc.id() {
+		t.Error(acc)
+	} else if acc.name() != testAcc.name() {
+		t.Error(acc)
+	} else if acc.password() != testAcc.password() {
 		t.Error(acc)
 	}
 
-	if acc, err := accCont.get(testAcc.Id + "a"); err != nil {
+	if acc, err := accCont.get(testAcc.id() + "a"); err != nil {
 		t.Fatal(err)
 	} else if acc != nil {
 		t.Error(acc)
 	}
 
-	if acc, err := accCont.getByName(testAcc.Name); err != nil {
+	if acc, err := accCont.getByName(testAcc.name()); err != nil {
 		t.Fatal(err)
-	} else if !reflect.DeepEqual(acc, testAcc) {
+	} else if acc.id() != testAcc.id() {
+		t.Error(acc)
+	} else if acc.name() != testAcc.name() {
+		t.Error(acc)
+	} else if acc.password() != testAcc.password() {
 		t.Error(acc)
 	}
-	if acc, err := accCont.getByName(testAcc.Name + "a"); err != nil {
+
+	if acc, err := accCont.getByName(testAcc.name() + "a"); err != nil {
 		t.Fatal(err)
 	} else if acc != nil {
 		t.Error(acc)

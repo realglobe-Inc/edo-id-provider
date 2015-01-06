@@ -22,10 +22,10 @@ func TestFileAccountContainer(t *testing.T) {
 
 	if buff, err := json.Marshal(testAcc); err != nil {
 		t.Fatal(err)
-	} else if err := ioutil.WriteFile(filepath.Join(path, keyToEscapedJsonPath(testAcc.Id)), buff, filePerm); err != nil {
+	} else if err := ioutil.WriteFile(filepath.Join(path, keyToEscapedJsonPath(testAcc.id())), buff, filePerm); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink(filepath.Join(path, keyToEscapedJsonPath(testAcc.Id)), filepath.Join(namePath, keyToEscapedJsonPath(testAcc.Name))); err != nil {
+	if err := os.Symlink(filepath.Join(path, keyToEscapedJsonPath(testAcc.id())), filepath.Join(namePath, keyToEscapedJsonPath(testAcc.name()))); err != nil {
 		t.Fatal(err)
 	}
 

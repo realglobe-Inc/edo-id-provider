@@ -93,7 +93,7 @@ func (this *session) accountName() string {
 // 選択コードも解除する。
 // 状態が変わったときのみ true を返す。
 func (this *session) setAccount(acc *account) bool {
-	if sessAcc := this.Accs[acc.Id]; sessAcc != nil {
+	if sessAcc := this.Accs[acc.id()]; sessAcc != nil {
 		if sessAcc.Auth {
 			return false
 		} else {
@@ -103,10 +103,10 @@ func (this *session) setAccount(acc *account) bool {
 	} else {
 		sessAcc = &sessionAccount{
 			Auth:    true,
-			Name:    acc.Name,
+			Name:    acc.name(),
 			TaConss: map[string]*util.StringSet{},
 		}
-		this.Accs[acc.Id] = sessAcc
+		this.Accs[acc.id()] = sessAcc
 		return true
 	}
 }

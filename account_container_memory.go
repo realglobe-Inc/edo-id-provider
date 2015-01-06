@@ -24,6 +24,6 @@ func (this *memoryAccountContainer) getByName(nameId string) (*account, error) {
 }
 
 func (this *memoryAccountContainer) add(acc *account) {
-	((*accountContainerImpl)(this)).idToAcc.(driver.KeyValueStore).Put(acc.Id, acc)
-	((*accountContainerImpl)(this)).nameToAcc.(driver.KeyValueStore).Put(acc.Name, acc)
+	((*accountContainerImpl)(this)).idToAcc.(driver.KeyValueStore).Put(acc.id(), acc)
+	((*accountContainerImpl)(this)).nameToAcc.(driver.KeyValueStore).Put(acc.name(), acc)
 }

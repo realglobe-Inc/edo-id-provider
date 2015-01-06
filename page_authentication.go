@@ -243,12 +243,12 @@ func authenticateAndConsent(sys *system, w http.ResponseWriter, r *authenticatio
 	} else if acc == nil {
 		return redirectError(w, r, errAccDeny, "user "+accName+" is not exist")
 	}
-	if passwd != acc.Passwd {
+	if passwd != acc.password() {
 		return redirectError(w, r, errAccDeny, "invalid password")
 	}
 
 	// 認証成功
-	log.Debug("User " + accName + " (" + acc.Id + ") is authenticated")
+	log.Debug("User " + accName + " (" + acc.id() + ") is authenticated")
 
 	sess.setAccount(acc)
 	return consent(sys, w, r, sess)
@@ -272,12 +272,12 @@ func authenticate(sys *system, w http.ResponseWriter, r *authenticationRequest, 
 	} else if acc == nil {
 		return redirectError(w, r, errAccDeny, "user "+accName+" is not exist")
 	}
-	if passwd != acc.Passwd {
+	if passwd != acc.password() {
 		return redirectError(w, r, errAccDeny, "invalid password")
 	}
 
 	// 認証成功
-	log.Debug("User " + accName + " (" + acc.Id + ") is authenticated")
+	log.Debug("User " + accName + " (" + acc.id() + ") is authenticated")
 
 	sess.setAccount(acc)
 	return publishCode(sys, w, r, sess)
@@ -301,12 +301,12 @@ func authenticateWithoutUi(sys *system, w http.ResponseWriter, r *authentication
 	} else if acc == nil {
 		return redirectError(w, r, errAccDeny, "user "+accName+" is not exist")
 	}
-	if passwd != acc.Passwd {
+	if passwd != acc.password() {
 		return redirectError(w, r, errAccDeny, "invalid password")
 	}
 
 	// 認証成功
-	log.Debug("User " + accName + " (" + acc.Id + ") is authenticated")
+	log.Debug("User " + accName + " (" + acc.id() + ") is authenticated")
 
 	sess.setAccount(acc)
 	return publishCode(sys, w, r, sess)

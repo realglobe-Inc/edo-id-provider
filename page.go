@@ -66,6 +66,7 @@ const (
 
 	// プライベートクレーム。
 	clmCod = "code"
+	clmTok = "access_token"
 )
 
 const (
@@ -90,6 +91,8 @@ const (
 	errUnsuppGrntType
 	errInvGrnt
 	errInvTa
+
+	errInvTok
 )
 
 var errCods []string = []string{
@@ -110,6 +113,9 @@ var errCods []string = []string{
 	errUnsuppGrntType: "unsupported_grant_type",
 	errInvGrnt:        "invalid_grant",
 	errInvTa:          "invalid_client",
+
+	// OpenID Connect の仕様ではサンプルとしてしか登場しない。
+	errInvTok: "invalid_token",
 }
 
 // rediUri にリダイレクトしてエラーを通知する。

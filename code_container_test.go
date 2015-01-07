@@ -1,6 +1,7 @@
 package main
 
 import (
+	"reflect"
 	"testing"
 	"time"
 )
@@ -14,7 +15,7 @@ func testCodeContainer(t *testing.T, codCont codeContainer) {
 	}
 
 	// 発行する。
-	cod, err := codCont.new("abcde", "ABCDE", "https://example.com/a/b/c?a=b", time.Second, nil, "", time.Time{})
+	cod, err := codCont.new("abcde", "ABCDE", "https://example.com/a/b/c?a=b", time.Second, nil, "", time.Now())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -24,17 +25,7 @@ func testCodeContainer(t *testing.T, codCont codeContainer) {
 		t.Fatal(err)
 	} else if cod2 == nil {
 		t.Error(cod2)
-	} else if cod2.id() != cod.id() {
-		t.Error(cod2)
-	} else if cod2.accountId() != cod.accountId() {
-		t.Error(cod2)
-	} else if cod2.taId() != cod.taId() {
-		t.Error(cod2)
-	} else if cod2.redirectUri() != cod.redirectUri() {
-		t.Error(cod2)
-	} else if cod2.expirationDate() != cod.expirationDate() {
-		t.Error(cod2)
-	} else if cod2.expirationDuration() != cod.expirationDuration() {
+	} else if !reflect.DeepEqual(cod2, cod) {
 		t.Error(cod2)
 	}
 

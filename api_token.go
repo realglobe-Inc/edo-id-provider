@@ -27,9 +27,9 @@ func responseToken(w http.ResponseWriter, tok *token) error {
 	if tok.refreshToken() != "" {
 		m[formRefTok] = tok.refreshToken()
 	}
-	if tok.scopes().Len() > 0 {
+	if len(tok.scopes()) > 0 {
 		var buff string
-		for scop := range tok.scopes().Elements() {
+		for scop := range tok.scopes() {
 			if len(buff) > 0 {
 				buff += " "
 			}

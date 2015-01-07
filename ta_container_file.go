@@ -20,7 +20,7 @@ import (
 type taIntermediate struct {
 	Id       string                   `json:"id"            bson:"id"`
 	Name     string                   `json:"name"          bson:"name"`
-	RediUris *util.StringSet          `json:"redirect_uris" bson:"redirect_uris"`
+	RediUris util.StringSet           `json:"redirect_uris" bson:"redirect_uris"`
 	PubKeys  []map[string]interface{} `json:"keys"          bson:"keys"`
 
 	Date   time.Time `json:"-" bson:"date"`

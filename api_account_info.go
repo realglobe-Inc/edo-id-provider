@@ -80,7 +80,7 @@ func accountInfoApi(sys *system, w http.ResponseWriter, r *http.Request) error {
 		} else if acc == nil {
 			return responseError(w, http.StatusBadRequest, errInvTok, "token "+mosaic(tokId)+" is linked to invalid account "+tok.accountId())
 		}
-		for clmName := range tok.claims().Elements() {
+		for clmName := range tok.claims() {
 			clm := acc.attribute(clmName)
 			if clm == nil || clm == "" {
 				continue

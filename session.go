@@ -28,7 +28,7 @@ type sessionAccount struct {
 	// 最後に認証した日時。
 	AuthDate time.Time `json:"authentication_date,omitempty"`
 	// TA ごとの同意。
-	TaConss map[string]*util.StringSet `json:'tas'`
+	TaConss map[string]util.StringSet `json:'tas,omitempty'`
 }
 
 func (this *session) copy() *session {
@@ -42,9 +42,9 @@ func (this *session) copy() *session {
 
 func (this *sessionAccount) copy() *sessionAccount {
 	c := *this
-	c.TaConss = map[string]*util.StringSet{}
+	c.TaConss = map[string]util.StringSet{}
 	for taId, conss := range this.TaConss {
-		c.TaConss[taId] = util.NewStringSet(conss.Elements())
+		c.TaConss[taId] = util.NewStringSet(conss)
 	}
 	return &c
 }
@@ -113,7 +113,7 @@ func (this *session) setAccount(acc *account) bool {
 		sessAcc = &sessionAccount{
 			Auth:    true,
 			Name:    acc.name(),
-			TaConss: map[string]*util.StringSet{},
+			TaConss: map[string]util.StringSet{},
 		}
 		this.Accs[acc.id()] = sessAcc
 		this.selectAccount(acc.id())
@@ -206,7 +206,7 @@ func (this *session) hasNotConsented(accId, taId string, clms map[string]bool) b
 		return true
 	} else {
 		for clm := range clms {
-			if !conss.Contains(clm) {
+			if !conss[clm] {
 				return true
 			}
 		}
@@ -228,7 +228,7 @@ func (this *session) notConsented(accId, taId string, clms map[string]bool) map[
 		}
 	} else {
 		for clm := range clms {
-			if !conss.Contains(clm) {
+			if !conss[clm] {
 				rems[clm] = true
 			}
 		}
@@ -247,7 +247,7 @@ func (this *session) consent(accId, accName, taId string, clms map[string]bool) 
 		sessAcc = &sessionAccount{
 			Auth:    true,
 			Name:    accName,
-			TaConss: map[string]*util.StringSet{},
+			TaConss: map[string]util.StringSet{},
 		}
 		this.Accs[accId] = sessAcc
 	}
@@ -257,10 +257,10 @@ func (this *session) consent(accId, accName, taId string, clms map[string]bool) 
 		conss = util.NewStringSet(nil)
 	}
 	for clm := range clms {
-		if !conss.Contains(clm) {
+		if !conss[clm] {
 			mod = true
 		}
-		conss.Put(clm)
+		conss[clm] = true
 	}
 	return mod
 }

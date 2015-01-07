@@ -21,12 +21,16 @@ type code struct {
 	// 発行するアクセストークンの有効期間。
 	ExpiDur time.Duration `json:"expires_in"`
 
-	Scops    *util.StringSet `json:"scope,omitempty"`
-	Nonc     string          `json:"nonce,omitempty"`
-	AuthDate time.Time       `json:"auth_time,omitempty"`
+	Scops    util.StringSet `json:"scope,omitempty"`
+	Nonc     string         `json:"nonce,omitempty"`
+	AuthDate time.Time      `json:"auth_time,omitempty"`
 }
 
 func newCode(codId, accId, taId, rediUri string, expiDate time.Time, expiDur time.Duration, scops map[string]bool, nonc string, authDate time.Time) *code {
+	var s util.StringSet
+	if len(scops) > 0 {
+		s = util.NewStringSet(scops)
+	}
 	return &code{
 		Id:       codId,
 		AccId:    accId,
@@ -34,7 +38,7 @@ func newCode(codId, accId, taId, rediUri string, expiDate time.Time, expiDur tim
 		RediUri:  rediUri,
 		ExpiDate: expiDate,
 		ExpiDur:  expiDur,
-		Scops:    util.NewStringSet(scops),
+		Scops:    s,
 		Nonc:     nonc,
 		AuthDate: authDate,
 	}
@@ -64,6 +68,6 @@ func (this *code) expirationDuration() time.Duration {
 	return this.ExpiDur
 }
 
-func (this *code) scopes() *util.StringSet {
+func (this *code) scopes() util.StringSet {
 	return this.Scops
 }

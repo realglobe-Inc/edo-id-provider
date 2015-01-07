@@ -18,19 +18,23 @@ type token struct {
 	// リフレッシュトークン。
 	RefTok string `json:"refresh_token,omitempty"`
 	// scope
-	Scops *util.StringSet `json:"scope,omitempty"`
+	Scops util.StringSet `json:"scope,omitempty"`
 	// 許可されたクレーム。
-	Clms *util.StringSet `json:"claims,omitempty"`
+	Clms util.StringSet `json:"claims,omitempty"`
 }
 
 func newToken(tokId, accId, taId string, expiDate time.Time, scops map[string]bool) *token {
+	var s util.StringSet
+	if len(scops) > 0 {
+		s = util.NewStringSet(scops)
+	}
 	return &token{
 		Id:       tokId,
 		AccId:    accId,
 		TaId:     taId,
 		ExpiDate: expiDate,
 
-		Scops: util.NewStringSet(scops),
+		Scops: s,
 	}
 }
 
@@ -54,10 +58,10 @@ func (this *token) refreshToken() string {
 	return this.RefTok
 }
 
-func (this *token) scopes() *util.StringSet {
+func (this *token) scopes() util.StringSet {
 	return this.Scops
 }
 
-func (this *token) claims() *util.StringSet {
+func (this *token) claims() util.StringSet {
 	return this.Clms
 }

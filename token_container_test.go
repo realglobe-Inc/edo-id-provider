@@ -26,7 +26,9 @@ func testTokenContainer(t *testing.T, tokCont tokenContainer) {
 	tok2, err := tokCont.get(tok.id())
 	if err != nil {
 		t.Fatal(err)
-	} else if tok2 == nil || !reflect.DeepEqual(tok2, tok) {
+	} else if tok2 == nil {
+		t.Error(tok2)
+	} else if !reflect.DeepEqual(tok2, tok) {
 		t.Error(tok2)
 	}
 

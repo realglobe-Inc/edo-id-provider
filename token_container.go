@@ -41,7 +41,7 @@ func (this *tokenContainerImpl) new(cod *code) (*token, error) {
 	// アクセストークンが決まった。
 	log.Debug("Token was generated")
 
-	tok := newToken(tokId, cod.accountId(), cod.taId(), time.Now().Add(cod.expirationDuration()), cod.scopes().Elements())
+	tok := newToken(tokId, cod.accountId(), cod.taId(), time.Now().Add(cod.expirationDuration()), cod.scopes())
 	if _, err := this.base.Put(tokId, tok, tok.expirationDate()); err != nil {
 		return nil, erro.Wrap(err)
 	}

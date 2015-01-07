@@ -40,7 +40,7 @@ func TestBoot(t *testing.T) {
 		newMemoryAccountContainer(0, 0),
 		newMemorySessionContainer(10, time.Second, 0, 0),
 		newMemoryCodeContainer(10, time.Second, "http://edo-id-provider.example.com", 0, 0),
-		newMemoryTokenContainer(10, 0, 0),
+		newMemoryTokenContainer(10, "https://example.com", testPriKey, "", "RS256", time.Second, 0, 0),
 		time.Second,
 	)
 	go serve(sys, "tcp", "", port, "http")
@@ -57,7 +57,6 @@ func TestBoot(t *testing.T) {
 	// 	t.Fatal(err)
 	// }
 	// defer resp.Body.Close()
-
 	// if resp.StatusCode != http.StatusOK {
 	// 	t.Error(resp)
 	// }

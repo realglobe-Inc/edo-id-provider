@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto"
 	"encoding/json"
 	"github.com/realglobe-Inc/edo/driver"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
@@ -16,9 +17,10 @@ func unmarshalToken(data []byte) (val interface{}, err error) {
 }
 
 // スレッドセーフ。
-func newFileTokenContainer(idLen int, path, expiPath string, caStaleDur, caExpiDur time.Duration) tokenContainer {
+func newFileTokenContainer(idLen int, selfId string, key crypto.PrivateKey, kid, alg string, idTokExpiDur time.Duration,
+	path, expiPath string, caStaleDur, caExpiDur time.Duration) tokenContainer {
 	return &tokenContainerImpl{
-		idLen,
+		idLen, selfId, key, kid, alg, idTokExpiDur,
 		driver.NewFileTimeLimitedKeyValueStore(path, expiPath,
 			keyToJsonPath, nil, json.Marshal, unmarshalToken,
 			caStaleDur, caExpiDur),

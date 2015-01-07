@@ -24,6 +24,7 @@ const (
 	formTokType   = "token_type"
 	formExpi      = "expires_in"
 	formRefTok    = "refresh_token"
+	formIdTok     = "id_token"
 	formErr       = "error"
 	formErrDesc   = "error_description"
 
@@ -58,11 +59,14 @@ const (
 )
 
 const (
-	clmIss = "iss"
-	clmSub = "sub"
-	clmAud = "aud"
-	clmJti = "jti"
-	clmExp = "exp"
+	clmIss     = "iss"
+	clmSub     = "sub"
+	clmAud     = "aud"
+	clmJti     = "jti"
+	clmExp     = "exp"
+	clmIat     = "iat"
+	clmAuthTim = "auth_time"
+	clmNonc    = "nonce"
 
 	// プライベートクレーム。
 	clmCod = "code"

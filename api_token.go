@@ -10,6 +10,7 @@ import (
 
 const (
 	jwtAlg = "alg"
+	jwtKid = "kid"
 )
 
 const (
@@ -36,6 +37,9 @@ func responseToken(w http.ResponseWriter, tok *token) error {
 			buff += scop
 		}
 		m[formScop] = buff
+	}
+	if tok.idToken() != "" {
+		m[formIdTok] = tok.idToken()
 	}
 	buff, err := json.Marshal(m)
 	if err != nil {

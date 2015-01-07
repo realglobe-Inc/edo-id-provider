@@ -48,6 +48,12 @@ type parameters struct {
 
 	// IdP としての ID。
 	selfId string
+	// 署名用秘密鍵のパス。
+	keyPath string
+	// 署名用秘密鍵の ID。
+	kid string
+	// 署名用方式。
+	sigAlg string
 
 	// UI 用 HTML を提供する URI。
 	uiUri string
@@ -122,6 +128,9 @@ type parameters struct {
 	tokContUrl string
 	// アクセストークン格納庫 redis キー接頭辞。
 	tokContPrefix string
+
+	// ID トークンの有効期間。
+	idTokExpiDur time.Duration
 }
 
 func parseParameters(args ...string) (param *parameters, err error) {
@@ -157,6 +166,10 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.DurationVar(&param.caExpiDur, "caExpiDur", 30*time.Minute, "Cache expiration duration.")
 
 	flags.StringVar(&param.selfId, "selfId", "https://example.com", "IdP ID.")
+	flags.StringVar(&param.keyPath, "keyPath", filepath.Join(filepath.Dir(os.Args[0]), "private.key"), "Private key for signature.")
+	flags.StringVar(&param.kid, "kid", "", "Private key ID.")
+	flags.StringVar(&param.sigAlg, "sigAlg", "RS256", "Signature algorithm.")
+
 	flags.StringVar(&param.uiUri, "uiUri", authPath+"/html", "UI uri.")
 	flags.StringVar(&param.uiPath, "uiPath", filepath.Join(filepath.Dir(os.Args[0]), "html"), "Protocol type. http/fcgi")
 
@@ -196,6 +209,8 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.StringVar(&param.tokExpiContPath, "tokExpiContPath", filepath.Join(filepath.Dir(os.Args[0]), "token_expires"), "Token container expiration date directory.")
 	flags.StringVar(&param.tokContUrl, "tokContUrl", "localhost", "Token container address.")
 	flags.StringVar(&param.tokContPrefix, "tokContPrefix", "edo.tokens", "Token container key prefix.")
+
+	flags.DurationVar(&param.idTokExpiDur, "idTokExpiDur", 10*time.Minute, "ID token expiration duration.")
 
 	var config string
 	flags.StringVar(&config, "f", "", "Config file path.")

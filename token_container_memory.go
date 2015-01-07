@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto"
 	"github.com/realglobe-Inc/edo/driver"
 	"time"
 )
@@ -8,9 +9,10 @@ import (
 type memoryTokenContainer tokenContainerImpl
 
 // スレッドセーフ。
-func newMemoryTokenContainer(idLen int, caStaleDur, caExpiDur time.Duration) *memoryTokenContainer {
+func newMemoryTokenContainer(idLen int, selfId string, key crypto.PrivateKey, kid, alg string, idTokExpiDur time.Duration,
+	caStaleDur, caExpiDur time.Duration) *memoryTokenContainer {
 	return (*memoryTokenContainer)(&tokenContainerImpl{
-		idLen,
+		idLen, selfId, key, kid, alg, idTokExpiDur,
 		driver.NewMemoryTimeLimitedKeyValueStore(caStaleDur, caExpiDur),
 	})
 }

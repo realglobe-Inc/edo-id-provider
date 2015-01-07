@@ -12,7 +12,7 @@ type session struct {
 	// 選択中のアカウント ID。
 	SelAccId string `json:"selected_account,omitempty"`
 	// 認証したことのあるアカウント。
-	Accs map[string]*sessionAccount `json:"accounts"`
+	Accs map[string]*sessionAccount `json:"accounts,omitempty"`
 
 	// 最後に紐付けられた選択コード。
 	SelCod string `json:"selection_code,omitempty"`
@@ -22,12 +22,12 @@ type session struct {
 
 type sessionAccount struct {
 	// 現在認証されているか。
-	Auth bool `json:"authenticated"`
+	Auth bool `json:"authenticated,omitempty"`
 	// ログイン名。
-	Name string
+	Name string `json:"username"`
 	// 最後に認証した日時。
-	AuthDate time.Time `json:"authentication_date,omitempty"`
-	// TA ごとの同意。
+	AuthDate time.Time `json:"auth_time"`
+	// 各 TA に対する同意。
 	TaConss map[string]util.StringSet `json:'tas,omitempty'`
 }
 

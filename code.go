@@ -19,7 +19,7 @@ type code struct {
 	// 有効期限。
 	ExpiDate time.Time `json:"expires"`
 	// 発行するアクセストークンの有効期間。
-	ExpiDur time.Duration `json:"expires_in"`
+	ExpiDur util.Duration `json:"expires_in"`
 
 	Scops    util.StringSet `json:"scope,omitempty"`
 	Nonc     string         `json:"nonce,omitempty"`
@@ -37,7 +37,7 @@ func newCode(codId, accId, taId, rediUri string, expiDate time.Time, expiDur tim
 		TaId:     taId,
 		RediUri:  rediUri,
 		ExpiDate: expiDate,
-		ExpiDur:  expiDur,
+		ExpiDur:  util.Duration(expiDur),
 		Scops:    s,
 		Nonc:     nonc,
 		AuthDate: authDate,
@@ -65,7 +65,7 @@ func (this *code) expirationDate() time.Time {
 }
 
 func (this *code) expirationDuration() time.Duration {
-	return this.ExpiDur
+	return time.Duration(this.ExpiDur)
 }
 
 func (this *code) scopes() util.StringSet {

@@ -8,9 +8,9 @@ import (
 type memoryCodeContainer codeContainerImpl
 
 // スレッドセーフ。
-func newMemoryCodeContainer(idLen int, expiDur, caStaleDur, caExpiDur time.Duration) *memoryCodeContainer {
+func newMemoryCodeContainer(idLen int, expiDur time.Duration, selfId string, caStaleDur, caExpiDur time.Duration) *memoryCodeContainer {
 	return (*memoryCodeContainer)(&codeContainerImpl{
-		idLen, expiDur,
+		idLen, expiDur, selfId,
 		driver.NewMemoryTimeLimitedKeyValueStore(caStaleDur, caExpiDur),
 	})
 }

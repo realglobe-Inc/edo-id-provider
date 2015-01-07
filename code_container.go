@@ -8,15 +8,18 @@ import (
 )
 
 type codeContainer interface {
+	// expiDur は後で発行するアクセストークンの有効期間。
 	new(accId, taId, rediUri string, expiDur time.Duration, scops map[string]bool, nonc string, authDate time.Time) (*code, error)
 	get(codId string) (*code, error)
 }
 
 type codeContainerImpl struct {
-	// 認可コードの文字数。
+	// 認可コードの識別子部分の文字数。
 	idLen int
-	// 有効期限。
+	// 認可コードの有効期間。
 	expiDur time.Duration
+	// 自分の IdP としての ID。
+	selfId string
 
 	base driver.TimeLimitedKeyValueStore
 }
@@ -24,16 +27,30 @@ type codeContainerImpl struct {
 func (this *codeContainerImpl) new(accId, taId, rediUri string, expiDur time.Duration, scops map[string]bool, nonc string, authDate time.Time) (*code, error) {
 	var codId string
 	for {
-		if buff, err := util.SecureRandomString(this.idLen); err != nil {
+		jti, err := util.SecureRandomString(this.idLen)
+		if err != nil {
 			return nil, erro.Wrap(err)
-		} else if val, _, err := this.base.Get(buff, nil); err != nil {
+		}
+		jws := util.NewJws()
+		jws.SetHeader(jwtAlg, algNone)
+		jws.SetClaim(clmJti, jti)
+		jws.SetClaim(clmIss, this.selfId)
+		if err := jws.Sign(nil); err != nil {
+			return nil, erro.Wrap(err)
+		}
+		buff, err := jws.Encode()
+		if err != nil {
+			return nil, erro.Wrap(err)
+		}
+		codId = string(buff)
+		if val, _, err := this.base.Get(codId, nil); err != nil {
 			return nil, erro.Wrap(err)
 		} else if val == nil {
 			// 昔発行した分とは重複しなかった。
 			// 同時並列で発行している分と重複していない保証は無いが、まず大丈夫。
-			codId = buff
 			break
 		}
+
 	}
 
 	// コードが決まった。

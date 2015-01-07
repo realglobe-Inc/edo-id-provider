@@ -93,10 +93,10 @@ func mainCore(param *parameters) error {
 	var codCont codeContainer
 	switch param.codContType {
 	case "memory":
-		codCont = newMemoryCodeContainer(param.codIdLen, param.codExpiDur, param.caStaleDur, param.caExpiDur)
+		codCont = newMemoryCodeContainer(param.codIdLen, param.codExpiDur, param.selfId, param.caStaleDur, param.caExpiDur)
 		log.Info("Use memory code container.")
 	case "file":
-		codCont = newFileCodeContainer(param.codIdLen, param.codExpiDur, param.codContPath, param.codExpiContPath, param.caStaleDur, param.caExpiDur)
+		codCont = newFileCodeContainer(param.codIdLen, param.codExpiDur, param.selfId, param.codContPath, param.codExpiContPath, param.caStaleDur, param.caExpiDur)
 		log.Info("Use file code container " + param.codContPath + "," + param.codExpiContPath)
 	case "redis":
 		codCont = newRedisCodeContainer(param.codIdLen, param.codExpiDur, param.codContUrl, param.codContPrefix, param.caStaleDur, param.caExpiDur)

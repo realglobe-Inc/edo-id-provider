@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/base64"
 	"github.com/realglobe-Inc/edo/driver"
 	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
@@ -23,17 +22,14 @@ type tokenContainerImpl struct {
 func (this *tokenContainerImpl) new(cod *code) (*token, error) {
 	var tokId string
 	for {
-		buff, err := util.SecureRandomBytes(this.idLen * 6 / 8)
-		if err != nil {
+		if buff, err := util.SecureRandomString(this.idLen); err != nil {
 			return nil, erro.Wrap(err)
-		}
-
-		tokId = base64.URLEncoding.EncodeToString(buff)
-		if val, _, err := this.base.Get(tokId, nil); err != nil {
+		} else if val, _, err := this.base.Get(buff, nil); err != nil {
 			return nil, erro.Wrap(err)
 		} else if val == nil {
 			// 昔発行した分とは重複しなかった。
 			// 同時並列で発行している分と重複していない保証は無いが、まず大丈夫。
+			tokId = buff
 			break
 		}
 	}

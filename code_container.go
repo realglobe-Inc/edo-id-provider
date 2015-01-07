@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/base64"
 	"github.com/realglobe-Inc/edo/driver"
 	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
@@ -25,17 +24,14 @@ type codeContainerImpl struct {
 func (this *codeContainerImpl) new(accId, taId, rediUri string, expiDur time.Duration, scops map[string]bool, nonc string, authDate time.Time) (*code, error) {
 	var codId string
 	for {
-		buff, err := util.SecureRandomBytes(this.idLen * 6 / 8)
-		if err != nil {
+		if buff, err := util.SecureRandomString(this.idLen); err != nil {
 			return nil, erro.Wrap(err)
-		}
-
-		codId = base64.URLEncoding.EncodeToString(buff)
-		if val, _, err := this.base.Get(codId, nil); err != nil {
+		} else if val, _, err := this.base.Get(buff, nil); err != nil {
 			return nil, erro.Wrap(err)
 		} else if val == nil {
 			// 昔発行した分とは重複しなかった。
 			// 同時並列で発行している分と重複していない保証は無いが、まず大丈夫。
+			codId = buff
 			break
 		}
 	}

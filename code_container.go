@@ -9,7 +9,14 @@ import (
 
 type codeContainer interface {
 	// expiDur は後で発行するアクセストークンの有効期間。
-	new(accId, taId, rediUri string, expiDur time.Duration, scops map[string]bool, nonc string, authDate time.Time) (*code, error)
+	new(accId,
+		taId,
+		rediUri string,
+		expiDur time.Duration,
+		scops,
+		clms map[string]bool,
+		nonc string,
+		authDate time.Time) (*code, error)
 	get(codId string) (*code, error)
 }
 
@@ -24,7 +31,15 @@ type codeContainerImpl struct {
 	base driver.TimeLimitedKeyValueStore
 }
 
-func (this *codeContainerImpl) new(accId, taId, rediUri string, expiDur time.Duration, scops map[string]bool, nonc string, authDate time.Time) (*code, error) {
+func (this *codeContainerImpl) new(accId,
+	taId,
+	rediUri string,
+	expiDur time.Duration,
+	scops,
+	clms map[string]bool,
+	nonc string,
+	authDate time.Time) (*code, error) {
+
 	var codId string
 	for {
 		jti, err := util.SecureRandomString(this.idLen)
@@ -56,7 +71,7 @@ func (this *codeContainerImpl) new(accId, taId, rediUri string, expiDur time.Dur
 	// コードが決まった。
 	log.Debug("Code was generated.")
 
-	cod := newCode(codId, accId, taId, rediUri, time.Now().Add(this.expiDur), expiDur, scops, nonc, authDate)
+	cod := newCode(codId, accId, taId, rediUri, time.Now().Add(this.expiDur), expiDur, scops, clms, nonc, authDate)
 	if _, err := this.base.Put(codId, cod, cod.expirationDate()); err != nil {
 		return nil, erro.Wrap(err)
 	}

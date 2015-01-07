@@ -17,7 +17,7 @@ func testTokenContainer(t *testing.T, tokCont tokenContainer) {
 	}
 
 	// 発行する。
-	tok, err := tokCont.new(newCode("abcde", "account", "ta", "redirect_uri", time.Now().Add(time.Second), expiDur, nil, "nonce", time.Time{}))
+	tok, err := tokCont.new(newCode("abcde", "account", "ta", "redirect_uri", time.Now().Add(time.Second), expiDur, nil, nil, "nonce", time.Time{}))
 	if err != nil {
 		t.Fatal(err)
 	}

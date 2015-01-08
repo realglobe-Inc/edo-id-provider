@@ -1,11 +1,14 @@
 package main
 
 import (
+	"github.com/garyburd/redigo/redis"
+	"github.com/realglobe-Inc/edo/driver"
 	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"github.com/realglobe-Inc/go-lib-rg/rglog"
 	"net/http"
 	"os"
+	"time"
 )
 
 var exitCode = 0
@@ -51,6 +54,12 @@ func main() {
 
 // system を準備する。
 func mainCore(param *parameters) error {
+	const (
+		connNum = 5
+		idlDur  = 10 * time.Minute
+	)
+	redPools := map[string]*redis.Pool{} // 同じ redis-server ならコネクションプールを共有する。
+
 	var taCont taContainer
 	switch param.taContType {
 	case "file":
@@ -84,7 +93,10 @@ func mainCore(param *parameters) error {
 		sessCont = newFileSessionContainer(param.sessIdLen, param.sessExpiDur, param.sessContPath, param.sessExpiContPath, param.caStaleDur, param.caExpiDur)
 		log.Info("Use file session container " + param.sessContPath + "," + param.sessExpiContPath)
 	case "redis":
-		sessCont = newRedisSessionContainer(param.sessIdLen, param.sessExpiDur, param.sessContUrl, param.sessContPrefix, param.caStaleDur, param.caExpiDur)
+		if redPools[param.sessContUrl] == nil {
+			redPools[param.sessContUrl] = driver.NewRedisPool(param.sessContUrl, connNum, idlDur)
+		}
+		sessCont = newRedisSessionContainer(param.sessIdLen, param.sessExpiDur, redPools[param.sessContUrl], param.sessContPrefix, param.caStaleDur, param.caExpiDur)
 		log.Info("Use redis session container " + param.sessContUrl)
 	default:
 		return erro.New("invalid session container type " + param.sessContType)
@@ -99,8 +111,11 @@ func mainCore(param *parameters) error {
 		codCont = newFileCodeContainer(param.codIdLen, param.codExpiDur, param.selfId, param.codContPath, param.codExpiContPath, param.caStaleDur, param.caExpiDur)
 		log.Info("Use file code container " + param.codContPath + "," + param.codExpiContPath)
 	case "redis":
-		codCont = newRedisCodeContainer(param.codIdLen, param.codExpiDur, param.codContUrl, param.codContPrefix, param.caStaleDur, param.caExpiDur)
-		log.Info("Use mongodb code container " + param.codContUrl)
+		if redPools[param.codContUrl] == nil {
+			redPools[param.codContUrl] = driver.NewRedisPool(param.codContUrl, connNum, idlDur)
+		}
+		codCont = newRedisCodeContainer(param.codIdLen, param.codExpiDur, param.selfId, redPools[param.codContUrl], param.codContPrefix, param.caStaleDur, param.caExpiDur)
+		log.Info("Use redis code container " + param.codContUrl)
 	default:
 		return erro.New("invalid code container type " + param.codContType)
 	}
@@ -121,9 +136,12 @@ func mainCore(param *parameters) error {
 			param.tokContPath, param.tokExpiContPath, param.caStaleDur, param.caExpiDur)
 		log.Info("Use file token container " + param.tokContPath + "," + param.tokExpiContPath)
 	case "redis":
+		if redPools[param.tokContUrl] == nil {
+			redPools[param.tokContUrl] = driver.NewRedisPool(param.tokContUrl, connNum, idlDur)
+		}
 		tokCont = newRedisTokenContainer(param.tokIdLen, param.selfId, key, param.kid, param.sigAlg, param.idTokExpiDur,
-			param.tokContUrl, param.tokContPrefix, param.caStaleDur, param.caExpiDur)
-		log.Info("Use mongodb token container " + param.tokContUrl)
+			redPools[param.tokContUrl], param.tokContPrefix, param.caStaleDur, param.caExpiDur)
+		log.Info("Use redis token container " + param.tokContUrl)
 	default:
 		return erro.New("invalid token container type " + param.tokContType)
 	}

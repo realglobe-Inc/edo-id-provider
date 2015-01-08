@@ -7,22 +7,6 @@ import (
 	"time"
 )
 
-// テストするなら、mongodb をたてる必要あり。
-var mongoAddr = "localhost"
-
-func init() {
-	if mongoAddr != "" {
-		// 実際にサーバーが立っているかどうか調べる。
-		// 立ってなかったらテストはスキップ。
-		conn, err := mgo.Dial(mongoAddr)
-		if err != nil {
-			mongoAddr = ""
-		} else {
-			conn.Close()
-		}
-	}
-}
-
 func TestMongoAccountContainer(t *testing.T) {
 	if mongoAddr == "" {
 		t.SkipNow()

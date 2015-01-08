@@ -4,14 +4,6 @@ import (
 	"testing"
 )
 
-const (
-	filePerm = 0644
-)
-
-const (
-	testLabel = "edo-test"
-)
-
 var testAcc = newAccount(map[string]interface{}{
 	"id":       "abcde",
 	"username": "aaaaa",

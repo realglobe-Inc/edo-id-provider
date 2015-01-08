@@ -12,9 +12,9 @@ func init() {
 }
 
 func TestMemorySessionContainer(t *testing.T) {
-	////////////////////////////////
-	util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
-	defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
-	////////////////////////////////
+	// ////////////////////////////////
+	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
+	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
 	testSessionContainer(t, newMemorySessionContainer(10, 10*time.Millisecond, time.Second, time.Second))
 }

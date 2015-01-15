@@ -32,7 +32,7 @@ func testTokenContainer(t *testing.T, tokCont tokenContainer) {
 		t.Error(tok2)
 	}
 
-	time.Sleep(tok.expirationDate().Sub(time.Now()))
+	time.Sleep(tok.expirationDate().Sub(time.Now()) + time.Millisecond) // redis の粒度がミリ秒のため。
 
 	// もう無い。
 	if tok3, err := tokCont.get(tok.id()); err != nil {

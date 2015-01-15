@@ -36,7 +36,7 @@ func testCodeContainer(t *testing.T, codCont codeContainer) {
 		t.Error(cod2)
 	}
 
-	time.Sleep(cod.expirationDate().Sub(time.Now()))
+	time.Sleep(cod.expirationDate().Sub(time.Now()) + time.Millisecond) // redis の粒度がミリ秒のため。
 
 	// もう無い。
 	if cod3, err := codCont.get(cod.id()); err != nil {

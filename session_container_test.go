@@ -6,7 +6,7 @@ import (
 )
 
 func testSessionContainer(t *testing.T, sessCont sessionContainer) {
-	expiDur := 10 * time.Millisecond
+	expiDur := sessCont.(*sessionContainerWrapper).expiDur
 
 	// 無い。
 	if sess1, err := sessCont.get("ccccc"); err != nil {
@@ -26,11 +26,12 @@ func testSessionContainer(t *testing.T, sessCont sessionContainer) {
 		sess2, err := sessCont.get(sess.id())
 		if err != nil {
 			t.Fatal(err)
-		} else if sess2 == nil || sess2.id() != sess.id() {
+		} else if sess2 == nil {
+			t.Fatal(i, sess2)
+		} else if sess2.id() != sess.id() {
 			t.Error(i, sess2)
 		}
 		s := *sess2
-		s.setExpirationDate(time.Now().Add(expiDur))
 		if err := sessCont.put(&s); err != nil {
 			t.Fatal(err)
 		}
@@ -38,7 +39,7 @@ func testSessionContainer(t *testing.T, sessCont sessionContainer) {
 		time.Sleep(expiDur / 2)
 	}
 
-	time.Sleep(expiDur / 2)
+	time.Sleep(expiDur/2 + time.Millisecond) // redis の粒度がミリ秒のため。
 
 	// もう無い。
 	if sess3, err := sessCont.get(sess.id()); err != nil {

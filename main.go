@@ -167,7 +167,7 @@ func mainCore(param *parameters) error {
 const (
 	authPath   = "/login"
 	tokPath    = "/token"
-	accInfPath = "/account"
+	accInfPath = "/userinfo"
 )
 
 func serve(sys *system, socType, socPath string, socPort int, protType string) error {

@@ -170,7 +170,7 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.StringVar(&param.kid, "kid", "", "Private key ID.")
 	flags.StringVar(&param.sigAlg, "sigAlg", "RS256", "Signature algorithm.")
 
-	flags.StringVar(&param.uiUri, "uiUri", authPath+"/html", "UI uri.")
+	flags.StringVar(&param.uiUri, "uiUri", "/html", "UI uri.")
 	flags.StringVar(&param.uiPath, "uiPath", filepath.Join(filepath.Dir(os.Args[0]), "html"), "Protocol type. http/fcgi")
 
 	flags.StringVar(&param.taContType, "taContType", "file", "TA container type.")

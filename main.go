@@ -165,7 +165,7 @@ func mainCore(param *parameters) error {
 
 // 振り分ける。
 const (
-	authPath   = "/login"
+	authPath   = "/auth"
 	tokPath    = "/token"
 	accInfPath = "/userinfo"
 )

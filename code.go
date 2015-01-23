@@ -7,17 +7,18 @@ import (
 
 // 認可コードと認証リクエスト時に指定されたアクセストークン用オプションの集合。
 type code struct {
-	// 認可コード。
 	Id string `json:"id"`
-	// 権利アカウント。
+	// 発行日時。
+	Date time.Time `json:"date"`
+	// 権利者アカウントの ID。
 	AccId string `json:"account_id"`
-	// 対象 TA。
+	// 要求元 TA の ID。
 	TaId string `json:"client_id"`
 	// 発行時の redirect_uri。
 	RediUri string `json:"redirect_uri"`
-
-	// 認可コードの有効期限。
+	// 有効期限。
 	ExpiDate time.Time `json:"expires"`
+
 	// 発行するアクセストークンの有効期間。
 	ExpiDur util.Duration `json:"expires_in"`
 	// 許可された scope。
@@ -26,8 +27,15 @@ type code struct {
 	Clms util.StringSet `json:"claims,omitempty"`
 	// 認証リクエストの nonce パラメータの値。
 	Nonc string `json:"nonce,omitempty"`
-	// 権利アカウントの最新認証日時。
+	// 発行時の権利者アカウントの最新認証日時。
 	AuthDate time.Time `json:"auth_time,omitempty"`
+
+	// 有効か。
+	Valid bool `json:"valid,omitempty"`
+	// 更新日時。
+	Upd time.Time `json:"update_at"`
+	// 発行したアクセストークン。
+	Toks util.StringSet `json:"access_tokens,omitempty"`
 }
 
 func newCode(codId,
@@ -49,8 +57,10 @@ func newCode(codId,
 	if len(clms) > 0 {
 		c = util.NewStringSet(clms)
 	}
+	now := time.Now()
 	return &code{
 		Id:       codId,
+		Date:     now,
 		AccId:    accId,
 		TaId:     taId,
 		RediUri:  rediUri,
@@ -60,11 +70,17 @@ func newCode(codId,
 		Clms:     c,
 		Nonc:     nonc,
 		AuthDate: authDate,
+		Valid:    true,
+		Upd:      now,
 	}
 }
 
 func (this *code) id() string {
 	return this.Id
+}
+
+func (this *code) date() time.Time {
+	return this.Date
 }
 
 func (this *code) accountId() string {
@@ -101,4 +117,31 @@ func (this *code) nonce() string {
 
 func (this *code) authenticationDate() time.Time {
 	return this.AuthDate
+}
+
+func (this *code) valid() bool {
+	return this.Valid && !this.ExpiDate.Before(time.Now())
+}
+
+func (this *code) updateDate() time.Time {
+	return this.Upd
+}
+
+func (this *code) tokens() map[string]bool {
+	return this.Toks
+}
+
+// 無効にする。
+func (this *code) disable() {
+	this.Valid = false
+	this.Upd = time.Now()
+}
+
+// 発行したアクセストークンを登録する。
+func (this *code) addToken(tok string) {
+	if this.Toks == nil {
+		this.Toks = util.StringSet{}
+	}
+	this.Toks[tok] = true
+	this.Upd = time.Now()
 }

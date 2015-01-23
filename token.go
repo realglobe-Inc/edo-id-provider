@@ -7,6 +7,8 @@ import (
 
 type token struct {
 	Id string `json:"id"`
+	// 発行日時。
+	Date time.Time `json:"date"`
 	// 権利アカウント。
 	AccId string `json:"account_id"`
 	// 発行先 TA。
@@ -43,6 +45,7 @@ func newToken(tokId,
 	}
 	return &token{
 		Id:       tokId,
+		Date:     time.Now(),
 		AccId:    accId,
 		TaId:     taId,
 		ExpiDate: expiDate,
@@ -55,6 +58,10 @@ func newToken(tokId,
 
 func (this *token) id() string {
 	return this.Id
+}
+
+func (this *token) date() time.Time {
+	return this.Date
 }
 
 func (this *token) accountId() string {

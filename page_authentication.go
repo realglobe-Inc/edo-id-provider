@@ -172,7 +172,7 @@ func authenticated(sys *system, w http.ResponseWriter, r *authenticationRequest,
 		if prmpts[prmptNone] {
 			return redirectError(w, r, errConsReq, "cannot consent without UI")
 		}
-		return consent(sys, w, r, sess)
+		return _consent(sys, w, r, sess)
 	} else if sess.hasNotConsented(sess.account(), t.id, clms) {
 		// 同意が必要。
 		log.Debug("Consenting that "+t.id+" gets ", clms, " is required")
@@ -180,7 +180,7 @@ func authenticated(sys *system, w http.ResponseWriter, r *authenticationRequest,
 		if prmpts[prmptNone] {
 			return redirectError(w, r, errConsReq, "cannot consent without UI")
 		}
-		return consent(sys, w, r, sess)
+		return _consent(sys, w, r, sess)
 	} else {
 		// 同意済み。
 		log.Debug("Consent that "+t.id+" gets ", clms, " is exist")
@@ -251,7 +251,7 @@ func authenticateAndConsent(sys *system, w http.ResponseWriter, r *authenticatio
 	log.Debug("User " + accName + " (" + acc.id() + ") is authenticated")
 
 	sess.setAccount(acc)
-	return consent(sys, w, r, sess)
+	return _consent(sys, w, r, sess)
 }
 
 // ユーザー認証処理。
@@ -313,7 +313,7 @@ func authenticateWithoutUi(sys *system, w http.ResponseWriter, r *authentication
 }
 
 // 同意処理。
-func consent(sys *system, w http.ResponseWriter, r *authenticationRequest, sess *session) error {
+func _consent(sys *system, w http.ResponseWriter, r *authenticationRequest, sess *session) error {
 	consCod := r.consentCode()
 	if consCod == "" {
 		// アカウント選択 UI 表示前だった。

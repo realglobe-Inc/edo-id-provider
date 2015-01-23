@@ -17,5 +17,5 @@ func (this *memoryTaContainer) get(taId string) (*ta, error) {
 }
 
 func (this *memoryTaContainer) add(ta *ta) {
-	((*taContainerImpl)(this)).base.(driver.KeyValueStore).Put(ta.id, ta)
+	((*taContainerImpl)(this)).base.(driver.KeyValueStore).Put(ta.id(), ta)
 }

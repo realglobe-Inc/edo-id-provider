@@ -56,7 +56,7 @@ func responseToken(w http.ResponseWriter, tok *token) error {
 	return nil
 }
 
-func tokenApi(sys *system, w http.ResponseWriter, r *http.Request) error {
+func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 	req := newTokenRequest(r)
 
 	if grntType := req.grantType(); grntType == "" {
@@ -175,7 +175,7 @@ func tokenApi(sys *system, w http.ResponseWriter, r *http.Request) error {
 
 	if jws.Header(jwtAlg) == algNone {
 		return responseError(w, http.StatusBadRequest, errInvTa, "JWS algorithm "+algNone+" is not allowed")
-	} else if err := jws.Verify(ta.pubKeys); err != nil {
+	} else if err := jws.Verify(ta.keys()); err != nil {
 		err = erro.Wrap(err)
 		log.Err(erro.Unwrap(err))
 		log.Debug(err)

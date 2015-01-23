@@ -10,5 +10,5 @@ func TestRedisSessionContainer(t *testing.T) {
 	if redisAddr == "" {
 		t.SkipNow()
 	}
-	testSessionContainer(t, newRedisSessionContainer(10, 20*time.Millisecond, driver.NewRedisPool(redisAddr, 2, time.Second), testLabel, time.Second, time.Second))
+	testSessionContainer(t, newRedisSessionContainer(10, driver.NewRedisPool(redisAddr, 2, time.Second), testLabel, time.Second, time.Second))
 }

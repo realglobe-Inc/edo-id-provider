@@ -9,11 +9,10 @@ import (
 type memorySessionContainer sessionContainerImpl
 
 // スレッドセーフ。
-func newMemorySessionContainer(idLen int, expiDur, caStaleDur, caExpiDur time.Duration) sessionContainer {
-	return &sessionContainerWrapper{idLen, expiDur,
-		(*memorySessionContainer)(&sessionContainerImpl{
-			driver.NewMemoryTimeLimitedKeyValueStore(caStaleDur, caExpiDur),
-		})}
+func newMemorySessionContainer(minIdLen int, caStaleDur, caExpiDur time.Duration) sessionContainer {
+	return newSessionContainerImpl(
+		driver.NewMemoryTimeLimitedKeyValueStore(caStaleDur, caExpiDur),
+		minIdLen)
 }
 
 func (this *memorySessionContainer) put(sess *session) error {

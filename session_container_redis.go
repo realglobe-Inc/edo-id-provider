@@ -7,9 +7,8 @@ import (
 	"time"
 )
 
-func newRedisSessionContainer(idLen int, expiDur time.Duration, pool *redis.Pool, tag string, caStaleDur, caExpiDur time.Duration) sessionContainer {
-	return &sessionContainerWrapper{idLen, expiDur,
-		&sessionContainerImpl{
-			driver.NewRedisTimeLimitedKeyValueStore(pool, tag+":", json.Marshal, unmarshalSession, getDummyStamp, caStaleDur, caExpiDur),
-		}}
+func newRedisSessionContainer(minIdLen int, pool *redis.Pool, tag string, caStaleDur, caExpiDur time.Duration) sessionContainer {
+	return newSessionContainerImpl(
+		driver.NewRedisTimeLimitedKeyValueStore(pool, tag+":", json.Marshal, unmarshalSession, getDummyStamp, caStaleDur, caExpiDur),
+		minIdLen)
 }

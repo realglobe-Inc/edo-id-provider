@@ -1,5 +1,5 @@
-function login() {
-    var uri = "/auth/login"
+function select() {
+    var uri = "/auth/select"
 
     var ticket = location.hash.substring(1);
     var queries = {};
@@ -28,8 +28,7 @@ function login() {
 
     document.write('<form method="post" action="' + uri + '">');
     document.write('アカウント: <input type="text" name="username" size="20" value="' + username + '" /> ');
-    document.write('パスワード: <input type="password" name="password" size="20" /> ');
     document.write('<input type="hidden" name="ticket" value="' + ticket + '" />');
-    document.write('<input type="submit" value="ログイン" />');
+    document.write('<input type="submit" value="選択" />');
     document.write('</form>');
 }

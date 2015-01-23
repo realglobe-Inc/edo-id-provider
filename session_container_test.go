@@ -6,7 +6,7 @@ import (
 )
 
 func testSessionContainer(t *testing.T, sessCont sessionContainer) {
-	expiDur := sessCont.(*sessionContainerWrapper).expiDur
+	expiDur := 20 * time.Millisecond
 
 	// 無い。
 	if sess1, err := sessCont.get("ccccc"); err != nil {
@@ -17,6 +17,13 @@ func testSessionContainer(t *testing.T, sessCont sessionContainer) {
 
 	// 発行する。
 	sess := newSession()
+	id, err := sessCont.newId()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sess.setId(id)
+	sess.setExpirationDate(time.Now().Add(expiDur))
 	if err := sessCont.put(sess); err != nil {
 		t.Fatal(err)
 	}
@@ -32,6 +39,7 @@ func testSessionContainer(t *testing.T, sessCont sessionContainer) {
 			t.Error(i, sess2)
 		}
 		s := *sess2
+		s.setExpirationDate(time.Now().Add(expiDur))
 		if err := sessCont.put(&s); err != nil {
 			t.Fatal(err)
 		}

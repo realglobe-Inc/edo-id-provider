@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"net/http"
+	"net/url"
 )
 
 const cookSess = "X-Edo-Idp-Session"
@@ -29,10 +30,8 @@ const (
 	formErrDesc   = "error_description"
 
 	// 独自。
-	formAccId   = "username"
+	formAccName = "username"
 	formPasswd  = "password"
-	formSelCod  = "account_selection_code"
-	formConsCod = "consent_code"
 )
 
 const (
@@ -122,21 +121,31 @@ var errCods []string = []string{
 	errInvTok: "invalid_token",
 }
 
-// rediUri にリダイレクトしてエラーを通知する。
-func redirectError(w http.ResponseWriter, r errorRedirectRequest, errCod int, errDesc string) error {
-	q := r.redirectUri().Query()
+// リダイレクトしてエラーを通知する。
+func redirectError(w http.ResponseWriter, r *http.Request, sys *system, sess *session, rediUri *url.URL, errCod int, errDesc string) error {
+	if sess != nil && sess.id() != "" {
+		sess.abort()
+		if err := sys.sessCont.put(sess); err != nil {
+			err = erro.Wrap(err)
+			log.Err(erro.Unwrap(err))
+			log.Debug(err)
+		}
+		log.Debug("Session " + mosaic(sess.id()) + " was aborted")
+	}
+
+	q := rediUri.Query()
 	q.Set(formErr, errCods[errCod])
 	if errDesc != "" {
 		q.Set(formErrDesc, errDesc)
 	}
-	r.redirectUri().RawQuery = q.Encode()
-	http.Redirect(w, r.raw(), r.redirectUri().String(), http.StatusFound)
+	rediUri.RawQuery = q.Encode()
+	http.Redirect(w, r, rediUri.String(), http.StatusFound)
 	return nil
 }
 
-// rediUri にリダイレクトしてサーバーエラーを通知する。
-func redirectServerError(w http.ResponseWriter, r errorRedirectRequest, err error) error {
+// リダイレクトしてサーバーエラーを通知する。
+func redirectServerError(w http.ResponseWriter, r *http.Request, sys *system, sess *session, rediUri *url.URL, err error) error {
 	log.Err(erro.Unwrap(err))
 	log.Debug(err)
-	return redirectError(w, r, errServErr, erro.Unwrap(err).Error())
+	return redirectError(w, r, sys, sess, rediUri, errServErr, erro.Unwrap(err).Error())
 }

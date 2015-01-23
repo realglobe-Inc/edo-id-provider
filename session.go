@@ -1,50 +1,79 @@
 package main
 
 import (
+	"encoding/json"
 	"github.com/realglobe-Inc/edo/util"
 	"time"
 )
 
 type session struct {
-	SessId   string    `json:"id"`
+	Id       string    `json:"id"`
 	ExpiDate time.Time `json:"expires"`
 
-	// 選択中のアカウント ID。
-	SelAccId string `json:"selected_account,omitempty"`
-	// 認証したことのあるアカウント。
-	Accs map[string]*sessionAccount `json:"accounts,omitempty"`
+	// 最後に選択・ログインしたアカウントの ID。
+	CurAcc string `json:"current_account,omitempty"`
+	// ログインしたことのあるアカウント。
+	Accs sessionAccountMap `json:"accounts,omitempty"`
 
-	// 最後に紐付けられた選択コード。
-	SelCod string `json:"selection_code,omitempty"`
-	// 最後に紐付けられた同意コード。
-	ConsCod string `json:"consent_code,omitempty"`
+	// 進行中のユーザー認証・認可リクエスト。
+	Req *authRequest `json:"request,omitempty"`
+	// 進行中のリクエストにて発行された選択券。
+	SelTic string `json:"select_ticket,omitempty"`
+	// 進行中のリクエストにて発行されたログイン券。
+	LoginTic string `json:"login_ticket,omitempty"`
+	// 進行中のリクエストにて発行された同意券。
+	ConsTic string `json:"consent_ticket,omitempty"`
+	// 進行中のリクエストにて選択またはログインしたアカウント。
+	Acc *sessionAccount `json:"accout,omitempty"`
+	// 進行中のリクエストにてなされた同意。
+	ConsScops util.StringSet `json:"consented_scopes,omitempty"`
+	ConsClms  util.StringSet `json:"consented_claims,omitempty"`
+	// 進行中のリクエストにてなされた拒否。
+	DenyScops util.StringSet `json:"denied_scopes,omitempty"`
+	DenyClms  util.StringSet `json:"denied_claims,omitempty"`
 }
 
 type sessionAccount struct {
-	// 現在認証されているか。
+	// 認証済みか。
 	Auth bool `json:"authenticated,omitempty"`
+	// ID 。
+	Id string `json:"id"`
 	// ログイン名。
 	Name string `json:"username"`
 	// 最後に認証した日時。
 	AuthDate time.Time `json:"auth_time"`
-	// 各 TA に対する同意。
-	TaConss map[string]util.StringSet `json:'tas,omitempty'`
+}
+
+// アカウント ID から sessionAccount へのマップ。
+// JSON では sessionAccount の配列にする。
+type sessionAccountMap map[string]*sessionAccount
+
+func (this sessionAccountMap) MarshalJSON() ([]byte, error) {
+	a := []*sessionAccount{}
+	for _, v := range this {
+		a = append(a, v)
+	}
+	return json.Marshal(a)
+}
+
+func (this *sessionAccountMap) UnmarshalJSON(data []byte) error {
+	var a []*sessionAccount
+	if err := json.Unmarshal(data, &a); err != nil {
+		return err
+	}
+	m := map[string]*sessionAccount{}
+	for _, v := range a {
+		m[v.Id] = v
+	}
+	*this = sessionAccountMap(m)
+	return nil
 }
 
 func (this *session) copy() *session {
 	c := *this
-	c.Accs = map[string]*sessionAccount{}
+	c.Accs = sessionAccountMap{}
 	for accId, acc := range this.Accs {
-		c.Accs[accId] = acc.copy()
-	}
-	return &c
-}
-
-func (this *sessionAccount) copy() *sessionAccount {
-	c := *this
-	c.TaConss = map[string]util.StringSet{}
-	for taId, conss := range this.TaConss {
-		c.TaConss[taId] = util.NewStringSet(conss)
+		c.Accs[accId] = acc
 	}
 	return &c
 }
@@ -52,18 +81,18 @@ func (this *sessionAccount) copy() *sessionAccount {
 // 白紙のセッションをつくる。
 func newSession() *session {
 	return &session{
-		Accs: map[string]*sessionAccount{},
+		Accs: sessionAccountMap{},
 	}
 }
 
 // ID を返す。
 func (this *session) id() string {
-	return this.SessId
+	return this.Id
 }
 
-// ID を設定する。
+// ID を変更する。
 func (this *session) setId(id string) {
-	this.SessId = id
+	this.Id = id
 }
 
 // 有効期限を返す。
@@ -71,196 +100,193 @@ func (this *session) expirationDate() time.Time {
 	return this.ExpiDate
 }
 
-// 有効期限を設定する。
+// 有効期限を変更する。
 func (this *session) setExpirationDate(expiDate time.Time) {
 	this.ExpiDate = expiDate
 }
 
-// 選択されているアカウントの ID を返す。
-func (this *session) account() string {
-	return this.SelAccId
+// 有効かどうかを返す。
+func (this *session) valid() bool {
+	return !this.ExpiDate.Before(time.Now())
 }
 
-// 選択されているアカウントのログイン名を返す。
-func (this *session) accountName() string {
-	if this.SelAccId == "" {
+// ユーザー認証・認可リクエストを始める。
+func (this *session) startRequest(req *authRequest) {
+	this.abort()
+	this.Req = req
+	return
+}
+
+// ユーザー認証・認可リクエストの結果を反映させる。
+func (this *session) commit() (consScops, consClms, denyScops, denyClms map[string]bool) {
+	if this.Acc != nil {
+		this.CurAcc = this.Acc.Id
+		this.Accs[this.Acc.Id] = this.Acc
+	}
+	consScops = this.ConsScops
+	consClms = this.ConsClms
+	denyScops = this.DenyScops
+	denyScops = this.DenyClms
+
+	this.abort()
+	return consScops, consClms, denyScops, denyClms
+}
+
+// ユーザー認証・認可リクエストを破棄する。
+func (this *session) abort() {
+	this.Req = nil
+	this.SelTic = ""
+	this.LoginTic = ""
+	this.ConsTic = ""
+	this.Acc = nil
+	this.ConsScops = nil
+	this.ConsClms = nil
+	this.DenyScops = nil
+	this.DenyClms = nil
+}
+
+// 進行中のユーザー認証・認可リクエストを返す。
+func (this *session) request() *authRequest {
+	return this.Req
+}
+
+// 現在のアカウントの ID を返す。
+func (this *session) currentAccount() string {
+	if this.Acc != nil {
+		return this.Acc.Id
+	} else {
+		return this.CurAcc
+	}
+}
+
+// 現在のアカウントのログイン名を返す。
+func (this *session) currentAccountName() string {
+	if this.Acc != nil {
+		return this.Acc.Name
+	} else if this.CurAcc != "" {
+		return this.Accs[this.CurAcc].Name
+	} else {
 		return ""
 	}
-	return this.Accs[this.SelAccId].Name
 }
 
-// 選択されているアカウントの認証日時を返す。
-func (this *session) accountAuthenticationDate() time.Time {
-	if this.SelAccId == "" {
+// 現在のアカウントが認証されているかどうか。
+func (this *session) currentAccountAuthenticated() bool {
+	if this.Acc != nil {
+		return this.Acc.Auth
+	} else if this.CurAcc != "" {
+		return this.Accs[this.CurAcc].Auth
+	} else {
+		return false
+	}
+}
+
+// 現在のアカウントの認証日時を返す。
+func (this *session) currentAccountDate() time.Time {
+	if this.Acc != nil {
+		return this.Acc.AuthDate
+	} else if this.CurAcc != "" {
+		return this.Accs[this.CurAcc].AuthDate
+	} else {
 		return time.Time{}
 	}
-	return this.Accs[this.SelAccId].AuthDate
 }
 
-// アカウントを認証済みアカウントとして加え、選択する。
-// 選択コードも解除する。
-// 状態が変わったときのみ true を返す。
-func (this *session) setAccount(acc *account) bool {
-	if sessAcc := this.Accs[acc.id()]; sessAcc != nil {
-		if sessAcc.Auth {
-			return this.selectAccount(acc.id()) || false
-		} else {
-			sessAcc.Auth = true
-			this.selectAccount(acc.id())
-			return true
-		}
-	} else {
-		sessAcc = &sessionAccount{
-			Auth:    true,
-			Name:    acc.name(),
-			TaConss: map[string]util.StringSet{},
-		}
-		this.Accs[acc.id()] = sessAcc
-		this.selectAccount(acc.id())
-		return true
+// 関係するアカウント名を列挙する。
+func (this *session) accountNames() map[string]bool {
+	m := map[string]bool{}
+	for _, v := range this.Accs {
+		m[v.Name] = true
 	}
-}
-
-// 現在紐付けられている選択コードを返す。
-func (this *session) selectionCode() string {
-	return this.SelCod
-}
-
-// 選択コードを紐付ける。
-func (this *session) setSelectionCode(selCod string) {
-	this.SelCod = selCod
-}
-
-// 一度認証したことのあるアカウントの中から 1 つを選択する。
-// 選択コードも解除する。
-// 状態が変わったときのみ true を返す。
-func (this *session) selectAccount(accId string) bool {
-	if accId == this.SelAccId {
-		return false
-	} else if _, ok := this.Accs[accId]; ok {
-		this.SelAccId = accId
-		return true
-	} else {
-		return false
+	if this.Acc != nil {
+		m[this.Acc.Name] = true
 	}
+	return m
 }
-func (this *session) selectAccountByName(accName string) bool {
-	var accId string
-	for id, acc := range this.Accs {
-		if acc.Name == accName {
-			accId = id
-			break
-		}
+
+// 選択したアカウントを設定する。
+func (this *session) selectAccount(acc *account) {
+	if this.Acc != nil && this.Acc.Id == acc.id() {
+		// 既に選択している。
+		return
 	}
-	if accId == this.SelAccId {
-		return false
-	} else if _, ok := this.Accs[accId]; ok {
-		this.SelAccId = accId
-		return true
-	} else {
-		return false
-	}
-}
 
-// アカウントが選択されていて認証済みの場合のみ true。
-func (this *session) isAuthenticated() bool {
-	if this.SelAccId == "" {
-		return false
-	} else {
-		return this.Accs[this.SelAccId].Auth
-	}
-}
-
-// アカウントが選択されていたら、そのアカウントを認証済みでなくする。
-// 状態が変わったときのみ true を返す。
-func (this *session) clearAuthenticated() bool {
-	if this.SelAccId == "" {
-		return false
-	} else {
-		acc := this.Accs[this.SelAccId]
-		if acc.Auth {
-			return false
-		} else {
-			return true
-		}
-	}
-}
-
-// 現在紐付けられている同意コードを返す。
-func (this *session) consentCode() string {
-	return this.ConsCod
-}
-
-// 同意コードを紐付ける。
-func (this *session) setConsentCode(consCod string) {
-	this.ConsCod = consCod
-}
-
-// アカウントの同意が得られていないクレームがあるかどうか。
-func (this *session) hasNotConsented(accId, taId string, clms map[string]bool) bool {
-	if len(clms) == 0 {
-		return false
-	} else if acc := this.Accs[accId]; acc == nil {
-		return true
-	} else if conss := acc.TaConss[taId]; conss == nil {
-		return true
-	} else {
-		for clm := range clms {
-			if !conss[clm] {
-				return true
-			}
-		}
-		return false
-	}
-}
-
-// アカウントの同意が得られていないクレームを返す。
-func (this *session) notConsented(accId, taId string, clms map[string]bool) map[string]bool {
-	rems := map[string]bool{}
-	if len(clms) == 0 {
-	} else if acc := this.Accs[accId]; acc == nil {
-		for clm := range clms {
-			rems[clm] = true
-		}
-	} else if conss := acc.TaConss[taId]; conss == nil {
-		for clm := range clms {
-			rems[clm] = true
-		}
-	} else {
-		for clm := range clms {
-			if !conss[clm] {
-				rems[clm] = true
-			}
-		}
-	}
-	return rems
-}
-
-// アカウントで同意する。
-// 同意コードも解除する。
-// 状態が変わったときのみ true を返す。
-func (this *session) consent(accId, accName, taId string, clms map[string]bool) bool {
-	mod := false
-	sessAcc := this.Accs[accId]
+	sessAcc := this.Accs[acc.id()]
 	if sessAcc == nil {
-		mod = true
+		// ログインしたこと無し。
 		sessAcc = &sessionAccount{
-			Auth:    true,
-			Name:    accName,
-			TaConss: map[string]util.StringSet{},
+			Id:   acc.id(),
+			Name: acc.name(),
 		}
-		this.Accs[accId] = sessAcc
 	}
-	conss := sessAcc.TaConss[taId]
-	if conss == nil {
-		mod = true
-		conss = util.NewStringSet(nil)
+	this.Acc = sessAcc
+	this.SelTic = ""
+	return
+}
+
+// ログインしたアカウントを設定する。
+func (this *session) loginAccount(acc *account) {
+	this.Acc = &sessionAccount{
+		Auth:     true,
+		Id:       acc.id(),
+		Name:     acc.name(),
+		AuthDate: time.Now(),
 	}
-	for clm := range clms {
-		if !conss[clm] {
-			mod = true
+	this.LoginTic = ""
+	return
+}
+
+// 同意を設定する。
+func (this *session) consent(consScops, consClms, denyScops, denyClms map[string]bool) {
+	this.ConsScops = consScops
+	this.ConsClms = consClms
+	this.DenyScops = denyScops
+	this.DenyClms = denyClms
+	this.ConsTic = ""
+	return
+}
+
+// 選択券を返す。
+func (this *session) selectTicket() string {
+	return this.SelTic
+}
+
+// 選択券を紐付ける。
+func (this *session) setSelectTicket(tic string) {
+	this.SelTic = tic
+}
+
+// ログイン券を返す。
+func (this *session) loginTicket() string {
+	return this.LoginTic
+}
+
+// ログイン券を紐付ける。
+func (this *session) setLoginTicket(tic string) {
+	this.LoginTic = tic
+}
+
+// 同意券を返す。
+func (this *session) consentTicket() string {
+	return this.ConsTic
+}
+
+// 同意券を紐付ける。
+func (this *session) setConsentTicket(tic string) {
+	this.ConsTic = tic
+}
+
+// 必要な同意の中で拒否されたものを返す。
+func (this *session) unconsentedEssentials() (scops, clms map[string]bool) {
+	clms = map[string]bool{}
+
+	reqClms := this.Req.claims()
+	for clm, req := range reqClms {
+		if req.Ess {
+			if !this.ConsClms[clm] {
+				clms[clm] = true
+			}
 		}
-		conss[clm] = true
 	}
-	return mod
+	return nil, clms
 }

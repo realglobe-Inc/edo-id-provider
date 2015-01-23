@@ -16,7 +16,7 @@ func TestFileTaContainer(t *testing.T) {
 
 	if buff, err := marshalTa(testTa); err != nil {
 		t.Fatal(err)
-	} else if err := ioutil.WriteFile(filepath.Join(path, keyToEscapedJsonPath(testTa.id)), buff, filePerm); err != nil {
+	} else if err := ioutil.WriteFile(filepath.Join(path, keyToEscapedJsonPath(testTa.id())), buff, filePerm); err != nil {
 		t.Fatal(err)
 	}
 

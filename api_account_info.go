@@ -25,7 +25,7 @@ func responseAccountInfo(w http.ResponseWriter, info map[string]interface{}) err
 	return nil
 }
 
-func accountInfoApi(sys *system, w http.ResponseWriter, r *http.Request) error {
+func accountInfoApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 	req, err := newAccountInfoRequest(r)
 	if err != nil {
 		err = erro.Wrap(err)

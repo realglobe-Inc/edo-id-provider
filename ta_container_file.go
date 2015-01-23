@@ -23,16 +23,16 @@ type taIntermediate struct {
 }
 
 func taToIntermediate(t *ta) *taIntermediate {
-	rediUris := t.rediUris
+	rediUris := t.redirectUris()
 	pubKeys := []map[string]interface{}{}
-	for k, v := range t.pubKeys {
+	for k, v := range t.keys() {
 		if m := util.EncodePublicKeyToJwkMap(k, v); m != nil {
 			pubKeys = append(pubKeys, m)
 		}
 	}
 	return &taIntermediate{
-		Id:       t.id,
-		Name:     t.name,
+		Id:       t.id(),
+		Name:     t.name(),
 		RediUris: rediUris,
 		PubKeys:  pubKeys,
 	}
@@ -47,12 +47,7 @@ func intermediateToTa(ti *taIntermediate) (*ta, error) {
 			pubKeys[kid] = pubKey
 		}
 	}
-	return &ta{
-		id:       ti.Id,
-		name:     ti.Name,
-		rediUris: ti.RediUris,
-		pubKeys:  pubKeys,
-	}, nil
+	return newTa(ti.Id, ti.Name, ti.RediUris, pubKeys), nil
 }
 
 func marshalTa(t interface{}) ([]byte, error) {

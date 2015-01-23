@@ -4,7 +4,6 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
-	"time"
 )
 
 func TestFileSessionContainer(t *testing.T) {
@@ -19,5 +18,5 @@ func TestFileSessionContainer(t *testing.T) {
 	}
 	defer os.RemoveAll(expiPath)
 
-	testSessionContainer(t, newFileSessionContainer(10, 20*time.Millisecond, path, expiPath, 0, 0))
+	testSessionContainer(t, newFileSessionContainer(10, path, expiPath, 0, 0))
 }

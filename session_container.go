@@ -1,19 +1,48 @@
 package main
 
 import (
+	"encoding/base64"
 	"github.com/realglobe-Inc/edo/driver"
 	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
+	"math/big"
+	"math/rand"
+	"sync/atomic"
 	"time"
 )
 
 type sessionContainer interface {
+	newId() (id string, err error)
 	put(sess *session) error
 	get(sessId string) (*session, error)
 }
 
 type sessionContainerImpl struct {
 	base driver.TimeLimitedKeyValueStore
+
+	// セッション文字数の下界。
+	minIdLen int
+	// インスタンス内でのセッション被りを防ぐための通し番号。
+	// 別インスタンスは保証できない。
+	ser int64
+}
+
+func newSessionContainerImpl(base driver.TimeLimitedKeyValueStore, minIdLen int) *sessionContainerImpl {
+	return &sessionContainerImpl{
+		base:     base,
+		minIdLen: minIdLen,
+		ser:      rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+	}
+}
+
+func (this *sessionContainerImpl) newId() (id string, err error) {
+	id, err = util.SecureRandomString(this.minIdLen)
+	if err != nil {
+		return "", erro.Wrap(err)
+	}
+	buff := big.NewInt(atomic.AddInt64(&this.ser, 1)).Bytes()
+	id += base64.URLEncoding.EncodeToString(buff)[:(len(buff)*8+5)/6]
+	return id, nil
 }
 
 func (this *sessionContainerImpl) put(sess *session) error {
@@ -32,29 +61,4 @@ func (this *sessionContainerImpl) get(sessId string) (*session, error) {
 		return nil, nil
 	}
 	return val.(*session), nil
-}
-
-type sessionContainerWrapper struct {
-	// セッション番号の文字数。
-	idLen int
-	// デフォルトの有効期限。
-	expiDur time.Duration
-
-	sessionContainer
-}
-
-func (this *sessionContainerWrapper) put(sess *session) error {
-	if sess.id() == "" {
-		sessId, err := util.SecureRandomString(this.idLen)
-		if err != nil {
-			return erro.Wrap(err)
-		}
-		sess.setId(sessId)
-
-		// セッション ID が決まった。
-		log.Debug("Session ID " + mosaic(sess.id()) + " was generated")
-	}
-
-	sess.setExpirationDate(time.Now().Add(this.expiDur))
-	return this.sessionContainer.put(sess)
 }

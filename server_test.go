@@ -29,20 +29,22 @@ func TestBoot(t *testing.T) {
 	}
 	defer os.RemoveAll(path)
 
-	sys := newSystem(
+	sys := &system{
 		"http://edo-id-provider.example.com",
 		false,
 		10,
 		10,
-		"/login/html",
+		"/html",
 		path,
 		newMemoryTaContainer(0, 0),
 		newMemoryAccountContainer(0, 0),
-		newMemorySessionContainer(10, time.Second, 0, 0),
+		newMemoryConsentContainer(0, 0),
+		newMemorySessionContainer(10, 0, 0),
 		newMemoryCodeContainer(10, time.Second, "http://edo-id-provider.example.com", 0, 0),
 		newMemoryTokenContainer(10, "https://example.com", testPriKey, "", "RS256", time.Second, 0, 0),
 		time.Second,
-	)
+		time.Second,
+	}
 	go serve(sys, "tcp", "", port, "http")
 
 	// サーバ起動待ち。

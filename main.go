@@ -84,19 +84,31 @@ func mainCore(param *parameters) error {
 		return erro.New("invalid account container type " + param.accContType)
 	}
 
+	var consCont consentContainer
+	switch param.consContType {
+	case "file":
+		consCont = newFileConsentContainer(param.consContPath, param.caStaleDur, param.caExpiDur)
+		log.Info("Use file consent container " + param.consContPath)
+	case "mongo":
+		consCont = newMongoConsentContainer(param.consContUrl, param.consContDb, param.consContColl, param.caStaleDur, param.caExpiDur)
+		log.Info("Use mongodb consent container " + param.consContUrl)
+	default:
+		return erro.New("invalid consent container type " + param.consContType)
+	}
+
 	var sessCont sessionContainer
 	switch param.sessContType {
 	case "memory":
-		sessCont = newMemorySessionContainer(param.sessIdLen, param.sessExpiDur, param.caStaleDur, param.caExpiDur)
+		sessCont = newMemorySessionContainer(param.sessIdLen, param.caStaleDur, param.caExpiDur)
 		log.Info("Use memory session container.")
 	case "file":
-		sessCont = newFileSessionContainer(param.sessIdLen, param.sessExpiDur, param.sessContPath, param.sessExpiContPath, param.caStaleDur, param.caExpiDur)
+		sessCont = newFileSessionContainer(param.sessIdLen, param.sessContPath, param.sessExpiContPath, param.caStaleDur, param.caExpiDur)
 		log.Info("Use file session container " + param.sessContPath + "," + param.sessExpiContPath)
 	case "redis":
 		if redPools[param.sessContUrl] == nil {
 			redPools[param.sessContUrl] = driver.NewRedisPool(param.sessContUrl, connNum, idlDur)
 		}
-		sessCont = newRedisSessionContainer(param.sessIdLen, param.sessExpiDur, redPools[param.sessContUrl], param.sessContPrefix, param.caStaleDur, param.caExpiDur)
+		sessCont = newRedisSessionContainer(param.sessIdLen, redPools[param.sessContUrl], param.sessContPrefix, param.caStaleDur, param.caExpiDur)
 		log.Info("Use redis session container " + param.sessContUrl)
 	default:
 		return erro.New("invalid session container type " + param.sessContType)
@@ -146,26 +158,31 @@ func mainCore(param *parameters) error {
 		return erro.New("invalid token container type " + param.tokContType)
 	}
 
-	sys := newSystem(
+	sys := &system{
 		param.selfId,
 		param.secCook,
-		param.codIdLen/2,
-		param.codIdLen/2,
+		param.codIdLen / 2,
+		param.codIdLen / 2,
 		param.uiUri,
 		param.uiPath,
 		taCont,
 		accCont,
+		consCont,
 		sessCont,
 		codCont,
 		tokCont,
 		param.tokExpiDur,
-	)
+		param.sessExpiDur,
+	}
 	return serve(sys, param.socType, param.socPath, param.socPort, param.protType)
 }
 
 // 振り分ける。
 const (
 	authPath   = "/auth"
+	loginPath  = "/auth/login"
+	selPath    = "/auth/select"
+	consPath   = "/auth/consent"
 	tokPath    = "/token"
 	accInfPath = "/userinfo"
 )
@@ -173,13 +190,22 @@ const (
 func serve(sys *system, socType, socPath string, socPort int, protType string) error {
 	routes := map[string]util.HandlerFunc{
 		authPath: func(w http.ResponseWriter, r *http.Request) error {
-			return authPage(sys, w, r)
+			return authPage(w, r, sys)
+		},
+		loginPath: func(w http.ResponseWriter, r *http.Request) error {
+			return loginPage(w, r, sys)
+		},
+		selPath: func(w http.ResponseWriter, r *http.Request) error {
+			return selectPage(w, r, sys)
+		},
+		consPath: func(w http.ResponseWriter, r *http.Request) error {
+			return consentPage(w, r, sys)
 		},
 		tokPath: func(w http.ResponseWriter, r *http.Request) error {
-			return tokenApi(sys, w, r)
+			return tokenApi(w, r, sys)
 		},
 		accInfPath: func(w http.ResponseWriter, r *http.Request) error {
-			return accountInfoApi(sys, w, r)
+			return accountInfoApi(w, r, sys)
 		},
 	}
 	fileHndl := http.StripPrefix(sys.uiUri, http.FileServer(http.Dir(sys.uiPath)))

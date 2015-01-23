@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -83,6 +84,19 @@ type parameters struct {
 	accContDb string
 	// アカウント格納庫 mongodb コレクション名。
 	accContColl string
+
+	// 同意格納庫種別。
+	consContType string
+	// 同意格納庫ディレクトリパス。
+	consContPath string
+	// 名前引き同意格納庫ディレクトリパス。
+	consNameContPath string
+	// 同意格納庫 mongodb アドレス。
+	consContUrl string
+	// 同意格納庫 mongodb データベース名。
+	consContDb string
+	// 同意格納庫 mongodb コレクション名。
+	consContColl string
 
 	// セッション番号の文字数。
 	sessIdLen int
@@ -186,6 +200,12 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.StringVar(&param.accContDb, "accContDb", "edo", "Account container database name.")
 	flags.StringVar(&param.accContColl, "accContColl", "accounts", "Account container collection name.")
 
+	flags.StringVar(&param.consContType, "consContType", "file", "Consent container type.")
+	flags.StringVar(&param.consContPath, "consContPath", filepath.Join(filepath.Dir(os.Args[0]), "consents"), "Consent container directory.")
+	flags.StringVar(&param.consContUrl, "consContUrl", "localhost", "Consent container address.")
+	flags.StringVar(&param.consContDb, "consContDb", "edo", "Consent container database name.")
+	flags.StringVar(&param.consContColl, "consContColl", "consents", "Consent container collection name.")
+
 	flags.IntVar(&param.sessIdLen, "sessIdLen", 40, "Session ID length.")
 	flags.DurationVar(&param.sessExpiDur, "sessExpiDur", 7*24*time.Hour, "Session expiration duration.")
 	flags.StringVar(&param.sessContType, "sessContType", "memory", "Session container type.")
@@ -232,6 +252,20 @@ func parseParameters(args ...string) (param *parameters, err error) {
 
 	if l := len(flags.Args()); l > 0 {
 		log.Warn("Ignore extra parameters ", flags.Args(), ".")
+	}
+
+	// uiUri を整形。
+	uiUri := strings.TrimRight(param.uiUri, "/")
+	uiUri = regexp.MustCompile("/+").ReplaceAllString(uiUri, "/")
+	if uiUri == "" {
+		uiUri = "/html"
+	}
+	if uiUri[0] != '/' {
+		uiUri = "/" + uiUri
+	}
+	if param.uiUri != uiUri {
+		log.Info("Use " + uiUri + " as UI uri")
+		param.uiUri = uiUri
 	}
 
 	return param, nil

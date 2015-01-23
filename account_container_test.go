@@ -5,7 +5,7 @@ import (
 )
 
 var testAcc = newAccount(map[string]interface{}{
-	"id":       "abcde",
+	"id":       "testaccount",
 	"username": "aaaaa",
 	"password": "12345",
 })

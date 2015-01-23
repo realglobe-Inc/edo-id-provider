@@ -22,19 +22,19 @@ u3wa4HhSwmMLXwPTUXeTukTU1gU57++SWzrUogi71aQPcv8Y1k78Li5bS/VN1WTN
 	if err != nil {
 		panic(err)
 	}
-	testTa = newTa("abcde", "aaaaa", map[string]bool{"https://example.com/": true, "https://example.com/a/b/c": true}, map[string]crypto.PublicKey{"": pubKey})
+	testTa = newTa("testta", "aaaaa", map[string]bool{"https://example.com/": true, "https://example.com/a/b/c": true}, map[string]crypto.PublicKey{"": pubKey})
 }
 
 func testTaContainer(t *testing.T, taCont taContainer) {
-	if ta, err := taCont.get(testTa.id()); err != nil {
+	if ta_, err := taCont.get(testTa.id()); err != nil {
 		t.Fatal(err)
-	} else if !reflect.DeepEqual(ta, testTa) {
-		t.Error(ta)
+	} else if !reflect.DeepEqual(ta_, testTa) {
+		t.Error(ta_)
 	}
 
-	if ta, err := taCont.get(testTa.id() + "a"); err != nil {
+	if ta_, err := taCont.get(testTa.id() + "a"); err != nil {
 		t.Fatal(err)
-	} else if ta != nil {
-		t.Error(ta)
+	} else if ta_ != nil {
+		t.Error(ta_)
 	}
 }

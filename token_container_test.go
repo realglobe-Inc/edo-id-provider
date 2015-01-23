@@ -10,10 +10,10 @@ func testTokenContainer(t *testing.T, tokCont tokenContainer) {
 	expiDur := 10 * time.Millisecond
 
 	// 無い。
-	if tok1, err := tokCont.get("ccccc"); err != nil {
+	if tk, err := tokCont.get("ccccc"); err != nil {
 		t.Fatal(err)
-	} else if tok1 != nil {
-		t.Error(tok1)
+	} else if tk != nil {
+		t.Error(tk)
 	}
 
 	// 発行する。
@@ -23,21 +23,20 @@ func testTokenContainer(t *testing.T, tokCont tokenContainer) {
 	}
 
 	// ある。
-	tok2, err := tokCont.get(tok.id())
-	if err != nil {
+	if tk, err := tokCont.get(tok.id()); err != nil {
 		t.Fatal(err)
-	} else if tok2 == nil {
-		t.Error(tok2)
-	} else if !reflect.DeepEqual(tok2, tok) {
-		t.Error(tok2)
+	} else if tk == nil {
+		t.Error(tk)
+	} else if !reflect.DeepEqual(tk, tok) {
+		t.Error(tk)
 	}
 
 	time.Sleep(tok.expirationDate().Sub(time.Now()) + time.Millisecond) // redis の粒度がミリ秒のため。
 
 	// もう無い。
-	if tok3, err := tokCont.get(tok.id()); err != nil {
+	if tk, err := tokCont.get(tok.id()); err != nil {
 		t.Fatal(err)
-	} else if tok3 != nil {
-		t.Error(tok3)
+	} else if tk != nil {
+		t.Error(tk)
 	}
 }

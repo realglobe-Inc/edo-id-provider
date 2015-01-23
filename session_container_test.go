@@ -9,10 +9,10 @@ func testSessionContainer(t *testing.T, sessCont sessionContainer) {
 	expiDur := 20 * time.Millisecond
 
 	// 無い。
-	if sess1, err := sessCont.get("ccccc"); err != nil {
+	if se, err := sessCont.get("ccccc"); err != nil {
 		t.Fatal(err)
-	} else if sess1 != nil {
-		t.Error(sess1)
+	} else if se != nil {
+		t.Error(se)
 	}
 
 	// 発行する。
@@ -30,15 +30,15 @@ func testSessionContainer(t *testing.T, sessCont sessionContainer) {
 
 	// ある。
 	for i := 0; i < 4; i++ {
-		sess2, err := sessCont.get(sess.id())
+		se, err := sessCont.get(sess.id())
 		if err != nil {
 			t.Fatal(err)
-		} else if sess2 == nil {
-			t.Fatal(i, sess2)
-		} else if sess2.id() != sess.id() {
-			t.Error(i, sess2)
+		} else if se == nil {
+			t.Fatal(i, se)
+		} else if se.id() != sess.id() {
+			t.Error(i, se)
 		}
-		s := *sess2
+		s := *se
 		s.setExpirationDate(time.Now().Add(expiDur))
 		if err := sessCont.put(&s); err != nil {
 			t.Fatal(err)
@@ -50,9 +50,9 @@ func testSessionContainer(t *testing.T, sessCont sessionContainer) {
 	time.Sleep(expiDur/2 + time.Millisecond) // redis の粒度がミリ秒のため。
 
 	// もう無い。
-	if sess3, err := sessCont.get(sess.id()); err != nil {
+	if se, err := sessCont.get(sess.id()); err != nil {
 		t.Fatal(err)
-	} else if sess3 != nil {
-		t.Error(sess3)
+	} else if se != nil {
+		t.Error(se)
 	}
 }

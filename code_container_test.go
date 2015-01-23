@@ -8,10 +8,10 @@ import (
 
 func testCodeContainer(t *testing.T, codCont codeContainer) {
 	// 無い。
-	if cod1, err := codCont.get("ccccc"); err != nil {
+	if c, err := codCont.get("ccccc"); err != nil {
 		t.Fatal(err)
-	} else if cod1 != nil {
-		t.Error(cod1)
+	} else if c != nil {
+		t.Error(c)
 	}
 
 	// 発行する。
@@ -28,20 +28,20 @@ func testCodeContainer(t *testing.T, codCont codeContainer) {
 	}
 
 	// ある。
-	if cod2, err := codCont.get(cod.id()); err != nil {
+	if c, err := codCont.get(cod.id()); err != nil {
 		t.Fatal(err)
-	} else if cod2 == nil {
-		t.Error(cod2)
-	} else if !reflect.DeepEqual(cod2, cod) {
-		t.Error(cod2)
+	} else if c == nil {
+		t.Error(c)
+	} else if !reflect.DeepEqual(c, cod) {
+		t.Error(c)
 	}
 
 	time.Sleep(cod.expirationDate().Sub(time.Now()) + time.Millisecond) // redis の粒度がミリ秒のため。
 
 	// もう無い。
-	if cod3, err := codCont.get(cod.id()); err != nil {
+	if c, err := codCont.get(cod.id()); err != nil {
 		t.Fatal(err)
-	} else if cod3 != nil {
-		t.Error(cod3)
+	} else if c != nil {
+		t.Error(c)
 	}
 }

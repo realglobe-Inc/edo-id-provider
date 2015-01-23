@@ -45,6 +45,8 @@ func accountInfoApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 		return erro.Wrap(err)
 	} else if tok == nil {
 		return responseError(w, http.StatusBadRequest, errInvTok, "token "+mosaic(tokId)+" is not exist")
+	} else if !tok.valid() {
+		return responseError(w, http.StatusBadRequest, errInvTok, "token "+mosaic(tokId)+" is invalid")
 	}
 
 	log.Debug("Token " + mosaic(tokId) + " is exist")

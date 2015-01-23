@@ -134,6 +134,8 @@ type parameters struct {
 	tokIdLen int
 	// アクセストークンの有効期間。
 	tokExpiDur time.Duration
+	// 有効期限切れのアクセストークンを保持する時間。
+	tokSavDur time.Duration
 	// アクセストークン格納庫種別。
 	tokContType string
 	// アクセストークン格納庫ディレクトリパス。
@@ -226,7 +228,8 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.StringVar(&param.codContPrefix, "codContPrefix", "edo.codes", "Code container key prefix.")
 
 	flags.IntVar(&param.tokIdLen, "tokIdLen", 40, "Token length.")
-	flags.DurationVar(&param.tokExpiDur, "tokExpiDur", 24*time.Hour, "Token expiration duration.")
+	flags.DurationVar(&param.tokExpiDur, "tokExpiDur", time.Hour, "Token expiration duration.")
+	flags.DurationVar(&param.tokSavDur, "tokSavDur", 24*time.Hour, "Expired token saving duration.")
 	flags.StringVar(&param.tokContType, "tokContType", "memory", "Token container type.")
 	flags.StringVar(&param.tokContPath, "tokContPath", filepath.Join(filepath.Dir(os.Args[0]), "tokens"), "Token container directory.")
 	flags.StringVar(&param.tokExpiContPath, "tokExpiContPath", filepath.Join(filepath.Dir(os.Args[0]), "token_expires"), "Token container expiration date directory.")

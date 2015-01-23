@@ -9,50 +9,53 @@ type token struct {
 	Id string `json:"id"`
 	// 発行日時。
 	Date time.Time `json:"date"`
-	// 権利アカウント。
+	// 権利者アカウントの ID。
 	AccId string `json:"account_id"`
-	// 発行先 TA。
+	// 要求元 TA の ID。
 	TaId string `json:"ta_id"`
+	// 発行時の認可コード。リフレッシュトークンと排他。
+	Cod string `json:"code,omitempty"`
+	// 発行時のリフレッシュトークン。認可コードと排他。
+	RefTok string `json:"refresh_token,omitempty"`
 
 	// 有効期限。
 	ExpiDate time.Time `json:"expires"`
-	// リフレッシュトークン。
-	RefTok string `json:"refresh_token,omitempty"`
 	// 許可された scope。
 	Scops util.StringSet `json:"scope,omitempty"`
-	// ID トークン。
-	IdTok string `json:"id_token,omitempty"`
 	// 許可されたクレーム。
 	Clms util.StringSet `json:"claims,omitempty"`
+	// ID トークン。
+	IdTok string `json:"id_token,omitempty"`
+
+	// 有効か。
+	Valid bool `json:"valid,omitempty"`
+	// 更新日時。
+	Upd time.Time `json:"update_at"`
 }
 
 func newToken(tokId,
 	accId,
 	taId string,
-	expiDate time.Time,
+	cod,
 	refTok string,
+	expiDate time.Time,
 	scops map[string]bool,
-	idTok string,
-	clms map[string]bool) *token {
+	clms map[string]bool,
+	idTok string) *token {
 
-	var s util.StringSet
-	if len(scops) > 0 {
-		s = util.NewStringSet(scops)
-	}
-	var c util.StringSet
-	if len(clms) > 0 {
-		c = util.NewStringSet(clms)
-	}
+	now := time.Now()
 	return &token{
 		Id:       tokId,
-		Date:     time.Now(),
+		Date:     now,
 		AccId:    accId,
 		TaId:     taId,
 		ExpiDate: expiDate,
 		RefTok:   refTok,
-		Scops:    s,
+		Scops:    scops,
+		Clms:     clms,
 		IdTok:    idTok,
-		Clms:     c,
+		Valid:    true,
+		Upd:      now,
 	}
 }
 
@@ -72,22 +75,34 @@ func (this *token) taId() string {
 	return this.TaId
 }
 
-func (this *token) expirationDate() time.Time {
-	return this.ExpiDate
+func (this *token) code() string {
+	return this.Cod
 }
 
 func (this *token) refreshToken() string {
 	return this.RefTok
 }
 
+func (this *token) expirationDate() time.Time {
+	return this.ExpiDate
+}
+
 func (this *token) scopes() util.StringSet {
 	return this.Scops
+}
+
+func (this *token) claims() util.StringSet {
+	return this.Clms
 }
 
 func (this *token) idToken() string {
 	return this.IdTok
 }
 
-func (this *token) claims() util.StringSet {
-	return this.Clms
+func (this *token) valid() bool {
+	return this.Valid && !this.ExpiDate.Before(time.Now())
+}
+
+func (this *token) updateDate() time.Time {
+	return this.Upd
 }

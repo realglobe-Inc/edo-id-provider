@@ -17,8 +17,22 @@ func testTokenContainer(t *testing.T, tokCont tokenContainer) {
 	}
 
 	// 発行する。
-	tok, err := tokCont.new(newCode("abcde", "account", "ta", "redirect_uri", time.Now().Add(time.Second), expiDur, nil, nil, "nonce", time.Time{}))
+	id, err := tokCont.newId()
 	if err != nil {
+		t.Fatal(err)
+	}
+	tok := newToken(id,
+		"testaccount",
+		"testta",
+		"testcode",
+		"",
+		time.Now().Add(expiDur),
+		nil,
+		nil,
+		"")
+
+	// 入れる。
+	if err := tokCont.put(tok); err != nil {
 		t.Fatal(err)
 	}
 
@@ -31,7 +45,7 @@ func testTokenContainer(t *testing.T, tokCont tokenContainer) {
 		t.Error(tk)
 	}
 
-	time.Sleep(tok.expirationDate().Sub(time.Now()) + time.Millisecond) // redis の粒度がミリ秒のため。
+	time.Sleep(tok.expirationDate().Add(tokCont.(*tokenContainerImpl).savDur).Sub(time.Now()) + time.Millisecond) // redis の粒度がミリ秒のため。
 
 	// もう無い。
 	if tk, err := tokCont.get(tok.id()); err != nil {

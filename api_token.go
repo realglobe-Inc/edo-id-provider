@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto"
 	"encoding/json"
 	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
@@ -199,11 +200,55 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 
 	log.Debug(taId + " is authenticated")
 
-	tok, err := sys.tokCont.new(cod)
+	jws = util.NewJws()
+	jws.SetHeader(jwtAlg, sys.sigAlg)
+	if sys.sigKid != "" {
+		jws.SetHeader(jwtKid, sys.sigKid)
+	}
+	jws.SetClaim(clmIss, sys.selfId)
+	jws.SetClaim(clmSub, cod.accountId())
+	jws.SetClaim(clmAud, cod.taId())
+	now := time.Now()
+	jws.SetClaim(clmExp, now.Add(sys.idTokExpiDur).Unix())
+	jws.SetClaim(clmIat, now.Unix())
+	if !cod.authenticationDate().IsZero() {
+		jws.SetClaim(clmAuthTim, cod.authenticationDate().Unix())
+	}
+	if cod.nonce() != "" {
+		jws.SetClaim(clmNonc, cod.nonce())
+	}
+	if err := jws.Sign(map[string]crypto.PrivateKey{sys.sigKid: sys.sigKey}); err != nil {
+		return erro.Wrap(err)
+	}
+	buff, err := jws.Encode()
 	if err != nil {
 		return erro.Wrap(err)
 	}
+	idTok := string(buff)
 
+	// ID トークンができた。
+	log.Debug("ID token was generated")
+
+	tokId, err := sys.tokCont.newId()
+	if err != nil {
+		return erro.Wrap(err)
+	}
+	tok := newToken(
+		tokId,
+		cod.accountId(),
+		cod.taId(),
+		cod.id(),
+		"",
+		now.Add(cod.expirationDuration()),
+		cod.scopes(),
+		cod.claims(),
+		idTok,
+	)
+	if err := sys.tokCont.put(tok); err != nil {
+		return erro.Wrap(err)
+	}
+
+	// アクセストークンが決まった。
 	log.Debug("Token " + mosaic(tok.id()) + " is generated")
 
 	return responseToken(w, tok)

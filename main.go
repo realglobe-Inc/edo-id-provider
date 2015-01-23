@@ -140,19 +140,16 @@ func mainCore(param *parameters) error {
 	var tokCont tokenContainer
 	switch param.tokContType {
 	case "memory":
-		tokCont = newMemoryTokenContainer(param.tokIdLen, param.selfId, key, param.kid, param.sigAlg, param.idTokExpiDur,
-			param.caStaleDur, param.caExpiDur)
+		tokCont = newMemoryTokenContainer(param.tokIdLen, param.tokSavDur, param.caStaleDur, param.caExpiDur)
 		log.Info("Use memory token container.")
 	case "file":
-		tokCont = newFileTokenContainer(param.tokIdLen, param.selfId, key, param.kid, param.sigAlg, param.idTokExpiDur,
-			param.tokContPath, param.tokExpiContPath, param.caStaleDur, param.caExpiDur)
+		tokCont = newFileTokenContainer(param.tokIdLen, param.tokSavDur, param.tokContPath, param.tokExpiContPath, param.caStaleDur, param.caExpiDur)
 		log.Info("Use file token container " + param.tokContPath + "," + param.tokExpiContPath)
 	case "redis":
 		if redPools[param.tokContUrl] == nil {
 			redPools[param.tokContUrl] = driver.NewRedisPool(param.tokContUrl, connNum, idlDur)
 		}
-		tokCont = newRedisTokenContainer(param.tokIdLen, param.selfId, key, param.kid, param.sigAlg, param.idTokExpiDur,
-			redPools[param.tokContUrl], param.tokContPrefix, param.caStaleDur, param.caExpiDur)
+		tokCont = newRedisTokenContainer(param.tokIdLen, param.tokSavDur, redPools[param.tokContUrl], param.tokContPrefix, param.caStaleDur, param.caExpiDur)
 		log.Info("Use redis token container " + param.tokContUrl)
 	default:
 		return erro.New("invalid token container type " + param.tokContType)
@@ -173,7 +170,11 @@ func mainCore(param *parameters) error {
 		tokCont,
 		param.codExpiDur,
 		param.tokExpiDur,
+		param.idTokExpiDur,
 		param.sessExpiDur,
+		param.sigAlg,
+		param.kid,
+		key,
 	}
 	return serve(sys, param.socType, param.socPath, param.socPort, param.protType)
 }

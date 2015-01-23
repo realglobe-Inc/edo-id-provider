@@ -41,10 +41,14 @@ func TestBoot(t *testing.T) {
 		newMemoryConsentContainer(0, 0),
 		newMemorySessionContainer(10, 0, 0),
 		newMemoryCodeContainer(10, time.Second, 0, 0),
-		newMemoryTokenContainer(10, "https://example.com", testPriKey, "", "RS256", time.Second, 0, 0),
+		newMemoryTokenContainer(10, time.Second, 0, 0),
 		time.Second,
 		time.Second,
 		time.Second,
+		time.Second,
+		"RS256",
+		"",
+		nil,
 	}
 	go serve(sys, "tcp", "", port, "http")
 

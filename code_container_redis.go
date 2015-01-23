@@ -8,10 +8,6 @@ import (
 	"time"
 )
 
-func getDummyStamp(val interface{}) *driver.Stamp {
-	return &driver.Stamp{}
-}
-
 func getCodeStamp(val interface{}) *driver.Stamp {
 	cod, _ := val.(*code)
 	upd := cod.updateDate()

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto"
 	"github.com/realglobe-Inc/edo/util"
 	"time"
 )
@@ -23,10 +24,15 @@ type system struct {
 	codCont  codeContainer
 	tokCont  tokenContainer
 
-	codExpiDur time.Duration
-	tokExpiDur time.Duration
+	codExpiDur   time.Duration
+	tokExpiDur   time.Duration
+	idTokExpiDur time.Duration
 
 	sessExpiDur time.Duration
+
+	sigAlg string
+	sigKid string
+	sigKey crypto.PrivateKey
 }
 
 func (this *system) newTicket() (string, error) {

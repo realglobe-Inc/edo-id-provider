@@ -7,8 +7,13 @@ import (
 )
 
 type session struct {
-	Id       string    `json:"id"`
+	Id string `json:"id"`
+	// 発行日時。
+	Date time.Time `json:"date"`
+	// 有効期限。
 	ExpiDate time.Time `json:"expires"`
+	// 更新日時。
+	Upd time.Time `json:"update_at"`
 
 	// 最後に選択・ログインしたアカウントの ID。
 	CurAcc string `json:"current_account,omitempty"`
@@ -81,6 +86,7 @@ func (this *session) copy() *session {
 // 白紙のセッションをつくる。
 func newSession() *session {
 	return &session{
+		Date: time.Now(),
 		Accs: sessionAccountMap{},
 	}
 }
@@ -95,6 +101,11 @@ func (this *session) setId(id string) {
 	this.Id = id
 }
 
+// 発行日時を返す。
+func (this *session) date() time.Time {
+	return this.Date
+}
+
 // 有効期限を返す。
 func (this *session) expirationDate() time.Time {
 	return this.ExpiDate
@@ -103,11 +114,17 @@ func (this *session) expirationDate() time.Time {
 // 有効期限を変更する。
 func (this *session) setExpirationDate(expiDate time.Time) {
 	this.ExpiDate = expiDate
+	this.Upd = time.Now()
 }
 
 // 有効かどうかを返す。
 func (this *session) valid() bool {
 	return !this.ExpiDate.Before(time.Now())
+}
+
+// 更新日時を返す。
+func (this *session) updateDate() time.Time {
+	return this.Upd
 }
 
 // ユーザー認証・認可リクエストを始める。
@@ -134,6 +151,7 @@ func (this *session) commit() (consScops, consClms, denyScops, denyClms map[stri
 
 // ユーザー認証・認可リクエストを破棄する。
 func (this *session) abort() {
+	this.Upd = time.Now()
 	this.Req = nil
 	this.SelTic = ""
 	this.LoginTic = ""

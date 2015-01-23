@@ -8,7 +8,6 @@ import (
 
 const (
 	scBear = "Bearer"
-	scJws  = "JWS"
 )
 
 func responseAccountInfo(w http.ResponseWriter, info map[string]interface{}) error {
@@ -34,14 +33,7 @@ func accountInfoApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 		return responseError(w, http.StatusBadRequest, errInvReq, erro.Unwrap(err).Error())
 	}
 
-	reqTok := req.token()
-	if reqTok == nil {
-		return responseError(w, http.StatusBadRequest, errInvReq, "no "+headAuth)
-	}
-
-	log.Debug("Token entry is exist")
-
-	tokId := reqTok.tokenId()
+	tokId := req.token()
 	if tokId == "" {
 		return responseError(w, http.StatusBadRequest, errInvReq, "no token")
 	}
@@ -64,29 +56,20 @@ func accountInfoApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 		return responseError(w, http.StatusBadRequest, errInvTok, "token "+mosaic(tokId)+" is linked to invalid TA "+tok.taId())
 	}
 
+	acc, err := sys.accCont.get(tok.accountId())
+	if err != nil {
+		return erro.Wrap(err)
+	} else if acc == nil {
+		return responseError(w, http.StatusBadRequest, errInvTok, "token "+mosaic(tokId)+" is linked to invalid account "+tok.accountId())
+	}
+
 	info := map[string]interface{}{}
-	if reqTok.scheme() == scBear {
-		log.Warn("Token type " + scBear + " is supported, but nonsense")
-	} else {
-		if err := reqTok.verify(t.keys()); err != nil {
-			err = erro.Wrap(err)
-			log.Err(erro.Unwrap(err))
-			log.Debug(err)
-			return responseError(w, http.StatusBadRequest, errInvTok, erro.Unwrap(err).Error())
+	for clmName := range tok.claims() {
+		clm := acc.attribute(clmName)
+		if clm == nil || clm == "" {
+			continue
 		}
-		acc, err := sys.accCont.get(tok.accountId())
-		if err != nil {
-			return erro.Wrap(err)
-		} else if acc == nil {
-			return responseError(w, http.StatusBadRequest, errInvTok, "token "+mosaic(tokId)+" is linked to invalid account "+tok.accountId())
-		}
-		for clmName := range tok.claims() {
-			clm := acc.attribute(clmName)
-			if clm == nil || clm == "" {
-				continue
-			}
-			info[clmName] = clm
-		}
+		info[clmName] = clm
 	}
 
 	return responseAccountInfo(w, info)

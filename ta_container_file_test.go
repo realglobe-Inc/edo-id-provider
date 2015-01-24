@@ -20,5 +20,5 @@ func TestFileTaContainer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	testTaContainer(t, newFileTaContainer(path, 0, 0))
+	testTaContainer(t, newFileTaContainer(path, testStaleDur, testCaExpiDur))
 }

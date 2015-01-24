@@ -26,5 +26,5 @@ func TestMongoAccountContainer(t *testing.T) {
 	}
 	defer sess.DB(testLabel).C("edo-id-provider").DropCollection()
 
-	testAccountContainer(t, newMongoAccountContainer(mongoAddr, testLabel, "edo-id-provider", 0, 0))
+	testAccountContainer(t, newMongoAccountContainer(mongoAddr, testLabel, "edo-id-provider", testStaleDur, testCaExpiDur))
 }

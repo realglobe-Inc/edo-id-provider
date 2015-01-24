@@ -2,10 +2,13 @@ package main
 
 import (
 	"github.com/garyburd/redigo/redis"
+	"github.com/realglobe-Inc/edo/driver"
+	"time"
 )
 
 // テストするなら、redis をたてる必要あり。
 var redisAddr = ":6379"
+var testRedisPool *redis.Pool
 
 func init() {
 	if redisAddr != "" {
@@ -17,5 +20,9 @@ func init() {
 		} else {
 			conn.Close()
 		}
+	}
+
+	if redisAddr != "" {
+		testRedisPool = driver.NewRedisPool(redisAddr, 2, time.Second)
 	}
 }

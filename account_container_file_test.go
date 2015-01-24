@@ -29,5 +29,5 @@ func TestFileAccountContainer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	testAccountContainer(t, newFileAccountContainer(path, namePath, 0, 0))
+	testAccountContainer(t, newFileAccountContainer(path, namePath, testStaleDur, testCaExpiDur))
 }

@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
-	"time"
 )
 
 var testPriKey crypto.PrivateKey
@@ -32,5 +31,5 @@ func TestFileTokenContainer(t *testing.T) {
 	}
 	defer os.RemoveAll(expiPath)
 
-	testTokenContainer(t, newFileTokenContainer(10, "https://example.com", testPriKey, "", "RS256", time.Second, path, expiPath, 0, 0))
+	testTokenContainer(t, newFileTokenContainer(10, "https://example.com", testPriKey, "", "RS256", testSavDur, path, expiPath, testStaleDur, testCaExpiDur))
 }

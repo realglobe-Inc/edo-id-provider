@@ -1,14 +1,12 @@
 package main
 
 import (
-	"github.com/realglobe-Inc/edo/driver"
 	"testing"
-	"time"
 )
 
 func TestRedisSessionContainer(t *testing.T) {
 	if redisAddr == "" {
 		t.SkipNow()
 	}
-	testSessionContainer(t, newRedisSessionContainer(10, driver.NewRedisPool(redisAddr, 2, time.Second), testLabel, time.Second, time.Second))
+	testSessionContainer(t, newRedisSessionContainer(10, testRedisPool, testLabel, testStaleDur, testCaExpiDur))
 }

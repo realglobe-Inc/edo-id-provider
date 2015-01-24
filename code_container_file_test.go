@@ -4,7 +4,6 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
-	"time"
 )
 
 func TestFileCodeContainer(t *testing.T) {
@@ -19,5 +18,5 @@ func TestFileCodeContainer(t *testing.T) {
 	}
 	defer os.RemoveAll(expiPath)
 
-	testCodeContainer(t, newFileCodeContainer(10, 10*time.Millisecond, path, expiPath, 0, 0))
+	testCodeContainer(t, newFileCodeContainer(10, testSavDur, path, expiPath, testStaleDur, testCaExpiDur))
 }

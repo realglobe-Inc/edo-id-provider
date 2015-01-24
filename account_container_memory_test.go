@@ -5,7 +5,7 @@ import (
 )
 
 func TestMemoryAccountContainer(t *testing.T) {
-	accCont := newMemoryAccountContainer(0, 0)
+	accCont := newMemoryAccountContainer(testStaleDur, testCaExpiDur)
 	accCont.add(testAcc)
 	testAccountContainer(t, accCont)
 }

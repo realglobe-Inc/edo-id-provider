@@ -5,5 +5,5 @@ import (
 )
 
 func TestMemoryConsentContainer(t *testing.T) {
-	testConsentContainer(t, newMemoryConsentContainer(0, 0))
+	testConsentContainer(t, newMemoryConsentContainer(testStaleDur, testCaExpiDur))
 }

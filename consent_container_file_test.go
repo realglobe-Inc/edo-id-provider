@@ -13,5 +13,5 @@ func TestFileConsentContainer(t *testing.T) {
 	}
 	defer os.RemoveAll(path)
 
-	testConsentContainer(t, newFileConsentContainer(path, 0, 0))
+	testConsentContainer(t, newFileConsentContainer(path, testStaleDur, testCaExpiDur))
 }

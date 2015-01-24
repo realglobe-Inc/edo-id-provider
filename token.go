@@ -12,7 +12,7 @@ type token struct {
 	// 権利者アカウントの ID。
 	AccId string `json:"account_id"`
 	// 要求元 TA の ID。
-	TaId string `json:"ta_id"`
+	TaId string `json:"client_id"`
 	// 発行時の認可コード。リフレッシュトークンと排他。
 	Cod string `json:"code,omitempty"`
 	// 発行時のリフレッシュトークン。認可コードと排他。

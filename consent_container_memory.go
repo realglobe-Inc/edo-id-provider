@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/realglobe-Inc/edo/driver"
+	"net/url"
 	"time"
 )
 
@@ -10,7 +11,7 @@ func newMemoryConsentContainer(staleDur, expiDur time.Duration) consentContainer
 	return &consentContainerImpl{
 		driver.NewMemoryListedKeyValueStore(staleDur, expiDur),
 		func(accId, taId string) string {
-			return accId + "/" + taId
+			return url.QueryEscape(accId) + "/" + url.QueryEscape(taId) // QueryEscape は '/' をエスケープするため。
 		},
 	}
 }

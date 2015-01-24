@@ -5,24 +5,12 @@ import (
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	"math/rand"
 	"strconv"
-	"sync/atomic"
 	"time"
 )
 
-type consentIntermediate struct {
-	Acc string `bson:"account"`
-	Ta  string `bson:"ta"`
-
-	Cons consent `bson:"consent,omitempty"`
-
-	Digest string    `bson:"digest"`
-	Date   time.Time `bson:"date"`
-}
-
 func readConsent(query *mgo.Query) (interface{}, error) {
-	var res consentIntermediate
+	var res consent
 	if err := query.One(&res); err != nil {
 		return nil, erro.Wrap(err)
 	}
@@ -30,51 +18,49 @@ func readConsent(query *mgo.Query) (interface{}, error) {
 }
 
 func getConsentStamp(val interface{}) *driver.Stamp {
-	cons, _ := val.(*consentIntermediate)
-	return &driver.Stamp{Date: cons.Date, Digest: cons.Digest}
+	cons, _ := val.(*consent)
+	upd := cons.updateDate()
+	return &driver.Stamp{Date: upd, Digest: strconv.FormatInt(upd.UnixNano(), 16)}
 }
 
 type mongoConsentContainer struct {
 	base driver.MongoNKeyValueStore
-
-	ser int64
 }
 
 // スレッドセーフ。
 func newMongoConsentContainer(url, dbName, collName string, staleDur, expiDur time.Duration) consentContainer {
 	return &mongoConsentContainer{
 		driver.NewMongoNKeyValueStore(url, dbName, collName,
-			[]string{"account", "ta"}, nil, nil, readConsent, getConsentStamp,
+			[]string{"account", "client_id"}, nil, nil, readConsent, getConsentStamp,
 			staleDur, expiDur),
-		rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
 	}
 }
 
 func (this *mongoConsentContainer) get(accId, taId string) (scope, clms map[string]bool, err error) {
-	val, _, err := this.base.NGet(bson.M{"account": accId, "ta": taId}, nil)
+	val, _, err := this.base.NGet(bson.M{"account": accId, "client_id": taId}, nil)
 	if err != nil {
 		return nil, nil, erro.Wrap(err)
 	} else if val == nil {
 		return nil, nil, nil
-	} else if cons, ok := val.(*consentIntermediate); !ok {
+	} else if cons, ok := val.(*consent); !ok {
 		return nil, nil, nil
 	} else {
-		return cons.Cons.Scops, cons.Cons.Clms, nil
+		return cons.scopes(), cons.claims(), nil
 	}
 }
 
 func (this *mongoConsentContainer) put(accId, taId string, consScops, consClms, denyScops, denyClms map[string]bool) error {
 	var scops, clms map[string]bool
 
-	val, _, err := this.base.NGet(bson.M{"account": accId, "ta": taId}, nil)
+	val, _, err := this.base.NGet(bson.M{"account": accId, "client_id": taId}, nil)
 	if err != nil {
 		return erro.Wrap(err)
 	} else if val == nil {
 		scops, clms = map[string]bool{}, map[string]bool{}
-	} else if cons, ok := val.(*consentIntermediate); !ok {
+	} else if cons, ok := val.(*consent); !ok {
 		scops, clms = map[string]bool{}, map[string]bool{}
 	} else {
-		scops, clms = cons.Cons.Scops, cons.Cons.Clms
+		scops, clms = cons.scopes(), cons.claims()
 	}
 
 	for scop := range consScops {
@@ -90,14 +76,7 @@ func (this *mongoConsentContainer) put(accId, taId string, consScops, consClms, 
 		delete(clms, clm)
 	}
 
-	cons := &consentIntermediate{
-		Acc:    accId,
-		Ta:     taId,
-		Cons:   consent{scops, clms},
-		Digest: strconv.FormatInt(atomic.AddInt64(&this.ser, 1), 10),
-		Date:   time.Now(),
-	}
-	if _, err := this.base.NPut(bson.M{"account": accId, "ta": taId}, cons); err != nil {
+	if _, err := this.base.NPut(bson.M{"account": accId, "client_id": taId}, newConsent(accId, taId, scops, clms)); err != nil {
 		return erro.Wrap(err)
 	}
 	return nil

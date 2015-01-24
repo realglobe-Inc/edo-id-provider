@@ -27,7 +27,7 @@ func (this *consentContainerImpl) get(accId, taId string) (scope, clms map[strin
 	} else if cons, ok := val.(*consent); !ok {
 		return nil, nil, nil
 	} else {
-		return cons.Scops, cons.Clms, nil
+		return cons.scopes(), cons.claims(), nil
 	}
 }
 
@@ -42,7 +42,7 @@ func (this *consentContainerImpl) put(accId, taId string, consScops, consClms, d
 	} else if cons, ok := val.(*consent); !ok {
 		scops, clms = map[string]bool{}, map[string]bool{}
 	} else {
-		scops, clms = cons.Scops, cons.Clms
+		scops, clms = cons.scopes(), cons.claims()
 	}
 
 	for scop := range consScops {
@@ -58,7 +58,7 @@ func (this *consentContainerImpl) put(accId, taId string, consScops, consClms, d
 		delete(clms, clm)
 	}
 
-	if _, err := this.base.Put(key, &consent{scops, clms}); err != nil {
+	if _, err := this.base.Put(key, newConsent(accId, taId, scops, clms)); err != nil {
 		return erro.Wrap(err)
 	}
 	return nil

@@ -67,10 +67,22 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 
 	log.Debug("Grant type is " + grntTypeCod)
 
-	codId := req.code()
-	if codId == "" {
+	rawCod := req.code()
+	if rawCod == "" {
 		return responseError(w, http.StatusBadRequest, errInvReq, "no "+formCod)
 	}
+
+	log.Debug("Raw code " + mosaic(rawCod) + " is declared")
+
+	// 認可コードを JWS として解釈。
+	jws, err := util.ParseJws(rawCod)
+	if err != nil {
+		err = erro.Wrap(err)
+		log.Err(erro.Unwrap(err))
+		log.Debug(err)
+		return responseError(w, http.StatusBadRequest, errInvReq, erro.Unwrap(err).Error())
+	}
+	codId, _ := jws.Claim(clmJti).(string)
 
 	log.Debug("Code " + mosaic(codId) + " is declared")
 
@@ -79,6 +91,9 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 		return erro.Wrap(err)
 	} else if cod == nil {
 		return responseError(w, http.StatusBadRequest, errInvGrnt, "code "+mosaic(codId)+" is not exist")
+	} else if !cod.valid() {
+		// TODO 発行したアクセストークンを無効に。
+		return responseError(w, http.StatusBadRequest, errInvGrnt, "code "+mosaic(codId)+" is invalid")
 	}
 
 	log.Debug("Code " + mosaic(codId) + " is exist")
@@ -117,7 +132,7 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 
 	log.Debug(formTaAss + " is found")
 
-	jws, err := util.ParseJws(taAss)
+	jws, err = util.ParseJws(taAss)
 	if err != nil {
 		err = erro.Wrap(err)
 		log.Err(erro.Unwrap(err))
@@ -160,10 +175,10 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 			return responseError(w, http.StatusBadRequest, errInvTa, clmAud+" does not have "+sys.selfId+tokPath)
 		}
 	default:
-		return responseError(w, http.StatusBadRequest, errInvTa, "invalid"+clmAud)
+		return responseError(w, http.StatusBadRequest, errInvTa, "invalid "+clmAud)
 	}
-	if c := jws.Claim(clmCod); c != codId {
-		return responseError(w, http.StatusBadRequest, errInvTa, "invalid"+clmCod)
+	if c := jws.Claim(clmCod); c != rawCod {
+		return responseError(w, http.StatusBadRequest, errInvTa, "invalid "+clmCod)
 	}
 
 	log.Debug("JWS claims are OK")

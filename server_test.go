@@ -40,8 +40,9 @@ func TestBoot(t *testing.T) {
 		newMemoryAccountContainer(0, 0),
 		newMemoryConsentContainer(0, 0),
 		newMemorySessionContainer(10, 0, 0),
-		newMemoryCodeContainer(10, time.Second, "http://edo-id-provider.example.com", 0, 0),
+		newMemoryCodeContainer(10, time.Second, 0, 0),
 		newMemoryTokenContainer(10, "https://example.com", testPriKey, "", "RS256", time.Second, 0, 0),
+		time.Second,
 		time.Second,
 		time.Second,
 	}

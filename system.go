@@ -23,6 +23,7 @@ type system struct {
 	codCont  codeContainer
 	tokCont  tokenContainer
 
+	codExpiDur time.Duration
 	tokExpiDur time.Duration
 
 	sessExpiDur time.Duration

@@ -15,15 +15,27 @@ func testCodeContainer(t *testing.T, codCont codeContainer) {
 	}
 
 	// 発行する。
-	cod, err := codCont.new("account-id",
+	codId, err := codCont.newId()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cod := newCode(
+		codId,
+		"account-id",
 		"ta-id",
 		"https://example.com/redirect/uri?a=b",
+		time.Now().Add(time.Second),
 		time.Second,
 		nil,
 		nil,
 		"",
 		time.Now())
 	if err != nil {
+		t.Fatal(err)
+	}
+
+	// 入れる。
+	if err := codCont.put(cod); err != nil {
 		t.Fatal(err)
 	}
 

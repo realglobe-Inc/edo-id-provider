@@ -117,6 +117,8 @@ type parameters struct {
 	codIdLen int
 	// 認可コードの有効期間。
 	codExpiDur time.Duration
+	// 有効期限切れの認可コードを保持する時間。
+	codSavDur time.Duration
 	// 認可コード格納庫種別。
 	codContType string
 	// 認可コード格納庫ディレクトリパス。
@@ -216,6 +218,7 @@ func parseParameters(args ...string) (param *parameters, err error) {
 
 	flags.IntVar(&param.codIdLen, "codIdLen", 40, "Code length.")
 	flags.DurationVar(&param.codExpiDur, "codExpiDur", 3*time.Minute, "Code expiration duration.")
+	flags.DurationVar(&param.codSavDur, "codSavDur", time.Hour, "Expired code saving duration.")
 	flags.StringVar(&param.codContType, "codContType", "memory", "Code container type.")
 	flags.StringVar(&param.codContPath, "codContPath", filepath.Join(filepath.Dir(os.Args[0]), "codes"), "Code container directory.")
 	flags.StringVar(&param.codExpiContPath, "codExpiContPath", filepath.Join(filepath.Dir(os.Args[0]), "code_expires"), "Code container expiration date directory.")

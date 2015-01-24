@@ -14,17 +14,26 @@ func publishCode(w http.ResponseWriter, r *http.Request, sys *system, sess *sess
 	authReq := sess.request() // commit すると消えるので取っとく。
 
 	consScops, consClms, denyScops, denyClms := sess.commit()
-	cod, err := sys.codCont.new(
+
+	codId, err := sys.codCont.newId()
+	if err != nil {
+		return redirectServerError(w, r, sys, sess, authReq.redirectUri(), erro.Wrap(err))
+	}
+	cod := newCode(
+		codId,
 		sess.currentAccount(),
 		authReq.ta(),
 		authReq.redirectUri().String(),
+		time.Now().Add(sys.codExpiDur),
 		sys.tokExpiDur,
 		consScops,
 		consClms,
 		authReq.nonce(),
 		sess.currentAccountDate(),
 	)
-	if err != nil {
+	log.Debug("Code " + mosaic(cod.id()) + " was generated.")
+
+	if err := sys.codCont.put(cod); err != nil {
 		return redirectServerError(w, r, sys, sess, authReq.redirectUri(), erro.Wrap(err))
 	}
 
@@ -49,9 +58,23 @@ func publishCode(w http.ResponseWriter, r *http.Request, sys *system, sess *sess
 		return redirectServerError(w, r, sys, sess, authReq.redirectUri(), erro.Wrap(err))
 	}
 
+	// 認可コードを IdP の ID を含んだ JWS にする。
+	jws := util.NewJws()
+	jws.SetHeader(jwtAlg, algNone)
+	jws.SetClaim(clmJti, cod.id())
+	jws.SetClaim(clmIss, sys.selfId)
+	if err := jws.Sign(nil); err != nil {
+		return redirectServerError(w, r, sys, sess, authReq.redirectUri(), erro.Wrap(err))
+	}
+	buff, err := jws.Encode()
+	if err != nil {
+		return redirectServerError(w, r, sys, sess, authReq.redirectUri(), erro.Wrap(err))
+	}
+	encCod := string(buff)
+
 	rediUri := authReq.redirectUri()
 	q := rediUri.Query()
-	q.Set(formCod, cod.id())
+	q.Set(formCod, encCod)
 	if stat := authReq.state(); stat != "" {
 		q.Set(formStat, stat)
 	}

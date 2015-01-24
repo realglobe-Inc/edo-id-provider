@@ -6,7 +6,6 @@ import (
 )
 
 type token struct {
-	// アクセストークン。
 	Id string `json:"id"`
 	// 権利アカウント。
 	AccId string `json:"account_id"`

@@ -3,14 +3,8 @@ package main
 import (
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"net/http"
-	"net/url"
 	"strings"
 )
-
-type errorRedirectRequest interface {
-	// 処理後に飛ばすリダイレクト先 URI を返す。
-	redirectUri() *url.URL
-}
 
 // ブラウザからのリクエスト。
 type browserRequest struct {

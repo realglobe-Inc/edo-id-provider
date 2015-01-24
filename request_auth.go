@@ -21,7 +21,7 @@ type authRequest struct {
 	Nonc   string                   `json:"nonce,omitempty"`
 	Prmpts util.StringSet           `json:"prompt,omitempty"`
 	Scops  util.StringSet           `json:"scope,omitempty"`
-	Clms   map[string]*claimRequest `json:"claim,omitempty"`
+	Clms   map[string]*claimRequest `json:"claims,omitempty"`
 }
 
 type claimRequest struct {

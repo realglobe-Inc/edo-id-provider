@@ -17,7 +17,7 @@ type consent struct {
 	// 提供許可されている scope。
 	Scops util.StringSet `json:"scope,omitempty" bson:"scope,omitempty"`
 	// 提供許可されているクレーム。
-	Clms util.StringSet `json:"claim,omitempty" bson:"claim,omitempty"`
+	Clms util.StringSet `json:"claims,omitempty" bson:"claims,omitempty"`
 }
 
 func newConsent(accId, taId string, scops, clms map[string]bool) *consent {

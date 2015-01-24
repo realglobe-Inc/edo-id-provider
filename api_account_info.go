@@ -86,5 +86,4 @@ func accountInfoApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 	}
 
 	return responseAccountInfo(w, info)
-	// panic("not yet implemented")
 }

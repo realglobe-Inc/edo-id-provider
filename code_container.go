@@ -17,14 +17,7 @@ type codeContainerImpl struct {
 
 	idGenerator
 	// 有効期限が切れてからも保持する期間。
-	expiDur time.Duration
-}
-
-func (this *codeContainerImpl) put(cod *code) error {
-	if _, err := this.base.Put(cod.id(), cod, cod.expirationDate()); err != nil {
-		return erro.Wrap(err)
-	}
-	return nil
+	savDur time.Duration
 }
 
 func (this *codeContainerImpl) get(codId string) (*code, error) {
@@ -35,4 +28,11 @@ func (this *codeContainerImpl) get(codId string) (*code, error) {
 		return nil, nil
 	}
 	return val.(*code), nil
+}
+
+func (this *codeContainerImpl) put(cod *code) error {
+	if _, err := this.base.Put(cod.id(), cod, cod.expirationDate().Add(this.savDur)); err != nil {
+		return erro.Wrap(err)
+	}
+	return nil
 }

@@ -6,10 +6,10 @@ import (
 )
 
 // スレッドセーフ。
-func newMemoryCodeContainer(minIdLen int, expiDur time.Duration, caStaleDur, caExpiDur time.Duration) codeContainer {
+func newMemoryCodeContainer(minIdLen int, savDur, caStaleDur, caExpiDur time.Duration) codeContainer {
 	return &codeContainerImpl{
 		driver.NewMemoryTimeLimitedKeyValueStore(caStaleDur, caExpiDur),
 		newIdGenerator(minIdLen),
-		expiDur,
+		savDur,
 	}
 }

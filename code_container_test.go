@@ -48,7 +48,7 @@ func testCodeContainer(t *testing.T, codCont codeContainer) {
 		t.Error(c)
 	}
 
-	time.Sleep(cod.expirationDate().Sub(time.Now()) + time.Millisecond) // redis の粒度がミリ秒のため。
+	time.Sleep(cod.expirationDate().Add(codCont.(*codeContainerImpl).savDur).Sub(time.Now()) + time.Millisecond) // redis の粒度がミリ秒のため。
 
 	// もう無い。
 	if c, err := codCont.get(cod.id()); err != nil {

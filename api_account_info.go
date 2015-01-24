@@ -58,6 +58,8 @@ func accountInfoApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 		return responseError(w, http.StatusBadRequest, errInvTok, "token "+mosaic(tokId)+" is linked to invalid TA "+tok.taId())
 	}
 
+	log.Debug("Token TA " + t.id() + " is exist")
+
 	acc, err := sys.accCont.get(tok.accountId())
 	if err != nil {
 		return erro.Wrap(err)
@@ -65,10 +67,14 @@ func accountInfoApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 		return responseError(w, http.StatusBadRequest, errInvTok, "token "+mosaic(tokId)+" is linked to invalid account "+tok.accountId())
 	}
 
+	log.Debug("Token account " + acc.id() + " is exist")
+
 	clms := scopesToClaims(tok.scopes())
 	for clm := range tok.claims() {
 		clms[clm] = true
 	}
+
+	log.Debug("Token claims ", clms, " will be returned")
 
 	info := map[string]interface{}{}
 	for clmName := range clms {

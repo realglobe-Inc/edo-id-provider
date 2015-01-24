@@ -5,6 +5,7 @@ import (
 	"github.com/realglobe-Inc/edo/util"
 	"reflect"
 	"testing"
+	"time"
 )
 
 var testTa *ta
@@ -23,13 +24,14 @@ u3wa4HhSwmMLXwPTUXeTukTU1gU57++SWzrUogi71aQPcv8Y1k78Li5bS/VN1WTN
 		panic(err)
 	}
 	testTa = newTa("testta", "aaaaa", map[string]bool{"https://example.com/": true, "https://example.com/a/b/c": true}, map[string]crypto.PublicKey{"": pubKey})
+	testTa.Upd = testTa.Upd.Add(-time.Duration(testTa.Upd.Nanosecond()) % time.Millisecond) // mongodb の粒度がミリ秒のため。
 }
 
 func testTaContainer(t *testing.T, taCont taContainer) {
 	if ta_, err := taCont.get(testTa.id()); err != nil {
 		t.Fatal(err)
 	} else if !reflect.DeepEqual(ta_, testTa) {
-		t.Error(ta_)
+		t.Error(ta_, testTa)
 	}
 
 	if ta_, err := taCont.get(testTa.id() + "a"); err != nil {

@@ -4,40 +4,27 @@ import (
 	"github.com/realglobe-Inc/edo/driver"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"gopkg.in/mgo.v2"
+	"strconv"
 	"time"
 )
 
-func readTaIntermediate(query *mgo.Query) (interface{}, error) {
-	var res taIntermediate
+func readTa(query *mgo.Query) (interface{}, error) {
+	var res ta
 	if err := query.One(&res); err != nil {
 		return nil, erro.Wrap(err)
 	}
 	return &res, nil
 }
 
-func getTaIntermediateStamp(val interface{}) *driver.Stamp {
-	ti := val.(*taIntermediate)
-	return &driver.Stamp{Date: ti.Date, Digest: ti.Digest}
-}
-
-type mongoTaContainer struct {
-	base driver.KeyValueStore
+func getTaStamp(val interface{}) *driver.Stamp {
+	t := val.(*ta)
+	upd := t.updateDate()
+	return &driver.Stamp{Date: upd, Digest: strconv.FormatInt(upd.UnixNano(), 16)}
 }
 
 // スレッドセーフ。
 func newMongoTaContainer(url, dbName, collName string, staleDur, expiDur time.Duration) taContainer {
-	return &mongoTaContainer{driver.NewMongoKeyValueStore(url, dbName, collName,
-		"id", nil, nil, readTaIntermediate, getTaIntermediateStamp,
+	return &taContainerImpl{driver.NewMongoKeyValueStore(url, dbName, collName,
+		"id", nil, nil, readTa, getTaStamp,
 		staleDur, expiDur)}
-}
-
-func (this *mongoTaContainer) get(taId string) (*ta, error) {
-	val, _, err := this.base.Get(taId, nil)
-	if err != nil {
-		return nil, erro.Wrap(err)
-	} else if val == nil {
-		return nil, nil
-	}
-	ti := val.(*taIntermediate)
-	return intermediateToTa(ti)
 }

@@ -15,8 +15,7 @@ func TestMongoTaContainer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := sess.DB(testLabel).C("edo-id-provider").Upsert(bson.M{"id": testTa.id()},
-		taToIntermediate(testTa)); err != nil {
+	if _, err := sess.DB(testLabel).C("edo-id-provider").Upsert(bson.M{"id": testTa.id()}, testTa); err != nil {
 		t.Fatal(err)
 	}
 	defer sess.DB(testLabel).C("edo-id-provider").DropCollection()

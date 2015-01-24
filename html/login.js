@@ -1,5 +1,5 @@
 function login() {
-    var uri = "/auth/login"
+    var uri = "/auth/login";
 
     var ticket = location.hash.substring(1);
     var queries = {};
@@ -7,8 +7,11 @@ function login() {
     for (var i = 0; i < q.length; i++) {
         var elem = q[i].split("=");
 
-        var key = decodeURIComponent(elem[0]);
-        var val = decodeURIComponent(elem[1]);
+        var key = elem[0];
+        var val = elem[1];
+        if (val) {
+            val = decodeURIComponent(val.replace(/\+/g, " "));
+        }
 
         queries[key] = val;
     }
@@ -18,11 +21,11 @@ function login() {
         document.write(key + ': ' + queries[key] + '<br/>');
     }
 
-    var username = ""
+    var username = "";
     if (queries["usernames"]) {
         var buff = JSON.parse(queries["usernames"])
         if (buff[0]) {
-            username = buff[0]
+            username = buff[0];
         }
     }
 

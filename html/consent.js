@@ -1,5 +1,5 @@
 function consent() {
-    var uri = "/auth/consent"
+    var uri = "/auth/consent";
 
     var ticket = location.hash.substring(1);
     var queries = {};
@@ -7,8 +7,11 @@ function consent() {
     for (var i = 0; i < q.length; i++) {
         var elem = q[i].split("=");
 
-        var key = decodeURIComponent(elem[0]);
-        var val = decodeURIComponent(elem[1]);
+        var key = elem[0];
+        var val = elem[1];
+        if (val) {
+            val = decodeURIComponent(val.replace(/\+/g, " "));
+        }
 
         queries[key] = val;
     }
@@ -18,13 +21,13 @@ function consent() {
         document.write(key + ': ' + queries[key] + '<br/>');
     }
 
-    var scopes = ""
+    var scopes = "";
     if (queries["scope"]) {
-        scopes = queries["scope"]
+        scopes = queries["scope"];
     }
-    var claims = ""
+    var claims = "";
     if (queries["claim"]) {
-        claims = queries["claim"]
+        claims = queries["claim"];
     }
 
     document.write('<form method="post" action="' + uri + '">');

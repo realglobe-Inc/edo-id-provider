@@ -34,7 +34,7 @@ type claimRequest struct {
 
 // エラーは HttpStatusError の予定。
 func newAuthRequest(r *http.Request) (*authRequest, error) {
-	// TODO request, request_uri のサポート。
+	// TODO claims, request, request_uri パラメータのサポート。
 
 	return &authRequest{
 		Ta:         r.FormValue(formTaId),

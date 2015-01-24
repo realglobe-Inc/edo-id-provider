@@ -4,6 +4,7 @@ import (
 	"github.com/realglobe-Inc/edo/driver"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"gopkg.in/mgo.v2"
+	"strconv"
 	"time"
 )
 
@@ -17,9 +18,8 @@ func readAccount(query *mgo.Query) (interface{}, error) {
 
 func getAccountStamp(val interface{}) *driver.Stamp {
 	acc := val.(*account)
-	date, _ := acc.attribute("date").(time.Time)
-	dig, _ := acc.attribute("digest").(string)
-	return &driver.Stamp{Date: date, Digest: dig}
+	upd := acc.updateDate()
+	return &driver.Stamp{Date: upd, Digest: strconv.FormatInt(upd.UnixNano(), 16)}
 }
 
 type mongoAccountContainer struct {

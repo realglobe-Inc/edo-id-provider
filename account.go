@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"gopkg.in/mgo.v2/bson"
+	"time"
 )
 
 type account struct {
@@ -14,6 +15,8 @@ type account struct {
 	accName string
 	// パスワード。
 	passwd string
+	// 更新日時。
+	upd time.Time
 }
 
 func newAccount(m map[string]interface{}) *account {
@@ -43,6 +46,13 @@ func (this *account) password() string {
 		this.passwd, _ = this.m["password"].(string)
 	}
 	return this.passwd
+}
+
+func (this *account) updateDate() time.Time {
+	if this.upd.IsZero() {
+		this.upd, _ = this.m["update_at"].(time.Time)
+	}
+	return this.upd
 }
 
 func (this *account) attribute(attrName string) interface{} {

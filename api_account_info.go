@@ -65,8 +65,13 @@ func accountInfoApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 		return responseError(w, http.StatusBadRequest, errInvTok, "token "+mosaic(tokId)+" is linked to invalid account "+tok.accountId())
 	}
 
+	clms := scopesToClaims(tok.scopes())
+	for clm := range tok.claims() {
+		clms[clm] = true
+	}
+
 	info := map[string]interface{}{}
-	for clmName := range tok.claims() {
+	for clmName := range clms {
 		clm := acc.attribute(clmName)
 		if clm == nil || clm == "" {
 			continue

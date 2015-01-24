@@ -13,7 +13,7 @@ const (
 )
 
 type consentRequest struct {
-	browserRequest
+	*browserRequest
 
 	tic     string
 	accName string
@@ -26,22 +26,20 @@ type consentRequest struct {
 }
 
 func newConsentRequest(r *http.Request) *consentRequest {
-	return &consentRequest{browserRequest: browserRequest{r: r}}
+	return &consentRequest{
+		browserRequest: newBrowserRequest(r),
+		tic:            r.FormValue(formConsTic),
+		scops:          formValueSet(r, formConsScops),
+		clms:           formValueSet(r, formConsClms),
+		denyScops:      formValueSet(r, formDenyScops),
+		denyClms:       formValueSet(r, formDenyClms),
+	}
 }
 
 func (this *consentRequest) ticket() string {
-	if this.tic == "" {
-		this.tic = this.r.FormValue(formConsTic)
-	}
 	return this.tic
 }
 
 func (this *consentRequest) consentInfo() (scops, clms, denyScops, denyClms map[string]bool) {
-	if this.scops == nil && this.clms == nil && this.denyScops == nil && this.denyClms == nil {
-		this.scops = formValueSet(this.r, formConsScops)
-		this.clms = formValueSet(this.r, formConsClms)
-		this.denyScops = formValueSet(this.r, formDenyScops)
-		this.denyClms = formValueSet(this.r, formDenyClms)
-	}
 	return this.scops, this.clms, this.denyScops, this.denyClms
 }

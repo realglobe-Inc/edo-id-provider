@@ -14,23 +14,24 @@ type errorRedirectRequest interface {
 
 // ブラウザからのリクエスト。
 type browserRequest struct {
-	r *http.Request
-
 	sess string
 }
 
-func (this *browserRequest) session() string {
-	if this.sess == "" {
-		if cook, err := this.r.Cookie(cookSess); err != nil {
-			if err != http.ErrNoCookie {
-				err = erro.Wrap(err)
-				log.Err(erro.Unwrap(err))
-				log.Debug(err)
-			}
-		} else {
-			this.sess = cook.Value
+func newBrowserRequest(r *http.Request) *browserRequest {
+	var sess string
+	if cook, err := r.Cookie(cookSess); err != nil {
+		if err != http.ErrNoCookie {
+			err = erro.Wrap(err)
+			log.Err(erro.Unwrap(err))
+			log.Debug(err)
 		}
+	} else {
+		sess = cook.Value
 	}
+	return &browserRequest{sess: sess}
+}
+
+func (this *browserRequest) session() string {
 	return this.sess
 }
 

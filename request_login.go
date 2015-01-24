@@ -5,7 +5,7 @@ import (
 )
 
 type loginRequest struct {
-	browserRequest
+	*browserRequest
 
 	tic     string
 	accName string
@@ -13,20 +13,18 @@ type loginRequest struct {
 }
 
 func newLoginRequest(r *http.Request) *loginRequest {
-	return &loginRequest{browserRequest: browserRequest{r: r}}
+	return &loginRequest{
+		browserRequest: newBrowserRequest(r),
+		tic:            r.FormValue(formLoginTic),
+		accName:        r.FormValue(formAccName),
+		passwd:         r.FormValue(formPasswd),
+	}
 }
 
 func (this *loginRequest) ticket() string {
-	if this.tic == "" {
-		this.tic = this.r.FormValue(formLoginTic)
-	}
 	return this.tic
 }
 
 func (this *loginRequest) loginInfo() (accName, passwd string) {
-	if this.accName == "" && this.passwd == "" {
-		this.accName = this.r.FormValue(formAccName)
-		this.passwd = this.r.FormValue(formPasswd)
-	}
 	return this.accName, this.passwd
 }

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"net/http"
 	"strings"
 )
@@ -12,41 +11,34 @@ const (
 
 // アカウント情報リクエスト。
 type accountInfoRequest struct {
-	r *http.Request
-
+	sc  string
 	tok string
 }
 
-func newAccountInfoRequest(r *http.Request) (*accountInfoRequest, error) {
-	req := &accountInfoRequest{r: r}
-
-	if authLine := r.Header.Get(headAuth); authLine != "" {
-		tok, err := parseAccountInfoRequestToken(authLine)
-		if err != nil {
-			return nil, erro.Wrap(err)
-		}
-		req.tok = tok
+func newAccountInfoRequest(r *http.Request) *accountInfoRequest {
+	sc, tok := parseAuthorizationToken(r.Header.Get(headAuth))
+	return &accountInfoRequest{
+		sc:  sc,
+		tok: tok,
 	}
+}
 
-	return req, nil
+func (this *accountInfoRequest) scheme() string {
+	return this.sc
 }
 
 func (this *accountInfoRequest) token() string {
 	return this.tok
 }
 
-func parseAccountInfoRequestToken(line string) (tok string, err error) {
+func parseAuthorizationToken(line string) (sc, tok string) {
 	parts := strings.SplitN(line, " ", 2)
-	if len(parts) != 2 {
-		return "", erro.New("lack of parts")
-	}
-	sc := parts[0]
-	rem := parts[1]
-
-	switch sc {
-	case scBear:
-		return rem, nil
+	switch len(parts) {
+	case 0:
+		return "", ""
+	case 1:
+		return "", parts[0]
 	default:
-		return "", erro.New("scheme " + sc + " is not supported")
+		return parts[0], parts[1]
 	}
 }

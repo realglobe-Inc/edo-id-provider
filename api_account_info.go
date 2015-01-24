@@ -25,13 +25,13 @@ func responseAccountInfo(w http.ResponseWriter, info map[string]interface{}) err
 }
 
 func accountInfoApi(w http.ResponseWriter, r *http.Request, sys *system) error {
-	req, err := newAccountInfoRequest(r)
-	if err != nil {
-		err = erro.Wrap(err)
-		log.Err(erro.Unwrap(err))
-		log.Debug(err)
-		return responseError(w, http.StatusBadRequest, errInvReq, erro.Unwrap(err).Error())
+	req := newAccountInfoRequest(r)
+
+	if req.scheme() != scBear {
+		return responseError(w, http.StatusBadRequest, errInvReq, "authorization scheme "+req.scheme()+" is not supported")
 	}
+
+	log.Debug("Authrization scheme " + req.scheme() + " is OK")
 
 	tokId := req.token()
 	if tokId == "" {

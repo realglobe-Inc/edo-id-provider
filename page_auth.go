@@ -144,7 +144,7 @@ func authPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 	log.Debug("Response type is " + respTypeCod)
 
 	var sess *session
-	if sessId := (&browserRequest{r: r}).session(); sessId != "" {
+	if sessId := newBrowserRequest(r).session(); sessId != "" {
 		// セッションが通知された。
 		log.Debug("Session " + mosaic(sessId) + " is declared")
 

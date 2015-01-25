@@ -79,15 +79,16 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 
 	log.Debug("Raw code " + mosaic(rawCod) + " is declared")
 
+	var codId string
 	// 認可コードを JWS として解釈。
 	jws, err := util.ParseJws(rawCod)
 	if err != nil {
-		err = erro.Wrap(err)
-		log.Err(erro.Unwrap(err))
-		log.Debug(err)
-		return responseError(w, http.StatusBadRequest, errInvReq, erro.Unwrap(err).Error())
+		// JWS から抜き出した ID だけ送られてきた。
+		codId = rawCod
+	} else {
+		// JWS のまま送られてきた。
+		codId, _ = jws.Claim(clmJti).(string)
 	}
-	codId, _ := jws.Claim(clmJti).(string)
 
 	log.Debug("Code " + mosaic(codId) + " is declared")
 

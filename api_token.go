@@ -80,14 +80,13 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 	log.Debug("Raw code " + mosaic(rawCod) + " is declared")
 
 	var codId string
-	// 認可コードを JWS として解釈。
-	jws, err := util.ParseJws(rawCod)
-	if err != nil {
+	if codJws, err := util.ParseJws(rawCod); err != nil {
 		// JWS から抜き出した ID だけ送られてきた。
 		codId = rawCod
+		rawCod = ""
 	} else {
 		// JWS のまま送られてきた。
-		codId, _ = jws.Claim(clmJti).(string)
+		codId, _ = codJws.Claim(clmJti).(string)
 	}
 
 	log.Debug("Code " + mosaic(codId) + " is declared")
@@ -146,7 +145,8 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 
 	log.Debug(formTaAss + " is found")
 
-	jws, err = util.ParseJws(taAss)
+	// クライアント認証する。
+	assJws, err := util.ParseJws(taAss)
 	if err != nil {
 		err = erro.Wrap(err)
 		log.Err(erro.Unwrap(err))
@@ -154,86 +154,67 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 		return responseError(w, http.StatusBadRequest, errInvTa, erro.Unwrap(err).Error())
 	}
 
-	if jws.Claim(clmIss) != taId {
-		return responseError(w, http.StatusBadRequest, errInvTa, clmIss+" is not "+taId)
-	} else if jws.Claim(clmSub) != taId {
-		return responseError(w, http.StatusBadRequest, errInvTa, clmSub+" is not "+taId)
-	} else if jti := jws.Claim(clmJti); jti == nil || jti == "" {
-		return responseError(w, http.StatusBadRequest, errInvTa, "no "+clmJti)
-	}
-	exp, _ := jws.Claim(clmExp).(float64)
-	if exp == 0 {
-		return responseError(w, http.StatusBadRequest, errInvTa, "no "+clmExp)
-	} else if exp != float64(int64(exp)) {
-		return responseError(w, http.StatusBadRequest, errInvTa, clmExp+" is not integer")
-	}
-	aud := jws.Claim(clmAud)
-	if aud == nil {
-		return responseError(w, http.StatusBadRequest, errInvTa, "no "+clmAud)
-	}
-	switch a := aud.(type) {
-	case string:
-		if a != sys.selfId+tokPath {
-			return responseError(w, http.StatusBadRequest, errInvTa, clmAud+" is not "+sys.selfId+tokPath)
-		}
-	case []interface{}:
-		ok := false
-		for _, b := range a {
-			c, _ := b.(string)
-			if c == sys.selfId+tokPath {
-				ok = true
-				break
-			}
-		}
-		if !ok {
-			return responseError(w, http.StatusBadRequest, errInvTa, clmAud+" does not have "+sys.selfId+tokPath)
-		}
-	default:
-		return responseError(w, http.StatusBadRequest, errInvTa, "invalid "+clmAud)
-	}
-	if c := jws.Claim(clmCod); c != rawCod {
-		return responseError(w, http.StatusBadRequest, errInvTa, "invalid "+clmCod)
+	now := time.Now()
+	if assJws.Claim(clmIss) != taId {
+		return responseError(w, http.StatusBadRequest, errInvTa, "assertion "+clmIss+" is not "+taId)
+	} else if assJws.Claim(clmSub) != taId {
+		return responseError(w, http.StatusBadRequest, errInvTa, "assertion "+clmSub+" is not "+taId)
+	} else if jti := assJws.Claim(clmJti); jti == nil || jti == "" {
+		return responseError(w, http.StatusBadRequest, errInvTa, "no assertion "+clmJti)
+	} else if exp, _ := assJws.Claim(clmExp).(float64); exp == 0 {
+		return responseError(w, http.StatusBadRequest, errInvTa, "no assertion "+clmExp)
+	} else if intExp := int64(exp); exp != float64(intExp) {
+		return responseError(w, http.StatusBadRequest, errInvTa, "assertion "+clmExp+" is not integer")
+	} else if intExp < now.Unix() {
+		return responseError(w, http.StatusBadRequest, errInvTa, "assertion expired")
+	} else if aud := assJws.Claim(clmAud); aud == nil {
+		return responseError(w, http.StatusBadRequest, errInvTa, "no assertion "+clmAud)
+	} else if !audienceHas(aud, sys.selfId+tokPath) {
+		return responseError(w, http.StatusBadRequest, errInvTa, "assertion "+clmAud+" does not contain "+sys.selfId+tokPath)
+	} else if c := assJws.Claim(clmCod); !((rawCod != "" || c == rawCod) || c == codId) {
+		return responseError(w, http.StatusBadRequest, errInvTa, "invalid assertion "+clmCod)
 	}
 
-	log.Debug("JWS claims are OK")
+	// クライアント認証情報は揃ってた。
+	log.Debug("Assertion claims are OK")
 
 	ta, err := sys.taCont.get(taId)
 	if err != nil {
 		return responseServerError(w, http.StatusBadRequest, erro.Wrap(err))
 	}
 
-	if jws.Header(jwtAlg) == algNone {
-		return responseError(w, http.StatusBadRequest, errInvTa, "JWS algorithm "+algNone+" is not allowed")
-	} else if err := jws.Verify(ta.keys()); err != nil {
+	if assJws.Header(jwtAlg) == algNone {
+		return responseError(w, http.StatusBadRequest, errInvTa, "asserion "+jwtAlg+" must not be "+algNone)
+	} else if err := assJws.Verify(ta.keys()); err != nil {
 		err = erro.Wrap(err)
 		log.Err(erro.Unwrap(err))
 		log.Debug(err)
 		return responseError(w, http.StatusBadRequest, errInvTa, erro.Unwrap(err).Error())
 	}
 
+	// クライアント認証できた。
 	log.Debug(taId + " is authenticated")
 
-	jws = util.NewJws()
-	jws.SetHeader(jwtAlg, sys.sigAlg)
+	idTokJws := util.NewJws()
+	idTokJws.SetHeader(jwtAlg, sys.sigAlg)
 	if sys.sigKid != "" {
-		jws.SetHeader(jwtKid, sys.sigKid)
+		idTokJws.SetHeader(jwtKid, sys.sigKid)
 	}
-	jws.SetClaim(clmIss, sys.selfId)
-	jws.SetClaim(clmSub, cod.accountId())
-	jws.SetClaim(clmAud, cod.taId())
-	now := time.Now()
-	jws.SetClaim(clmExp, now.Add(sys.idTokExpiDur).Unix())
-	jws.SetClaim(clmIat, now.Unix())
+	idTokJws.SetClaim(clmIss, sys.selfId)
+	idTokJws.SetClaim(clmSub, cod.accountId())
+	idTokJws.SetClaim(clmAud, cod.taId())
+	idTokJws.SetClaim(clmExp, now.Add(sys.idTokExpiDur).Unix())
+	idTokJws.SetClaim(clmIat, now.Unix())
 	if !cod.authenticationDate().IsZero() {
-		jws.SetClaim(clmAuthTim, cod.authenticationDate().Unix())
+		idTokJws.SetClaim(clmAuthTim, cod.authenticationDate().Unix())
 	}
 	if cod.nonce() != "" {
-		jws.SetClaim(clmNonc, cod.nonce())
+		idTokJws.SetClaim(clmNonc, cod.nonce())
 	}
-	if err := jws.Sign(map[string]crypto.PrivateKey{sys.sigKid: sys.sigKey}); err != nil {
+	if err := idTokJws.Sign(map[string]crypto.PrivateKey{sys.sigKid: sys.sigKey}); err != nil {
 		return responseServerError(w, http.StatusBadRequest, erro.Wrap(err))
 	}
-	buff, err := jws.Encode()
+	buff, err := idTokJws.Encode()
 	if err != nil {
 		return responseServerError(w, http.StatusBadRequest, erro.Wrap(err))
 	}
@@ -265,4 +246,22 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 	log.Debug("Token " + mosaic(tok.id()) + " is generated")
 
 	return responseToken(w, tok)
+}
+
+// aud クレーム値が tgt を含むかどうか検査。
+func audienceHas(aud interface{}, tgt string) bool {
+	switch a := aud.(type) {
+	case string:
+		return a == tgt
+	case []interface{}:
+		for _, elem := range a {
+			s, _ := elem.(string)
+			if s == tgt {
+				return true
+			}
+		}
+		return false
+	default:
+		return false
+	}
 }

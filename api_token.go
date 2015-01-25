@@ -103,6 +103,14 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 
 	log.Debug("Code " + mosaic(codId) + " is exist")
 
+	// 認可コードを使用済みにする。
+	cod.disable()
+	if err := sys.codCont.put(cod); err != nil {
+		return responseServerError(w, http.StatusBadRequest, erro.Wrap(err))
+	}
+
+	log.Debug("Code " + mosaic(codId) + " is disabled")
+
 	taId := req.taId()
 	if taId == "" {
 		taId = cod.taId()

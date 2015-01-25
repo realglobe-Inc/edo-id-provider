@@ -50,10 +50,6 @@ const (
 )
 
 const (
-	grntTypeCod = "code"
-)
-
-const (
 	taAssTypeJwt = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
 )
 

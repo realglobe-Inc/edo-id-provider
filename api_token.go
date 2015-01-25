@@ -18,6 +18,10 @@ const (
 	algNone = "none"
 )
 
+const (
+	grntTypeCod = "code"
+)
+
 func responseToken(w http.ResponseWriter, tok *token) error {
 	m := map[string]interface{}{
 		formTokId:   tok.id(),

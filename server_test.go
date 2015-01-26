@@ -109,10 +109,10 @@ func TestBoot(t *testing.T) {
 
 // 認証してアカウント情報を取得できるか。
 func TestSuccess(t *testing.T) {
-	////////////////////////////////
-	util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
-	defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
-	////////////////////////////////
+	// ////////////////////////////////
+	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
+	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
 
 	// 認可コードのリダイレクト先としての TA を用意。
 	taPort, err := util.FreePort()

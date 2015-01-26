@@ -10,6 +10,8 @@ var testAcc = newAccount(map[string]interface{}{
 	"username":  "testaccountname",
 	"password":  "testaccountpassword",
 	"update_at": time.Now(),
+
+	"email": "testaccount@example.org",
 })
 
 func testAccountContainer(t *testing.T, accCont accountContainer) {

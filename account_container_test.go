@@ -2,12 +2,14 @@ package main
 
 import (
 	"testing"
+	"time"
 )
 
 var testAcc = newAccount(map[string]interface{}{
-	"id":       "testaccount",
-	"username": "aaaaa",
-	"password": "12345",
+	"id":        "testaccount",
+	"username":  "testaccountname",
+	"password":  "testaccountpassword",
+	"update_at": time.Now(),
 })
 
 func testAccountContainer(t *testing.T, accCont accountContainer) {

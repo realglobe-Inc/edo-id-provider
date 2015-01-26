@@ -24,3 +24,9 @@ func responseError(w http.ResponseWriter, statCod, errCod int, errDesc string) e
 	}
 	return nil
 }
+
+func responseServerError(w http.ResponseWriter, statCod int, err error) error {
+	log.Err(erro.Unwrap(err))
+	log.Debug(err)
+	return responseError(w, statCod, errServErr, erro.Unwrap(err).Error())
+}

@@ -7,6 +7,7 @@ import (
 )
 
 func responseError(w http.ResponseWriter, statCod, errCod int, errDesc string) error {
+	log.Debug(errDesc)
 	m := map[string]string{formErr: errCods[errCod]}
 	if errDesc != "" {
 		m[formErrDesc] = errDesc

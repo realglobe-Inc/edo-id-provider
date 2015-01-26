@@ -119,6 +119,7 @@ var errCods []string = []string{
 
 // リダイレクトしてエラーを通知する。
 func redirectError(w http.ResponseWriter, r *http.Request, sys *system, sess *session, rediUri *url.URL, errCod int, errDesc string) error {
+	log.Debug(errDesc)
 	if sess != nil && sess.id() != "" {
 		sess.abort()
 		if err := sys.sessCont.put(sess); err != nil {

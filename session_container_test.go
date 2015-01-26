@@ -38,12 +38,10 @@ func testSessionContainer(t *testing.T, sessCont sessionContainer) {
 		} else if se.id() != sess.id() {
 			t.Error(i, se)
 		}
-		s := *se
-		s.setExpirationDate(time.Now().Add(expiDur))
-		if err := sessCont.put(&s); err != nil {
+		se.setExpirationDate(time.Now().Add(expiDur))
+		if err := sessCont.put(se); err != nil {
 			t.Fatal(err)
 		}
-		sess = &s
 		time.Sleep(expiDur / 2)
 	}
 

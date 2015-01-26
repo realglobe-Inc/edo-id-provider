@@ -13,7 +13,7 @@ const (
 func responseAccountInfo(w http.ResponseWriter, info map[string]interface{}) error {
 	buff, err := json.Marshal(info)
 	if err != nil {
-		return erro.Wrap(err)
+		return responseServerError(w, http.StatusBadRequest, erro.Wrap(err))
 	}
 
 	if _, err := w.Write(buff); err != nil {
@@ -42,7 +42,7 @@ func accountInfoApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 
 	tok, err := sys.tokCont.get(tokId)
 	if err != nil {
-		return erro.Wrap(err)
+		return responseServerError(w, http.StatusBadRequest, erro.Wrap(err))
 	} else if tok == nil {
 		return responseError(w, http.StatusBadRequest, errInvTok, "token "+mosaic(tokId)+" is not exist")
 	} else if !tok.valid() {
@@ -53,7 +53,7 @@ func accountInfoApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 
 	t, err := sys.taCont.get(tok.taId())
 	if err != nil {
-		return erro.Wrap(err)
+		return responseServerError(w, http.StatusBadRequest, erro.Wrap(err))
 	} else if t == nil {
 		return responseError(w, http.StatusBadRequest, errInvTok, "token "+mosaic(tokId)+" is linked to invalid TA "+tok.taId())
 	}
@@ -62,7 +62,7 @@ func accountInfoApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 
 	acc, err := sys.accCont.get(tok.accountId())
 	if err != nil {
-		return erro.Wrap(err)
+		return responseServerError(w, http.StatusBadRequest, erro.Wrap(err))
 	} else if acc == nil {
 		return responseError(w, http.StatusBadRequest, errInvTok, "token "+mosaic(tokId)+" is linked to invalid account "+tok.accountId())
 	}

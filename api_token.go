@@ -48,7 +48,7 @@ func responseToken(w http.ResponseWriter, tok *token) error {
 	}
 	buff, err := json.Marshal(m)
 	if err != nil {
-		return erro.Wrap(err)
+		return responseServerError(w, http.StatusBadRequest, erro.Wrap(err))
 	}
 
 	w.Header().Add("Cache-Control", "no-store")
@@ -93,7 +93,7 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 
 	cod, err := sys.codCont.get(codId)
 	if err != nil {
-		return erro.Wrap(err)
+		return responseServerError(w, http.StatusBadRequest, erro.Wrap(err))
 	} else if cod == nil {
 		return responseError(w, http.StatusBadRequest, errInvGrnt, "code "+mosaic(codId)+" is not exist")
 	} else if !cod.valid() {
@@ -190,7 +190,7 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 
 	ta, err := sys.taCont.get(taId)
 	if err != nil {
-		return erro.Wrap(err)
+		return responseServerError(w, http.StatusBadRequest, erro.Wrap(err))
 	}
 
 	if jws.Header(jwtAlg) == algNone {
@@ -222,11 +222,11 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 		jws.SetClaim(clmNonc, cod.nonce())
 	}
 	if err := jws.Sign(map[string]crypto.PrivateKey{sys.sigKid: sys.sigKey}); err != nil {
-		return erro.Wrap(err)
+		return responseServerError(w, http.StatusBadRequest, erro.Wrap(err))
 	}
 	buff, err := jws.Encode()
 	if err != nil {
-		return erro.Wrap(err)
+		return responseServerError(w, http.StatusBadRequest, erro.Wrap(err))
 	}
 	idTok := string(buff)
 
@@ -235,7 +235,7 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 
 	tokId, err := sys.tokCont.newId()
 	if err != nil {
-		return erro.Wrap(err)
+		return responseServerError(w, http.StatusBadRequest, erro.Wrap(err))
 	}
 	tok := newToken(
 		tokId,
@@ -249,7 +249,7 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 		idTok,
 	)
 	if err := sys.tokCont.put(tok); err != nil {
-		return erro.Wrap(err)
+		return responseServerError(w, http.StatusBadRequest, erro.Wrap(err))
 	}
 
 	// アクセストークンが決まった。

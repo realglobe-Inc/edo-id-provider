@@ -85,7 +85,7 @@ func loginPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 	sessId := req.session()
 	if sessId == "" {
 		// セッションが通知されてない。
-		return erro.Wrap(util.NewHttpStatusError(http.StatusBadRequest, "no session", nil))
+		return responseError(w, http.StatusBadRequest, errInvReq, "no session")
 	}
 
 	// セッションが通知された。
@@ -93,13 +93,13 @@ func loginPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 
 	sess, err := sys.sessCont.get(sessId)
 	if err != nil {
-		return erro.Wrap(err)
+		return responseServerError(w, http.StatusInternalServerError, erro.Wrap(err))
 	} else if sess == nil {
 		// セッションなんて無かった。
-		return erro.Wrap(util.NewHttpStatusError(http.StatusBadRequest, "no session "+mosaic(sessId), nil))
+		return responseError(w, http.StatusBadRequest, errInvReq, "no session "+mosaic(sessId))
 	} else if !sess.valid() {
 		// 無効なセッション。
-		return erro.Wrap(util.NewHttpStatusError(http.StatusBadRequest, "invalid session "+mosaic(sessId), nil))
+		return responseError(w, http.StatusBadRequest, errInvReq, "invalid session "+mosaic(sessId))
 	}
 
 	// セッションが有効だった。
@@ -108,7 +108,7 @@ func loginPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 	authReq := sess.request()
 	if authReq == nil {
 		// ユーザー認証・認可処理が始まっていない。
-		return erro.Wrap(util.NewHttpStatusError(http.StatusBadRequest, "session "+mosaic(sessId)+" is not in authentication process", nil))
+		return responseError(w, http.StatusBadRequest, errInvReq, "session "+mosaic(sessId)+" is not in authentication process")
 	}
 
 	// ユーザー認証・認可処理中。

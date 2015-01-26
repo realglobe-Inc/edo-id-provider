@@ -94,11 +94,11 @@ func publishCode(w http.ResponseWriter, r *http.Request, sys *system, sess *sess
 func authPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 	req, err := newAuthRequest(r)
 	if err != nil {
-		return erro.Wrap(err)
+		return responseServerError(w, http.StatusInternalServerError, erro.Wrap(err))
 	}
 
 	if req.ta() == "" {
-		return erro.Wrap(util.NewHttpStatusError(http.StatusBadRequest, "no "+formTaId, nil))
+		return responseError(w, http.StatusBadRequest, errInvReq, "no "+formTaId)
 	}
 
 	// TA が指定されてる。
@@ -106,9 +106,9 @@ func authPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 
 	t, err := sys.taCont.get(req.ta())
 	if err != nil {
-		return erro.Wrap(err)
+		return responseServerError(w, http.StatusInternalServerError, erro.Wrap(err))
 	} else if t == nil {
-		return erro.Wrap(util.NewHttpStatusError(http.StatusBadRequest, "invalid TA "+req.ta(), nil))
+		return responseError(w, http.StatusBadRequest, errInvReq, "invalid TA "+req.ta())
 	}
 
 	// TA は存在する。
@@ -116,13 +116,13 @@ func authPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 	req.setTaName(t.name())
 
 	if req.rawRedirectUri() == "" {
-		return erro.Wrap(util.NewHttpStatusError(http.StatusBadRequest, "no "+formRediUri, nil))
+		return responseError(w, http.StatusBadRequest, errInvReq, "no "+formRediUri)
 	} else if !t.redirectUris()[req.rawRedirectUri()] {
-		return erro.Wrap(util.NewHttpStatusError(http.StatusBadRequest, formRediUri+" "+req.rawRedirectUri()+" is not registered", nil))
+		return responseError(w, http.StatusBadRequest, errInvReq, formRediUri+" "+req.rawRedirectUri()+" is not registered")
 	}
 	rediUri, err := url.Parse(req.rawRedirectUri())
 	if err != nil {
-		return erro.Wrap(util.NewHttpStatusError(http.StatusBadRequest, formRediUri+" "+req.rawRedirectUri()+" is invalid URI", nil))
+		return responseError(w, http.StatusBadRequest, errInvReq, err.Error())
 	}
 
 	// リダイレクト先には問題無い。

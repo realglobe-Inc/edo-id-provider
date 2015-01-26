@@ -1,10 +1,15 @@
 package main
 
 import (
+	"crypto"
+	"crypto/rand"
+	"crypto/rsa"
 	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/go-lib-rg/rglog/level"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -13,6 +18,71 @@ func init() {
 	util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
 }
 
+const (
+	testIdLen = 5
+	testUiUri = "/html"
+
+	testCodExpiDur   = 10 * time.Millisecond
+	testTokExpiDur   = 10 * time.Millisecond
+	testIdTokExpiDur = 10 * time.Millisecond
+	testSessExpiDur  = 10 * time.Millisecond
+
+	testSigAlg = "RS256"
+)
+
+var testIdpPriKey crypto.PrivateKey
+var testIdpPubKey crypto.PublicKey
+
+func init() {
+	priKey, err := rsa.GenerateKey(rand.Reader, 1024)
+	if err != nil {
+		panic(err)
+	}
+	testIdpPriKey = priKey
+	testIdpPubKey = &priKey.PublicKey
+}
+
+func newTestSystem(selfId string) *system {
+	uiPath, err := ioutil.TempDir("", testLabel)
+	if err != nil {
+		panic(err)
+	}
+	if err := ioutil.WriteFile(filepath.Join(uiPath, selHtml), []byte{}, filePerm); err != nil {
+		os.RemoveAll(uiPath)
+		panic(err)
+	}
+	if err := ioutil.WriteFile(filepath.Join(uiPath, loginHtml), []byte{}, filePerm); err != nil {
+		os.RemoveAll(uiPath)
+		panic(err)
+	}
+	if err := ioutil.WriteFile(filepath.Join(uiPath, consHtml), []byte{}, filePerm); err != nil {
+		os.RemoveAll(uiPath)
+		panic(err)
+	}
+	return &system{
+		selfId,
+		false,
+		testIdLen,
+		testIdLen,
+		testUiUri,
+		uiPath,
+		newMemoryTaContainer(testStaleDur, testCaExpiDur),
+		newMemoryAccountContainer(testStaleDur, testCaExpiDur),
+		newMemoryConsentContainer(testStaleDur, testCaExpiDur),
+		newMemorySessionContainer(testIdLen, testStaleDur, testCaExpiDur),
+		newMemoryCodeContainer(testIdLen, testSavDur, testStaleDur, testCaExpiDur),
+		newMemoryTokenContainer(testIdLen, testSavDur, testStaleDur, testCaExpiDur),
+		testCodExpiDur + 2*time.Second, // 以下、プロトコルを通すと粒度が秒になるため。
+		testTokExpiDur + 2*time.Second,
+		testIdTokExpiDur + 2*time.Second,
+		testSessExpiDur + 2*time.Second,
+		testSigAlg,
+		"",
+		testIdpPriKey,
+	}
+}
+
+// 起動しただけでパニックを起こさないこと。
 func TestBoot(t *testing.T) {
 	// ////////////////////////////////
 	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
@@ -23,48 +93,11 @@ func TestBoot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	path, err := ioutil.TempDir("", testLabel)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(path)
+	sys := newTestSystem("http://localhost:" + strconv.Itoa(port))
+	defer os.RemoveAll(sys.uiPath)
 
-	sys := &system{
-		"http://edo-id-provider.example.com",
-		false,
-		10,
-		10,
-		"/html",
-		path,
-		newMemoryTaContainer(0, 0),
-		newMemoryAccountContainer(0, 0),
-		newMemoryConsentContainer(0, 0),
-		newMemorySessionContainer(10, 0, 0),
-		newMemoryCodeContainer(10, time.Second, 0, 0),
-		newMemoryTokenContainer(10, time.Second, 0, 0),
-		time.Second,
-		time.Second,
-		time.Second,
-		time.Second,
-		"RS256",
-		"",
-		nil,
-	}
 	go serve(sys, "tcp", "", port, "http")
 
 	// サーバ起動待ち。
-	time.Sleep(50 * time.Millisecond)
-
-	// req, err := http.NewRequest("GET", "http://localhost:"+strconv.Itoa(port)+loginPagePath, nil)
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
-	// resp, err := (&http.Client{}).Do(req)
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
-	// defer resp.Body.Close()
-	// if resp.StatusCode != http.StatusOK {
-	// 	t.Error(resp)
-	// }
+	time.Sleep(10 * time.Millisecond)
 }

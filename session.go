@@ -138,6 +138,9 @@ func (this *session) startRequest(req *authRequest) {
 func (this *session) commit() (consScops, consClms, denyScops, denyClms map[string]bool) {
 	if this.Acc != nil {
 		this.CurAcc = this.Acc.Id
+		if this.Accs == nil {
+			this.Accs = sessionAccountMap{}
+		}
 		this.Accs[this.Acc.Id] = this.Acc
 	}
 	consScops = this.ConsScops
@@ -229,7 +232,10 @@ func (this *session) selectAccount(acc *account) {
 		return
 	}
 
-	sessAcc := this.Accs[acc.id()]
+	var sessAcc *sessionAccount
+	if this.Accs != nil {
+		sessAcc = this.Accs[acc.id()]
+	}
 	if sessAcc == nil {
 		// ログインしたこと無し。
 		sessAcc = &sessionAccount{

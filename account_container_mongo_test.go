@@ -4,7 +4,6 @@ import (
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"testing"
-	"time"
 )
 
 func TestMongoAccountContainer(t *testing.T) {
@@ -16,12 +15,7 @@ func TestMongoAccountContainer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := sess.DB(testLabel).C("edo-id-provider").Upsert(bson.M{"id": testAcc.id()}, newAccount(map[string]interface{}{
-		"id":       testAcc.id(),
-		"username": testAcc.name(),
-		"password": testAcc.password(),
-		"date":     time.Now(),
-		"digest":   "xyz"})); err != nil {
+	if _, err := sess.DB(testLabel).C("edo-id-provider").Upsert(bson.M{"id": testAcc.id()}, testAcc); err != nil {
 		t.Fatal(err)
 	}
 	defer sess.DB(testLabel).C("edo-id-provider").DropCollection()

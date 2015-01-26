@@ -6,7 +6,6 @@ import (
 )
 
 func testSessionContainer(t *testing.T, sessCont sessionContainer) {
-	expiDur := 20 * time.Millisecond
 
 	// 無い。
 	if se, err := sessCont.get("ccccc"); err != nil {
@@ -23,29 +22,30 @@ func testSessionContainer(t *testing.T, sessCont sessionContainer) {
 	}
 
 	sess.setId(id)
-	sess.setExpirationDate(time.Now().Add(expiDur))
+	sess.setExpirationDate(time.Now().Add(testSessExpiDur))
 	if err := sessCont.put(sess); err != nil {
 		t.Fatal(err)
 	}
 
 	// ある。
-	for i := 0; i < 4; i++ {
+	var cur time.Time
+	for end := time.Now().Add(2 * testSessExpiDur); cur.Before(end); cur = time.Now() {
 		se, err := sessCont.get(sess.id())
 		if err != nil {
 			t.Fatal(err)
 		} else if se == nil {
-			t.Fatal(i, se)
+			t.Fatal(cur, end, se.expirationDate())
 		} else if se.id() != sess.id() {
-			t.Error(i, se)
+			t.Error(cur, end, se)
 		}
-		se.setExpirationDate(time.Now().Add(expiDur))
+		se.setExpirationDate(time.Now().Add(testSessExpiDur))
 		if err := sessCont.put(se); err != nil {
 			t.Fatal(err)
 		}
-		time.Sleep(expiDur / 2)
+		time.Sleep(testSessExpiDur / 2)
 	}
 
-	time.Sleep(expiDur/2 + time.Millisecond) // redis の粒度がミリ秒のため。
+	time.Sleep(testSessExpiDur + time.Millisecond) // redis の粒度がミリ秒のため。
 
 	// もう無い。
 	if se, err := sessCont.get(sess.id()); err != nil {

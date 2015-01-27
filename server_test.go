@@ -6,11 +6,11 @@ import (
 	"crypto/rsa"
 	"encoding/json"
 	"github.com/realglobe-Inc/edo/util"
+	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"github.com/realglobe-Inc/go-lib-rg/rglog/level"
 	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
-	"net/http/httputil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -88,6 +88,25 @@ func newTestSystem(selfId string) *system {
 	}
 }
 
+// edo-id-provider を立てる。
+// 使い終わったら shutCh で終了させ、idpSys.uiPath を消すこと
+func setupTestIdp(testAccs []*account, testTas []*ta) (idpSys *system, shutCh chan struct{}, err error) {
+	port, err := util.FreePort()
+	if err != nil {
+		return nil, nil, erro.Wrap(err)
+	}
+	sys := newTestSystem("http://localhost:" + strconv.Itoa(port))
+	for _, acc := range testAccs {
+		sys.accCont.(*memoryAccountContainer).add(acc)
+	}
+	for _, ta_ := range testTas {
+		sys.taCont.(*memoryTaContainer).add(ta_)
+	}
+	shutCh = make(chan struct{}, 10)
+	go serve(sys, "tcp", "", port, "http", shutCh)
+	return sys, shutCh, nil
+}
+
 // 起動しただけでパニックを起こさないこと。
 func TestBoot(t *testing.T) {
 	// ////////////////////////////////
@@ -95,16 +114,307 @@ func TestBoot(t *testing.T) {
 	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	port, err := util.FreePort()
+	sys, shutCh, err := setupTestIdp(nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	sys := newTestSystem("http://localhost:" + strconv.Itoa(port))
 	defer os.RemoveAll(sys.uiPath)
-	go serve(sys, "tcp", "", port, "http", nil)
+	defer func() { shutCh <- struct{}{} }()
 
 	// サーバ起動待ち。
 	time.Sleep(10 * time.Millisecond)
+}
+
+// testTa を基に TA 偽装用テストサーバーを立てる。
+// 使い終わったら Close すること。
+func setupTestTa() (*ta, *util.TestHttpServer, error) {
+	taPort, err := util.FreePort()
+	if err != nil {
+		return nil, nil, erro.Wrap(err)
+	}
+	taServer, err := util.NewTestHttpServer(taPort)
+	if err != nil {
+		return nil, nil, erro.Wrap(err)
+	}
+	taBuff := *testTa
+	taBuff.Id = "http://localhost:" + strconv.Itoa(taPort)
+	taBuff.RediUris = map[string]bool{taBuff.Id + "/redirect_endpoint": true}
+	return &taBuff, taServer, nil
+}
+
+// 認証リクエストを出す。
+// 返り値を Close すること。
+func testRequestAuth(idpSys *system, cli *http.Client, authParams url.Values) (*http.Response, error) {
+	if authParams == nil {
+		authParams = url.Values{}
+	}
+
+	req, err := http.NewRequest("GET", idpSys.selfId+"/auth?"+authParams.Encode(), nil)
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
+	resp, err := cli.Do(req)
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		util.LogRequest(level.ERR, req, true)
+		util.LogResponse(level.ERR, resp, true)
+		resp.Body.Close()
+		return nil, erro.New("invalid response ", resp.StatusCode, " "+http.StatusText(resp.StatusCode))
+	}
+	return resp, nil
+}
+
+// アカウント選択 UI にリダイレクトされてたらアカウント選択する。
+// 返り値の Body を Close すること。
+func testSelectAccount(idpSys *system, cli *http.Client, authResp *http.Response, selParams map[string]string) (*http.Response, error) {
+	if authResp.Request.URL.Path != idpSys.uiUri+"/select.html" {
+		// アカウント選択 UI にリダイレクトされてない。
+		return authResp, nil
+	}
+
+	if selParams == nil {
+		selParams = map[string]string{}
+	}
+
+	tic := authResp.Request.URL.Fragment
+	q := url.Values{}
+	for k, v := range selParams {
+		q.Set(k, v)
+	}
+	if v, ok := selParams["ticket"]; !(ok && v == "") {
+		q.Set("ticket", tic)
+	}
+	req, err := http.NewRequest("GET", idpSys.selfId+"/auth/select?"+q.Encode(), nil)
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
+	resp, err := cli.Do(req)
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		util.LogRequest(level.ERR, req, true)
+		util.LogResponse(level.ERR, resp, true)
+		resp.Body.Close()
+		return nil, erro.New("invalid response ", resp.StatusCode, " "+http.StatusText(resp.StatusCode))
+	}
+	return resp, nil
+}
+
+// ログイン UI にリダイレクトされてたらログインする。
+// 返り値の Body を Close すること。
+func testLogin(idpSys *system, cli *http.Client, selResp *http.Response, loginParams map[string]string) (*http.Response, error) {
+	if selResp.Request.URL.Path != idpSys.uiUri+"/login.html" {
+		// ログイン UI にリダイレクトされてない。
+		return selResp, nil
+	}
+
+	if loginParams == nil {
+		loginParams = map[string]string{}
+	}
+
+	tic := selResp.Request.URL.Fragment
+	q := url.Values{}
+	for k, v := range loginParams {
+		q.Set(k, v)
+	}
+	if v, ok := loginParams["ticket"]; !(ok && v == "") {
+		q.Set("ticket", tic)
+	}
+	req, err := http.NewRequest("GET", idpSys.selfId+"/auth/login?"+q.Encode(), nil)
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
+	resp, err := cli.Do(req)
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		util.LogRequest(level.ERR, req, true)
+		util.LogResponse(level.ERR, resp, true)
+		resp.Body.Close()
+		return nil, erro.New("invalid response ", resp.StatusCode, " "+http.StatusText(resp.StatusCode))
+	}
+	return resp, nil
+}
+
+// 同意 UI にリダイレクトされてたら同意する。
+// 返り値の Body を Close すること。
+func testConsent(idpSys *system, cli *http.Client, loginResp *http.Response, consParams map[string]string) (*http.Response, error) {
+	if loginResp.Request.URL.Path != idpSys.uiUri+"/consent.html" {
+		// 同意 UI にリダイレクトされてない。
+	}
+
+	if consParams == nil {
+		consParams = map[string]string{}
+	}
+
+	tic := loginResp.Request.URL.Fragment
+	q := url.Values{}
+	for k, v := range consParams {
+		q.Set(k, v)
+	}
+	if v, ok := consParams["ticket"]; !(ok && v == "") {
+		q.Set("ticket", tic)
+	}
+	q.Set("ticket", tic)
+	req, err := http.NewRequest("GET", idpSys.selfId+"/auth/consent?"+q.Encode(), nil)
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
+	resp, err := cli.Do(req)
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		util.LogRequest(level.ERR, req, true)
+		util.LogResponse(level.ERR, resp, true)
+		resp.Body.Close()
+		return nil, erro.New("invalid response ", resp.StatusCode, " "+http.StatusText(resp.StatusCode))
+	}
+	return resp, nil
+}
+
+// アクセストークンを取得する。
+// 返り値は JSON を Unmarshal したもの。
+// パラメータが nil や空文字列なら、そのパラメータを設定しない。
+func testGetToken(idpSys *system, consResp *http.Response, assHeads, assClms map[string]interface{}, reqParams map[string]string, kid string, sigKey crypto.PrivateKey) (map[string]interface{}, error) {
+	if assHeads == nil {
+		assHeads = map[string]interface{}{}
+	}
+	if assClms == nil {
+		assClms = map[string]interface{}{}
+	}
+	if reqParams == nil {
+		reqParams = map[string]string{}
+	}
+
+	cod := consResp.Request.FormValue("code")
+	if cod == "" {
+		return nil, erro.New("no code")
+	}
+
+	// 認可コードを取得できた。
+
+	// クライアント認証用データを準備。
+
+	assJws := util.NewJws()
+	for k, v := range assHeads {
+		assJws.SetHeader(k, v)
+	}
+	for k, v := range assClms {
+		assJws.SetClaim(k, v)
+	}
+	if _, ok := assClms["code"]; !ok {
+		assJws.SetClaim("code", cod)
+	}
+	if err := assJws.Sign(map[string]crypto.PrivateKey{kid: sigKey}); err != nil {
+		return nil, erro.Wrap(err)
+	}
+	assBuff, err := assJws.Encode()
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
+	ass := string(assBuff)
+
+	q := url.Values{}
+	for k, v := range reqParams {
+		if v != "" {
+			q.Set(k, v)
+		}
+	}
+	if v, ok := reqParams["code"]; !(ok && v == "") {
+		q.Set("code", cod)
+	}
+	if v, ok := reqParams["client_assertion"]; !(ok && v == "") {
+		q.Set("client_assertion", ass)
+	}
+	req, err := http.NewRequest("POST", idpSys.selfId+"/token", strings.NewReader(q.Encode()))
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	resp, err := (&http.Client{}).Do(req)
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		util.LogRequest(level.ERR, req, true)
+		util.LogResponse(level.ERR, resp, true)
+		return nil, erro.New("invalid response ", resp.StatusCode, " "+http.StatusText(resp.StatusCode))
+	}
+
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		util.LogRequest(level.ERR, req, true)
+		util.LogResponse(level.ERR, resp, true)
+		return nil, erro.Wrap(err)
+	}
+
+	var res map[string]interface{}
+	if err := json.Unmarshal(data, &res); err != nil {
+		util.LogRequest(level.ERR, req, true)
+		util.LogResponse(level.ERR, resp, true)
+		return nil, erro.Wrap(err)
+	}
+
+	return res, nil
+}
+
+// アカウント情報を取得する。
+// 返り値は JSON を Unmarshal したもの。
+// パラメータが nil や空文字列なら、そのパラメータを設定しない。
+func testGetAccountInfo(idpSys *system, tokRes map[string]interface{}, reqHeads map[string]string) (map[string]interface{}, error) {
+	tok, _ := tokRes["access_token"].(string)
+	if tok == "" {
+		return nil, erro.New("no access token")
+	}
+
+	// アクセストークンを取得できた。
+
+	req, err := http.NewRequest("GET", idpSys.selfId+"/userinfo", nil)
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
+	for k, v := range reqHeads {
+		if v != "" {
+			req.Header.Set(k, v)
+		}
+	}
+	if v, ok := reqHeads["Authorization"]; !(ok && v == "") {
+		req.Header.Set("Authorization", "Bearer "+tok)
+	}
+	resp, err := (&http.Client{}).Do(req)
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		util.LogRequest(level.ERR, req, true)
+		util.LogResponse(level.ERR, resp, true)
+		resp.Body.Close()
+		return nil, erro.New("invalid response ", resp.StatusCode, " "+http.StatusText(resp.StatusCode))
+	}
+
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
+
+	var res map[string]interface{}
+	if err := json.Unmarshal(data, &res); err != nil {
+		return nil, erro.Wrap(err)
+	}
+	return res, nil
 }
 
 // 認証してアカウント情報を取得できるか。
@@ -115,30 +425,19 @@ func TestSuccess(t *testing.T) {
 	// ////////////////////////////////
 
 	// 認可コードのリダイレクト先としての TA を用意。
-	taPort, err := util.FreePort()
-	if err != nil {
-		t.Fatal(err)
-	}
-	taServer, err := util.NewTestHttpServer(taPort)
+	testTa2, taServer, err := setupTestTa()
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer taServer.Close()
-	taBuff := *testTa
-	taBuff.Id = "http://localhost:" + strconv.Itoa(taPort)
-	taBuff.RediUris = map[string]bool{taBuff.Id + "/redirect_endpoint": true}
-	testTa2 := &taBuff
 
 	// edo-id-provider を用意。
-	port, err := util.FreePort()
+	sys, shutCh, err := setupTestIdp([]*account{testAcc}, []*ta{testTa2})
 	if err != nil {
 		t.Fatal(err)
 	}
-	sys := newTestSystem("http://localhost:" + strconv.Itoa(port))
 	defer os.RemoveAll(sys.uiPath)
-	sys.accCont.(*memoryAccountContainer).add(testAcc)
-	sys.taCont.(*memoryTaContainer).add(testTa2)
-	go serve(sys, "tcp", "", port, "http", nil)
+	defer func() { shutCh <- struct{}{} }()
 
 	// サーバ起動待ち。
 	time.Sleep(10 * time.Millisecond)
@@ -147,196 +446,78 @@ func TestSuccess(t *testing.T) {
 	taServer.AddResponse(http.StatusOK, nil, []byte("success"))
 
 	rediUri := util.OneOfStringSet(testTa2.redirectUris())
-	q := url.Values{}
-	q.Set("scope", "openid email")
-	q.Set("response_type", "code")
-	q.Set("client_id", testTa2.id())
-	q.Set("redirect_uri", rediUri)
-	q.Set("prompt", "select_account login consent")
-	req, err := http.NewRequest("GET", sys.selfId+"/auth?"+q.Encode(), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+
 	cookJar, err := cookiejar.New(nil)
-	resp, err := (&http.Client{Jar: cookJar}).Do(req)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	cli := &http.Client{Jar: cookJar}
 
-	if resp.StatusCode != http.StatusOK {
-		buff, _ := httputil.DumpRequest(req, false)
-		t.Error(string(buff))
-		buff, _ = httputil.DumpResponse(resp, true)
-		t.Fatal(string(buff))
-	}
-
-	// アカウント選択が必要。
-	if resp.Request.URL.Path == sys.uiUri+"/select.html" {
-		tic := resp.Request.URL.Fragment
-
-		q := url.Values{}
-		q.Set("username", testAcc.name())
-		q.Set("ticket", tic)
-		req, err = http.NewRequest("GET", sys.selfId+"/auth/select?"+q.Encode(), nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		resp, err = (&http.Client{Jar: cookJar}).Do(req)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			buff, _ := httputil.DumpRequest(req, false)
-			t.Error(string(buff))
-			buff, _ = httputil.DumpResponse(resp, true)
-			t.Fatal(string(buff))
-		}
-	}
-
-	// ログインが必要。
-	if resp.Request.URL.Path == sys.uiUri+"/login.html" {
-		tic := resp.Request.URL.Fragment
-
-		q := url.Values{}
-		q.Set("username", testAcc.name())
-		q.Set("password", testAcc.password())
-		q.Set("ticket", tic)
-		req, err = http.NewRequest("GET", sys.selfId+"/auth/login?"+q.Encode(), nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		resp, err = (&http.Client{Jar: cookJar}).Do(req)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			buff, _ := httputil.DumpRequest(req, false)
-			t.Error(string(buff))
-			buff, _ = httputil.DumpResponse(resp, true)
-			t.Fatal(string(buff))
-		}
-	}
-
-	// 同意が必要。
-	if resp.Request.URL.Path == sys.uiUri+"/consent.html" {
-		tic := resp.Request.URL.Fragment
-
-		q := url.Values{}
-		q.Set("consented_scope", "openid email")
-		q.Set("ticket", tic)
-		req, err = http.NewRequest("GET", sys.selfId+"/auth/consent?"+q.Encode(), nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		resp, err = (&http.Client{Jar: cookJar}).Do(req)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			buff, _ := httputil.DumpRequest(req, false)
-			t.Error(string(buff))
-			buff, _ = httputil.DumpResponse(resp, true)
-			t.Fatal(string(buff))
-		}
-	}
-
-	cod := resp.Request.FormValue("code")
-	if cod == "" {
-		buff, _ := httputil.DumpRequest(req, false)
-		t.Error(string(buff))
-		buff, _ = httputil.DumpResponse(resp, true)
-		t.Fatal(string(buff))
-	}
-
-	// 認可コードを取得できた。
-
-	// クライアント認証用データを準備。
-	assJws := util.NewJws()
-	assJws.SetHeader("alg", "RS256")
-	assJws.SetClaim("iss", testTa2.id())
-	assJws.SetClaim("sub", testTa2.id())
-	assJws.SetClaim("aud", sys.selfId+"/token")
-	assJws.SetClaim("jti", "abcde")
-	assJws.SetClaim("exp", time.Now().Add(sys.idTokExpiDur).Unix())
-	assJws.SetClaim("cod", cod)
-	if err := assJws.Sign(map[string]crypto.PrivateKey{"": testTaPriKey}); err != nil {
-		t.Fatal(err)
-	}
-	assBuff, err := assJws.Encode()
+	// リクエストする。
+	authResp, err := testRequestAuth(sys, cli, url.Values{
+		"scope":         {"openid email"},
+		"response_type": {"code"},
+		"client_id":     {testTa2.id()},
+		"redirect_uri":  {rediUri},
+		"prompt":        {"select_account login consent"},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	ass := string(assBuff)
+	defer authResp.Body.Close()
 
-	q = url.Values{}
-	q.Set("grant_type", "authorization_code")
-	q.Set("code", cod)
-	q.Set("redirect_uri", rediUri)
-	q.Set("client_id", testTa2.id())
-	q.Set("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer")
-	q.Set("client_assertion", ass)
-	req, err = http.NewRequest("POST", sys.selfId+"/token", strings.NewReader(q.Encode()))
+	// 必要ならアカウント選択する。
+	selResp, err := testSelectAccount(sys, cli, authResp, map[string]string{
+		"username": testAcc.name(),
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	resp, err = (&http.Client{}).Do(req)
+	defer selResp.Body.Close()
+
+	// 必要ならログインする。
+	loginResp, err := testLogin(sys, cli, selResp, map[string]string{
+		"username": testAcc.name(),
+		"password": testAcc.password(),
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	defer loginResp.Body.Close()
 
-	data, err := ioutil.ReadAll(resp.Body)
+	// 必要なら同意する。
+	consResp, err := testConsent(sys, cli, loginResp, map[string]string{
+		"consented_scope": "openid email",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer selResp.Body.Close()
+
+	// アクセストークンを取得する。
+	tokRes, err := testGetToken(sys, consResp, map[string]interface{}{
+		"alg": "RS256",
+	}, map[string]interface{}{
+		"iss": testTa2.id(),
+		"sub": testTa2.id(),
+		"aud": sys.selfId + "/token",
+		"jti": strconv.FormatInt(time.Now().UnixNano(), 16),
+		"exp": time.Now().Add(sys.idTokExpiDur).Unix(),
+	}, map[string]string{
+		"grant_type":            "authorization_code",
+		"redirect_uri":          rediUri,
+		"client_id":             testTa2.id(),
+		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+	}, "", testTaPriKey)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	var tokRes struct {
-		Access_token string
-	}
-	if err := json.Unmarshal(data, &tokRes); err != nil {
-		t.Fatal(err)
-	} else if tokRes.Access_token == "" {
-		buff, _ := httputil.DumpRequest(req, true)
-		t.Error(string(buff))
-		buff, _ = httputil.DumpResponse(resp, true)
-		t.Fatal(string(buff))
-	}
-
-	// アクセストークンを取得できた。
-
-	req, err = http.NewRequest("GET", sys.selfId+"/userinfo", nil)
+	// アカウント情報を取得する。
+	accInfRes, err := testGetAccountInfo(sys, tokRes, nil)
 	if err != nil {
 		t.Fatal(err)
-	}
-	req.Header.Set("Authorization", "Bearer "+tokRes.Access_token)
-	resp, err = (&http.Client{}).Do(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer resp.Body.Close()
-
-	data, err = ioutil.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	var usrInfRes struct {
-		Email string
-	}
-	if err := json.Unmarshal(data, &usrInfRes); err != nil {
-		t.Fatal(err)
-	} else if usrInfRes.Email != testAcc.attribute("email") {
-		buff, _ := httputil.DumpRequest(req, true)
-		t.Error(string(buff))
-		buff, _ = httputil.DumpResponse(resp, true)
-		t.Fatal(string(buff))
+	} else if em, _ := accInfRes["email"].(string); em != testAcc.attribute("email") {
+		t.Error(em, testAcc.attribute("email"))
 	}
 }

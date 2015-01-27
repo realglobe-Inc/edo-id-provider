@@ -176,7 +176,7 @@ func mainCore(param *parameters) error {
 		param.kid,
 		key,
 	}
-	return serve(sys, param.socType, param.socPath, param.socPort, param.protType)
+	return serve(sys, param.socType, param.socPath, param.socPort, param.protType, nil)
 }
 
 // 振り分ける。
@@ -189,7 +189,7 @@ const (
 	accInfPath = "/userinfo"
 )
 
-func serve(sys *system, socType, socPath string, socPort int, protType string) error {
+func serve(sys *system, socType, socPath string, socPort int, protType string, shutCh chan struct{}) error {
 	routes := map[string]util.HandlerFunc{
 		authPath: func(w http.ResponseWriter, r *http.Request) error {
 			return authPage(w, r, sys)
@@ -217,5 +217,5 @@ func serve(sys *system, socType, socPath string, socPort int, protType string) e
 			return nil
 		}
 	}
-	return util.Serve(socType, socPath, socPort, protType, routes)
+	return util.TerminableServe(socType, socPath, socPort, protType, routes, shutCh)
 }

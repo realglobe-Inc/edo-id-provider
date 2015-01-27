@@ -101,7 +101,7 @@ func TestBoot(t *testing.T) {
 	}
 	sys := newTestSystem("http://localhost:" + strconv.Itoa(port))
 	defer os.RemoveAll(sys.uiPath)
-	go serve(sys, "tcp", "", port, "http")
+	go serve(sys, "tcp", "", port, "http", nil)
 
 	// サーバ起動待ち。
 	time.Sleep(10 * time.Millisecond)
@@ -138,7 +138,7 @@ func TestSuccess(t *testing.T) {
 	defer os.RemoveAll(sys.uiPath)
 	sys.accCont.(*memoryAccountContainer).add(testAcc)
 	sys.taCont.(*memoryTaContainer).add(testTa2)
-	go serve(sys, "tcp", "", port, "http")
+	go serve(sys, "tcp", "", port, "http", nil)
 
 	// サーバ起動待ち。
 	time.Sleep(10 * time.Millisecond)

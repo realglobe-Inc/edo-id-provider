@@ -19,17 +19,18 @@ func testCodeContainer(t *testing.T, codCont codeContainer) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	now := time.Now()
 	cod := newCode(
 		codId,
 		"account-id",
 		"ta-id",
 		"https://example.com/redirect/uri?a=b",
-		time.Now().Add(testCodExpiDur),
+		now.Add(testCodExpiDur),
 		testTokExpiDur,
 		nil,
 		nil,
 		"",
-		time.Now())
+		now)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -133,6 +133,13 @@ func authPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 		return redirectError(w, r, sys, nil, req.redirectUri(), newIdpError(errInvScop, formScop+" has no "+scopOpId, 0, nil))
 	}
 
+	// 重複パラメータが無いか検査。
+	for k, v := range r.Form {
+		if len(v) > 1 {
+			return redirectError(w, r, sys, nil, req.redirectUri(), newIdpError(errInvReq, k+" is overlapped", 0, nil))
+		}
+	}
+
 	// scope には問題無い。
 	log.Debug("Scope has " + scopOpId)
 

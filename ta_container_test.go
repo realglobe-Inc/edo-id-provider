@@ -11,6 +11,7 @@ import (
 
 var testTaPriKey crypto.PrivateKey
 var testTaPubKey crypto.PublicKey
+var testTaKid = "testkey"
 
 var testTa *ta
 
@@ -30,7 +31,7 @@ func init() {
 			"https://testta.example.org/redirect/uri": true,
 		},
 		map[string]crypto.PublicKey{
-			"": testTaPubKey,
+			testTaKid: testTaPubKey,
 		})
 	testTa.Upd = testTa.Upd.Add(-(time.Duration(testTa.Upd.Nanosecond()) % time.Millisecond)) // mongodb の粒度がミリ秒のため。
 }

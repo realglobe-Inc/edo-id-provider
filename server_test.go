@@ -297,7 +297,8 @@ func testConsent(idpSys *system, cli *http.Client, loginResp *http.Response, con
 // アクセストークンを取得する。
 // 返り値は JSON を Unmarshal したもの。
 // パラメータ値が nil や空文字列なら、そのパラメータを設定しない。
-func testGetToken(idpSys *system, consResp *http.Response, assHeads, assClms map[string]interface{}, reqParams map[string]string, kid string, sigKey crypto.PrivateKey) (map[string]interface{}, error) {
+func testGetToken(idpSys *system, consResp *http.Response, assHeads, assClms map[string]interface{},
+	reqParams map[string]string, kid string, sigKey crypto.PrivateKey) (map[string]interface{}, error) {
 	if assHeads == nil {
 		assHeads = map[string]interface{}{}
 	}
@@ -428,6 +429,50 @@ func testGetAccountInfo(idpSys *system, tokRes map[string]interface{}, reqHeads 
 		return nil, erro.Wrap(err)
 	}
 	return res, nil
+}
+
+// 認証リクエストからアカウント情報取得までする。
+func testFromRequestAuthToGetAccountInfo(idpSys *system, cli *http.Client,
+	authParams, selParams, loginParams, consParams map[string]string,
+	assHeads, assClms map[string]interface{}, tokParams map[string]string, kid string, sigKey crypto.PrivateKey,
+	accInfHeads map[string]string) (map[string]interface{}, error) {
+
+	// リクエストする。
+	authResp, err := testRequestAuth(idpSys, cli, authParams)
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
+	defer authResp.Body.Close()
+
+	// 必要ならアカウント選択する。
+	selResp, err := testSelectAccount(idpSys, cli, authResp, selParams)
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
+	defer selResp.Body.Close()
+
+	// 必要ならログインする。
+	loginResp, err := testLogin(idpSys, cli, selResp, loginParams)
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
+	defer loginResp.Body.Close()
+
+	// 必要なら同意する。
+	consResp, err := testConsent(idpSys, cli, loginResp, consParams)
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
+	defer consResp.Body.Close()
+
+	// アクセストークンを取得する。
+	tokRes, err := testGetToken(idpSys, consResp, assHeads, assClms, tokParams, kid, sigKey)
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
+
+	// アカウント情報を取得する。
+	return testGetAccountInfo(idpSys, tokRes, accInfHeads)
 }
 
 // 認証してアカウント情報を取得できるか。

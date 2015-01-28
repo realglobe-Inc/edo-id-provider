@@ -210,11 +210,14 @@ func serve(sys *system, socType, socPath string, socPort int, protType string, s
 			return accountInfoApi(w, r, sys)
 		},
 	}
-	fileHndl := http.StripPrefix(sys.uiUri, http.FileServer(http.Dir(sys.uiPath)))
-	for _, uri := range []string{sys.uiUri, sys.uiUri + "/"} {
-		routes[uri] = func(w http.ResponseWriter, r *http.Request) error {
-			fileHndl.ServeHTTP(w, r)
-			return nil
+	if sys.uiPath != "" {
+		// ファイル配信も自前でやる。
+		fileHndl := http.StripPrefix(sys.uiUri, http.FileServer(http.Dir(sys.uiPath)))
+		for _, uri := range []string{sys.uiUri, sys.uiUri + "/"} {
+			routes[uri] = func(w http.ResponseWriter, r *http.Request) error {
+				fileHndl.ServeHTTP(w, r)
+				return nil
+			}
 		}
 	}
 	return util.TerminableServe(socType, socPath, socPort, protType, routes, shutCh)

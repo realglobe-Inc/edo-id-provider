@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 )
@@ -258,20 +257,6 @@ func parseParameters(args ...string) (param *parameters, err error) {
 
 	if l := len(flags.Args()); l > 0 {
 		log.Warn("Ignore extra parameters ", flags.Args(), ".")
-	}
-
-	// uiUri を整形。
-	uiUri := strings.TrimRight(param.uiUri, "/")
-	uiUri = regexp.MustCompile("/+").ReplaceAllString(uiUri, "/")
-	if uiUri == "" {
-		uiUri = "/html"
-	}
-	if uiUri[0] != '/' {
-		uiUri = "/" + uiUri
-	}
-	if param.uiUri != uiUri {
-		log.Info("Use " + uiUri + " as UI uri")
-		param.uiUri = uiUri
 	}
 
 	return param, nil

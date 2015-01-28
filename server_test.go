@@ -311,6 +311,7 @@ func testGetToken(idpSys *system, consResp *http.Response, assHeads, assClms map
 
 	cod := consResp.Request.FormValue("code")
 	if cod == "" {
+		util.LogRequest(level.ERR, consResp.Request, true)
 		return nil, erro.New("no code")
 	}
 

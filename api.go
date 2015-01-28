@@ -5,6 +5,7 @@ import (
 	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"net/http"
+	"strconv"
 )
 
 func responseError(w http.ResponseWriter, err error) error {
@@ -39,6 +40,8 @@ func responseError(w http.ResponseWriter, err error) error {
 			`",` + formErrDesc + `="` + util.JsonStringEscape(m[formErrDesc]) + `"}`)
 	}
 
+	w.Header().Set("Content-Type", util.ContentTypeJson)
+	w.Header().Set("Content-Length", strconv.Itoa(len(buff)))
 	w.WriteHeader(stat)
 	if _, err := w.Write(buff); err != nil {
 		err = erro.Wrap(err)

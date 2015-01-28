@@ -484,11 +484,11 @@ func TestSuccess(t *testing.T) {
 	// ////////////////////////////////
 
 	// 認可コードのリダイレクト先としての TA を用意。
-	testTa2, taServer, err := setupTestTa()
+	testTa2, taServ, err := setupTestTa()
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer taServer.Close()
+	defer taServ.Close()
 
 	// edo-id-provider を用意。
 	sys, shutCh, err := setupTestIdp([]*account{testAcc}, []*ta{testTa2})
@@ -502,7 +502,7 @@ func TestSuccess(t *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 
 	// 無事 TA にリダイレクトできたときのレスポンスを設定しておく。
-	taServer.AddResponse(http.StatusOK, nil, []byte("success"))
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
 	rediUri := util.OneOfStringSet(testTa2.redirectUris())
 

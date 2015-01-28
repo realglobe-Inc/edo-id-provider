@@ -95,16 +95,16 @@ func setupTestIdp(testAccs []*account, testTas []*ta) (idpSys *system, shutCh ch
 	if err != nil {
 		return nil, nil, erro.Wrap(err)
 	}
-	sys := newTestSystem("http://localhost:" + strconv.Itoa(port))
+	idpSys = newTestSystem("http://localhost:" + strconv.Itoa(port))
 	for _, acc := range testAccs {
-		sys.accCont.(*memoryAccountContainer).add(acc)
+		idpSys.accCont.(*memoryAccountContainer).add(acc)
 	}
 	for _, ta_ := range testTas {
-		sys.taCont.(*memoryTaContainer).add(ta_)
+		idpSys.taCont.(*memoryTaContainer).add(ta_)
 	}
 	shutCh = make(chan struct{}, 10)
-	go serve(sys, "tcp", "", port, "http", shutCh)
-	return sys, shutCh, nil
+	go serve(idpSys, "tcp", "", port, "http", shutCh)
+	return idpSys, shutCh, nil
 }
 
 // 起動しただけでパニックを起こさないこと。
@@ -114,11 +114,11 @@ func TestBoot(t *testing.T) {
 	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	sys, shutCh, err := setupTestIdp(nil, nil)
+	idpSys, shutCh, err := setupTestIdp(nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(sys.uiPath)
+	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 
 	// サーバ起動待ち。

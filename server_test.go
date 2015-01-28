@@ -143,6 +143,27 @@ func setupTestTa() (ta_ *ta, rediUri, taKid string, taPriKey crypto.PrivateKey, 
 	return &taBuff, rediUri, testTaKid, testTaPriKey, taServer, nil
 }
 
+// TA 偽装サーバーと edo-id-provider を立てる。
+func setupTestTaAndIdp(testAccs []*account, testTas []*ta) (ta_ *ta, rediUri,
+	taKid string, taPriKey crypto.PrivateKey, taServ *util.TestHttpServer,
+	idpSys *system, shutCh chan struct{}, err error) {
+
+	// TA 偽装サーバー。
+	ta_, rediUri, taKid, taPriKey, taServ, err = setupTestTa()
+	if err != nil {
+		return
+	}
+	defer func() {
+		if err != nil {
+			taServ.Close()
+		}
+	}()
+
+	// edo-id-provider を用意。
+	idpSys, shutCh, err = setupTestIdp([]*account{testAcc}, append([]*ta{ta_}, testTas...))
+	return
+}
+
 // 認証リクエストを出す。
 // 返り値を Close すること。
 // パラメータ値が空文字列なら、そのパラメータを設定しない。

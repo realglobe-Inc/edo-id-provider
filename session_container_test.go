@@ -22,19 +22,19 @@ func testSessionContainer(t *testing.T, sessCont sessionContainer) {
 	}
 
 	sess.setId(id)
-	sess.setExpirationDate(time.Now().Add(testSessExpiDur))
+	cur := time.Now()
+	sess.setExpirationDate(cur.Add(testSessExpiDur))
 	if err := sessCont.put(sess); err != nil {
 		t.Fatal(err)
 	}
 
 	// ある。
-	var cur time.Time
-	for end := time.Now().Add(2 * testSessExpiDur); cur.Before(end); cur = time.Now() {
+	for end := cur.Add(2 * testSessExpiDur); cur.Before(end); cur = time.Now() {
 		se, err := sessCont.get(sess.id())
 		if err != nil {
 			t.Fatal(err)
 		} else if se == nil {
-			t.Fatal(cur, end, se.expirationDate())
+			t.Fatal(cur, end)
 		} else if se.id() != sess.id() {
 			t.Error(cur, end, se)
 		}

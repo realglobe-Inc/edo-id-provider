@@ -511,49 +511,20 @@ func TestSuccess(t *testing.T) {
 	}
 	cli := &http.Client{Jar: cookJar}
 
-	// リクエストする。
-	authResp, err := testRequestAuth(sys, cli, map[string]string{
+	res, err := testFromRequestAuthToGetAccountInfo(sys, cli, map[string]string{
 		"scope":         "openid email",
 		"response_type": "code",
 		"client_id":     testTa2.id(),
 		"redirect_uri":  rediUri,
 		"prompt":        "select_account login consent",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer authResp.Body.Close()
-
-	// 必要ならアカウント選択する。
-	selResp, err := testSelectAccount(sys, cli, authResp, map[string]string{
+	}, map[string]string{
 		"username": testAcc.name(),
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer selResp.Body.Close()
-
-	// 必要ならログインする。
-	loginResp, err := testLogin(sys, cli, selResp, map[string]string{
+	}, map[string]string{
 		"username": testAcc.name(),
 		"password": testAcc.password(),
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer loginResp.Body.Close()
-
-	// 必要なら同意する。
-	consResp, err := testConsent(sys, cli, loginResp, map[string]string{
+	}, map[string]string{
 		"consented_scope": "openid email",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer selResp.Body.Close()
-
-	// アクセストークンを取得する。
-	tokRes, err := testGetToken(sys, consResp, map[string]interface{}{
+	}, map[string]interface{}{
 		"alg": "RS256",
 	}, map[string]interface{}{
 		"iss": testTa2.id(),
@@ -566,16 +537,10 @@ func TestSuccess(t *testing.T) {
 		"redirect_uri":          rediUri,
 		"client_id":             testTa2.id(),
 		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
-	}, "", testTaPriKey)
+	}, "", testTaPriKey, nil)
 	if err != nil {
 		t.Fatal(err)
-	}
-
-	// アカウント情報を取得する。
-	accInfRes, err := testGetAccountInfo(sys, tokRes, nil)
-	if err != nil {
-		t.Fatal(err)
-	} else if em, _ := accInfRes["email"].(string); em != testAcc.attribute("email") {
-		t.Error(em, testAcc.attribute("email"))
+	} else if em, _ := res["email"].(string); em != testAcc.attribute("email") {
+		t.Fatal(em, testAcc.attribute("email"))
 	}
 }

@@ -621,3 +621,49 @@ func TestIgnoreUnknownParameterInAuthRequest(t *testing.T) {
 		t.Fatal(em, testAcc.attribute("email"))
 	}
 }
+
+// 認証リクエストの重複パラメータを拒否できるか。
+func TestDenyOverlapParameterInAuthRequest(t *testing.T) {
+	// ////////////////////////////////
+	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
+	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp([]*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトできたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	// サーバ起動待ち。
+	time.Sleep(10 * time.Millisecond)
+
+	q := url.Values{
+		"scope":         {"openid email"},
+		"response_type": {"code"},
+		"client_id":     {testTa2.id()},
+		"redirect_uri":  {rediUri},
+	}
+
+	req, err := http.NewRequest("GET", idpSys.selfId+"/auth?"+q.Encode()+"&scope=aaaa", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err := (&http.Client{}).Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		util.LogRequest(level.ERR, req, true)
+		util.LogResponse(level.ERR, resp, true)
+		t.Fatal(resp.StatusCode, http.StatusOK)
+	} else if resp.Request.FormValue(formErr) == "" {
+		t.Fatal("no error")
+	}
+}

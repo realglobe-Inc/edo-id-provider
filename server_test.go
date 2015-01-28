@@ -127,19 +127,20 @@ func TestBoot(t *testing.T) {
 
 // testTa を基に TA 偽装用テストサーバーを立てる。
 // 使い終わったら Close すること。
-func setupTestTa() (*ta, *util.TestHttpServer, error) {
+func setupTestTa() (ta_ *ta, rediUri, taKid string, taPriKey crypto.PrivateKey, taServ *util.TestHttpServer, err error) {
 	taPort, err := util.FreePort()
 	if err != nil {
-		return nil, nil, erro.Wrap(err)
+		return nil, "", "", nil, nil, erro.Wrap(err)
 	}
 	taServer, err := util.NewTestHttpServer(taPort)
 	if err != nil {
-		return nil, nil, erro.Wrap(err)
+		return nil, "", "", nil, nil, erro.Wrap(err)
 	}
 	taBuff := *testTa
 	taBuff.Id = "http://localhost:" + strconv.Itoa(taPort)
-	taBuff.RediUris = map[string]bool{taBuff.Id + "/redirect_endpoint": true}
-	return &taBuff, taServer, nil
+	rediUri = taBuff.Id + "/redirect_endpoint"
+	taBuff.RediUris = map[string]bool{rediUri: true}
+	return &taBuff, rediUri, testTaKid, testTaPriKey, taServer, nil
 }
 
 // 認証リクエストを出す。
@@ -484,11 +485,13 @@ func TestSuccess(t *testing.T) {
 	// ////////////////////////////////
 
 	// 認可コードのリダイレクト先としての TA を用意。
-	testTa2, taServ, err := setupTestTa()
+	testTa2, rediUri, kid, sigKey, taServ, err := setupTestTa()
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	// 無事 TA にリダイレクトできたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
 	// edo-id-provider を用意。
 	sys, shutCh, err := setupTestIdp([]*account{testAcc}, []*ta{testTa2})
@@ -500,11 +503,6 @@ func TestSuccess(t *testing.T) {
 
 	// サーバ起動待ち。
 	time.Sleep(10 * time.Millisecond)
-
-	// 無事 TA にリダイレクトできたときのレスポンスを設定しておく。
-	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
-
-	rediUri := util.OneOfStringSet(testTa2.redirectUris())
 
 	cookJar, err := cookiejar.New(nil)
 	if err != nil {
@@ -527,6 +525,7 @@ func TestSuccess(t *testing.T) {
 		"consented_scope": "openid email",
 	}, map[string]interface{}{
 		"alg": "RS256",
+		"kid": kid,
 	}, map[string]interface{}{
 		"iss": testTa2.id(),
 		"sub": testTa2.id(),
@@ -538,7 +537,7 @@ func TestSuccess(t *testing.T) {
 		"redirect_uri":          rediUri,
 		"client_id":             testTa2.id(),
 		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
-	}, "", testTaPriKey, nil)
+	}, kid, sigKey, nil)
 	if err != nil {
 		t.Fatal(err)
 	} else if em, _ := res["email"].(string); em != testAcc.attribute("email") {

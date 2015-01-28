@@ -28,7 +28,7 @@ func redirectLoginUi(w http.ResponseWriter, r *http.Request, sys *system, sess *
 	if accNames := sess.accountNames(); len(accNames) > 0 {
 		buff, err := json.Marshal(util.StringSet(accNames))
 		if err != nil {
-			return redirectError(w, r, sys, sess, sess.request().redirectUri(), newIdpError(errServErr, erro.Unwrap(err).Error(), 0, erro.Wrap(err)))
+			return redirectError(w, r, sys, sess, sess.request().redirectUri(), erro.Wrap(err))
 		}
 
 		v.Set(formUsrNams, string(buff))
@@ -45,7 +45,7 @@ func redirectLoginUi(w http.ResponseWriter, r *http.Request, sys *system, sess *
 
 	tic, err := sys.newTicket()
 	if err != nil {
-		return redirectError(w, r, sys, sess, sess.request().redirectUri(), newIdpError(errServErr, erro.Unwrap(err).Error(), 0, erro.Wrap(err)))
+		return redirectError(w, r, sys, sess, sess.request().redirectUri(), erro.Wrap(err))
 	}
 	sess.setLoginTicket(tic)
 
@@ -55,13 +55,13 @@ func redirectLoginUi(w http.ResponseWriter, r *http.Request, sys *system, sess *
 	if sess.id() == "" {
 		id, err := sys.sessCont.newId()
 		if err != nil {
-			return redirectError(w, r, sys, sess, sess.request().redirectUri(), newIdpError(errServErr, erro.Unwrap(err).Error(), 0, erro.Wrap(err)))
+			return redirectError(w, r, sys, sess, sess.request().redirectUri(), erro.Wrap(err))
 		}
 		sess.setId(id)
 	}
 	sess.setExpirationDate(time.Now().Add(sys.sessExpiDur))
 	if err := sys.sessCont.put(sess); err != nil {
-		return redirectError(w, r, sys, sess, sess.request().redirectUri(), newIdpError(errServErr, erro.Unwrap(err).Error(), 0, erro.Wrap(err)))
+		return redirectError(w, r, sys, sess, sess.request().redirectUri(), erro.Wrap(err))
 	}
 
 	// セッションを保存した。
@@ -85,7 +85,7 @@ func loginPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 	sessId := req.session()
 	if sessId == "" {
 		// セッションが通知されてない。
-		return responseError(w, newIdpError(errInvReq, "no session", http.StatusBadRequest, nil))
+		return newIdpError(errInvReq, "no session", http.StatusBadRequest, nil)
 	}
 
 	// セッションが通知された。
@@ -93,13 +93,13 @@ func loginPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 
 	sess, err := sys.sessCont.get(sessId)
 	if err != nil {
-		return responseError(w, newIdpError(errServErr, erro.Unwrap(err).Error(), 0, erro.Wrap(err)))
+		return erro.Wrap(err)
 	} else if sess == nil {
 		// セッションなんて無かった。
-		return responseError(w, newIdpError(errInvReq, "no session "+mosaic(sessId), http.StatusBadRequest, nil))
+		return newIdpError(errInvReq, "no session "+mosaic(sessId), http.StatusBadRequest, nil)
 	} else if !sess.valid() {
 		// 無効なセッション。
-		return responseError(w, newIdpError(errInvReq, "invalid session "+mosaic(sessId), http.StatusBadRequest, nil))
+		return newIdpError(errInvReq, "invalid session "+mosaic(sessId), http.StatusBadRequest, nil)
 	}
 
 	// セッションが有効だった。
@@ -108,7 +108,7 @@ func loginPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 	authReq := sess.request()
 	if authReq == nil {
 		// ユーザー認証・認可処理が始まっていない。
-		return responseError(w, newIdpError(errInvReq, "session "+mosaic(sessId)+" is not in authentication process", http.StatusBadRequest, nil))
+		return newIdpError(errInvReq, "session "+mosaic(sessId)+" is not in authentication process", http.StatusBadRequest, nil)
 	}
 
 	// ユーザー認証・認可処理中。
@@ -138,7 +138,7 @@ func loginPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 
 	acc, err := sys.accCont.getByName(accName)
 	if err != nil {
-		return redirectError(w, r, sys, sess, authReq.redirectUri(), newIdpError(errServErr, erro.Unwrap(err).Error(), 0, erro.Wrap(err)))
+		return redirectError(w, r, sys, sess, authReq.redirectUri(), erro.Wrap(err))
 	} else if acc == nil {
 		// アカウントが無い。
 		log.Debug("Accout " + accName + " was not found")
@@ -177,7 +177,7 @@ func afterLogin(w http.ResponseWriter, r *http.Request, sys *system, sess *sessi
 	// 事前同意を調べる。
 	scops, clms, err := sys.consCont.get(sess.currentAccount(), sess.request().ta())
 	if err != nil {
-		return redirectError(w, r, sys, sess, sess.request().redirectUri(), newIdpError(errServErr, erro.Unwrap(err).Error(), 0, erro.Wrap(err)))
+		return redirectError(w, r, sys, sess, sess.request().redirectUri(), erro.Wrap(err))
 	}
 	if satisfiable(scops, clms, sess.request().scopes(), sess.request().claimNames()) {
 		// 事前同意で十分。

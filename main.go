@@ -220,5 +220,5 @@ func serve(sys *system, socType, socPath string, socPort int, protType string, s
 			}
 		}
 	}
-	return util.TerminableServe(socType, socPath, socPort, protType, routes, shutCh)
+	return util.TerminableServe(socType, socPath, socPort, protType, routes, shutCh, panicErrorWrapper)
 }

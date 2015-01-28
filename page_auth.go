@@ -17,7 +17,7 @@ func publishCode(w http.ResponseWriter, r *http.Request, sys *system, sess *sess
 
 	codId, err := sys.codCont.newId()
 	if err != nil {
-		return redirectError(w, r, sys, sess, authReq.redirectUri(), newIdpError(errServErr, erro.Unwrap(err).Error(), 0, erro.Wrap(err)))
+		return redirectError(w, r, sys, sess, authReq.redirectUri(), erro.Wrap(err))
 	}
 	cod := newCode(
 		codId,
@@ -34,7 +34,7 @@ func publishCode(w http.ResponseWriter, r *http.Request, sys *system, sess *sess
 	log.Debug("Code " + mosaic(cod.id()) + " was generated.")
 
 	if err := sys.codCont.put(cod); err != nil {
-		return redirectError(w, r, sys, sess, authReq.redirectUri(), newIdpError(errServErr, erro.Unwrap(err).Error(), 0, erro.Wrap(err)))
+		return redirectError(w, r, sys, sess, authReq.redirectUri(), erro.Wrap(err))
 	}
 
 	// 認可コードを発行した。
@@ -43,19 +43,19 @@ func publishCode(w http.ResponseWriter, r *http.Request, sys *system, sess *sess
 	if sess.id() == "" {
 		id, err := sys.sessCont.newId()
 		if err != nil {
-			return redirectError(w, r, sys, sess, authReq.redirectUri(), newIdpError(errServErr, erro.Unwrap(err).Error(), 0, erro.Wrap(err)))
+			return redirectError(w, r, sys, sess, authReq.redirectUri(), erro.Wrap(err))
 		}
 		sess.setId(id)
 	}
 	sess.setExpirationDate(time.Now().Add(sys.sessExpiDur))
 	if err := sys.sessCont.put(sess); err != nil {
-		return redirectError(w, r, sys, sess, authReq.redirectUri(), newIdpError(errServErr, erro.Unwrap(err).Error(), 0, erro.Wrap(err)))
+		return redirectError(w, r, sys, sess, authReq.redirectUri(), erro.Wrap(err))
 	}
 
 	log.Debug("Session " + mosaic(sess.id()) + " was registered")
 
 	if err := sys.consCont.put(sess.currentAccount(), authReq.ta(), consScops, consClms, denyScops, denyClms); err != nil {
-		return redirectError(w, r, sys, sess, authReq.redirectUri(), newIdpError(errServErr, erro.Unwrap(err).Error(), 0, erro.Wrap(err)))
+		return redirectError(w, r, sys, sess, authReq.redirectUri(), erro.Wrap(err))
 	}
 
 	// 認可コードを IdP の ID を含んだ JWS にする。
@@ -64,11 +64,11 @@ func publishCode(w http.ResponseWriter, r *http.Request, sys *system, sess *sess
 	jws.SetClaim(clmJti, cod.id())
 	jws.SetClaim(clmIss, sys.selfId)
 	if err := jws.Sign(nil); err != nil {
-		return redirectError(w, r, sys, sess, authReq.redirectUri(), newIdpError(errServErr, erro.Unwrap(err).Error(), 0, erro.Wrap(err)))
+		return redirectError(w, r, sys, sess, authReq.redirectUri(), erro.Wrap(err))
 	}
 	buff, err := jws.Encode()
 	if err != nil {
-		return redirectError(w, r, sys, sess, authReq.redirectUri(), newIdpError(errServErr, erro.Unwrap(err).Error(), 0, erro.Wrap(err)))
+		return redirectError(w, r, sys, sess, authReq.redirectUri(), erro.Wrap(err))
 	}
 	encCod := string(buff)
 
@@ -94,11 +94,11 @@ func publishCode(w http.ResponseWriter, r *http.Request, sys *system, sess *sess
 func authPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 	req, err := newAuthRequest(r)
 	if err != nil {
-		return responseError(w, erro.Wrap(err))
+		return erro.Wrap(err)
 	}
 
 	if req.ta() == "" {
-		return responseError(w, newIdpError(errInvReq, "no "+formTaId, http.StatusBadRequest, nil))
+		return newIdpError(errInvReq, "no "+formTaId, http.StatusBadRequest, nil)
 	}
 
 	// TA が指定されてる。
@@ -106,9 +106,9 @@ func authPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 
 	t, err := sys.taCont.get(req.ta())
 	if err != nil {
-		return responseError(w, newIdpError(errServErr, erro.Unwrap(err).Error(), 0, erro.Wrap(err)))
+		return erro.Wrap(err)
 	} else if t == nil {
-		return responseError(w, newIdpError(errInvReq, "invalid TA "+req.ta(), http.StatusBadRequest, nil))
+		return newIdpError(errInvReq, "invalid TA "+req.ta(), http.StatusBadRequest, nil)
 	}
 
 	// TA は存在する。
@@ -116,13 +116,13 @@ func authPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 	req.setTaName(t.name())
 
 	if req.rawRedirectUri() == "" {
-		return responseError(w, newIdpError(errInvReq, "no "+formRediUri, http.StatusBadRequest, nil))
+		return newIdpError(errInvReq, "no "+formRediUri, http.StatusBadRequest, nil)
 	} else if !t.redirectUris()[req.rawRedirectUri()] {
-		return responseError(w, newIdpError(errInvReq, formRediUri+" "+req.rawRedirectUri()+" is not registered", http.StatusBadRequest, nil))
+		return newIdpError(errInvReq, formRediUri+" "+req.rawRedirectUri()+" is not registered", http.StatusBadRequest, nil)
 	}
 	rediUri, err := url.Parse(req.rawRedirectUri())
 	if err != nil {
-		return responseError(w, newIdpError(errInvReq, err.Error(), http.StatusBadRequest, nil))
+		return newIdpError(errInvReq, erro.Unwrap(err).Error(), http.StatusBadRequest, erro.Wrap(err))
 	}
 
 	// リダイレクト先には問題無い。
@@ -158,7 +158,7 @@ func authPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 		var err error
 		sess, err = sys.sessCont.get(sessId)
 		if err != nil {
-			return redirectError(w, r, sys, nil, req.redirectUri(), newIdpError(errServErr, erro.Unwrap(err).Error(), 0, erro.Wrap(err)))
+			return redirectError(w, r, sys, nil, req.redirectUri(), erro.Wrap(err))
 		} else if sess == nil {
 			// セッションなんて無かった。
 			log.Warn("Session " + mosaic(sessId) + " is not exist")

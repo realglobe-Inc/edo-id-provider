@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
+	"github.com/realglobe-Inc/go-lib-rg/rglog/level"
 	"net/http"
 	"strconv"
 )
 
-func responseError(w http.ResponseWriter, err error) error {
+func responseError(w http.ResponseWriter, err error) {
 	// リダイレクトでエラーを返す時のように認証経過を廃棄する必要は無い。
 	// 認証が始まって経過が記録されているなら、既にリダイレクト先が分かっているので、
 	// リダイレクトでエラーを返す。
@@ -48,5 +49,26 @@ func responseError(w http.ResponseWriter, err error) error {
 		log.Err(erro.Unwrap(err))
 		log.Debug(err)
 	}
-	return nil
+	return
+}
+
+// パニックとエラーの処理をまとめる。
+func panicErrorWrapper(handler util.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// panic時にプロセス終了しないようにrecoverする
+		defer func() {
+			if rcv := recover(); rcv != nil {
+				responseError(w, erro.New(rcv))
+			}
+		}()
+
+		//////////////////////////////
+		util.LogRequest(level.DEBUG, r, true)
+		//////////////////////////////
+
+		if err := handler(w, r); err != nil {
+			responseError(w, erro.Wrap(err))
+			return
+		}
+	}
 }

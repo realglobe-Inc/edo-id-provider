@@ -210,6 +210,11 @@ func serve(sys *system, socType, socPath string, socPort int, protType string, s
 			return accountInfoApi(w, r, sys)
 		},
 	}
+	if routes["/"] == nil {
+		routes["/"] = func(w http.ResponseWriter, r *http.Request) error {
+			return newIdpError(errInvReq, "invalid endpoint", http.StatusNotFound, nil)
+		}
+	}
 	if sys.uiPath != "" {
 		// ファイル配信も自前でやる。
 		fileHndl := http.StripPrefix(sys.uiUri, http.FileServer(http.Dir(sys.uiPath)))

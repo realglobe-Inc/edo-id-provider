@@ -505,22 +505,15 @@ func TestSuccess(t *testing.T) {
 	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	// 認可コードのリダイレクト先としての TA を用意。
-	testTa2, rediUri, kid, sigKey, taServ, err := setupTestTa()
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp([]*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
-	// 無事 TA にリダイレクトできたときのレスポンスを設定しておく。
-	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
-
-	// edo-id-provider を用意。
-	sys, shutCh, err := setupTestIdp([]*account{testAcc}, []*ta{testTa2})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(sys.uiPath)
+	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトできたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
 	// サーバ起動待ち。
 	time.Sleep(10 * time.Millisecond)
@@ -531,7 +524,7 @@ func TestSuccess(t *testing.T) {
 	}
 	cli := &http.Client{Jar: cookJar}
 
-	res, err := testFromRequestAuthToGetAccountInfo(sys, cli, map[string]string{
+	res, err := testFromRequestAuthToGetAccountInfo(idpSys, cli, map[string]string{
 		"scope":         "openid email",
 		"response_type": "code",
 		"client_id":     testTa2.id(),
@@ -550,9 +543,9 @@ func TestSuccess(t *testing.T) {
 	}, map[string]interface{}{
 		"iss": testTa2.id(),
 		"sub": testTa2.id(),
-		"aud": sys.selfId + "/token",
+		"aud": idpSys.selfId + "/token",
 		"jti": strconv.FormatInt(time.Now().UnixNano(), 16),
-		"exp": time.Now().Add(sys.idTokExpiDur).Unix(),
+		"exp": time.Now().Add(idpSys.idTokExpiDur).Unix(),
 	}, map[string]string{
 		"grant_type":            "authorization_code",
 		"redirect_uri":          rediUri,

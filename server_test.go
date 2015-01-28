@@ -144,12 +144,16 @@ func setupTestTa() (*ta, *util.TestHttpServer, error) {
 
 // 認証リクエストを出す。
 // 返り値を Close すること。
-func testRequestAuth(idpSys *system, cli *http.Client, authParams url.Values) (*http.Response, error) {
-	if authParams == nil {
-		authParams = url.Values{}
+// パラメータ値が空文字列なら、そのパラメータを設定しない。
+func testRequestAuth(idpSys *system, cli *http.Client, authParams map[string]string) (*http.Response, error) {
+	q := url.Values{}
+	for k, v := range authParams {
+		if v != "" {
+			q.Set(k, v)
+		}
 	}
 
-	req, err := http.NewRequest("GET", idpSys.selfId+"/auth?"+authParams.Encode(), nil)
+	req, err := http.NewRequest("GET", idpSys.selfId+"/auth?"+q.Encode(), nil)
 	if err != nil {
 		return nil, erro.Wrap(err)
 	}
@@ -169,6 +173,7 @@ func testRequestAuth(idpSys *system, cli *http.Client, authParams url.Values) (*
 
 // アカウント選択 UI にリダイレクトされてたらアカウント選択する。
 // 返り値の Body を Close すること。
+// パラメータ値が空文字列なら、そのパラメータを設定しない。
 func testSelectAccount(idpSys *system, cli *http.Client, authResp *http.Response, selParams map[string]string) (*http.Response, error) {
 	if authResp.Request.URL.Path != idpSys.uiUri+"/select.html" {
 		// アカウント選択 UI にリダイレクトされてない。
@@ -182,7 +187,9 @@ func testSelectAccount(idpSys *system, cli *http.Client, authResp *http.Response
 	tic := authResp.Request.URL.Fragment
 	q := url.Values{}
 	for k, v := range selParams {
-		q.Set(k, v)
+		if v != "" {
+			q.Set(k, v)
+		}
 	}
 	if v, ok := selParams["ticket"]; !(ok && v == "") {
 		q.Set("ticket", tic)
@@ -207,6 +214,7 @@ func testSelectAccount(idpSys *system, cli *http.Client, authResp *http.Response
 
 // ログイン UI にリダイレクトされてたらログインする。
 // 返り値の Body を Close すること。
+// パラメータ値が空文字列なら、そのパラメータを設定しない。
 func testLogin(idpSys *system, cli *http.Client, selResp *http.Response, loginParams map[string]string) (*http.Response, error) {
 	if selResp.Request.URL.Path != idpSys.uiUri+"/login.html" {
 		// ログイン UI にリダイレクトされてない。
@@ -220,7 +228,9 @@ func testLogin(idpSys *system, cli *http.Client, selResp *http.Response, loginPa
 	tic := selResp.Request.URL.Fragment
 	q := url.Values{}
 	for k, v := range loginParams {
-		q.Set(k, v)
+		if v != "" {
+			q.Set(k, v)
+		}
 	}
 	if v, ok := loginParams["ticket"]; !(ok && v == "") {
 		q.Set("ticket", tic)
@@ -245,6 +255,7 @@ func testLogin(idpSys *system, cli *http.Client, selResp *http.Response, loginPa
 
 // 同意 UI にリダイレクトされてたら同意する。
 // 返り値の Body を Close すること。
+// パラメータ値が空文字列なら、そのパラメータを設定しない。
 func testConsent(idpSys *system, cli *http.Client, loginResp *http.Response, consParams map[string]string) (*http.Response, error) {
 	if loginResp.Request.URL.Path != idpSys.uiUri+"/consent.html" {
 		// 同意 UI にリダイレクトされてない。
@@ -257,7 +268,9 @@ func testConsent(idpSys *system, cli *http.Client, loginResp *http.Response, con
 	tic := loginResp.Request.URL.Fragment
 	q := url.Values{}
 	for k, v := range consParams {
-		q.Set(k, v)
+		if v != "" {
+			q.Set(k, v)
+		}
 	}
 	if v, ok := consParams["ticket"]; !(ok && v == "") {
 		q.Set("ticket", tic)
@@ -283,7 +296,7 @@ func testConsent(idpSys *system, cli *http.Client, loginResp *http.Response, con
 
 // アクセストークンを取得する。
 // 返り値は JSON を Unmarshal したもの。
-// パラメータが nil や空文字列なら、そのパラメータを設定しない。
+// パラメータ値が nil や空文字列なら、そのパラメータを設定しない。
 func testGetToken(idpSys *system, consResp *http.Response, assHeads, assClms map[string]interface{}, reqParams map[string]string, kid string, sigKey crypto.PrivateKey) (map[string]interface{}, error) {
 	if assHeads == nil {
 		assHeads = map[string]interface{}{}
@@ -371,7 +384,7 @@ func testGetToken(idpSys *system, consResp *http.Response, assHeads, assClms map
 
 // アカウント情報を取得する。
 // 返り値は JSON を Unmarshal したもの。
-// パラメータが nil や空文字列なら、そのパラメータを設定しない。
+// パラメータ値が nil や空文字列なら、そのパラメータを設定しない。
 func testGetAccountInfo(idpSys *system, tokRes map[string]interface{}, reqHeads map[string]string) (map[string]interface{}, error) {
 	tok, _ := tokRes["access_token"].(string)
 	if tok == "" {
@@ -454,12 +467,12 @@ func TestSuccess(t *testing.T) {
 	cli := &http.Client{Jar: cookJar}
 
 	// リクエストする。
-	authResp, err := testRequestAuth(sys, cli, url.Values{
-		"scope":         {"openid email"},
-		"response_type": {"code"},
-		"client_id":     {testTa2.id()},
-		"redirect_uri":  {rediUri},
-		"prompt":        {"select_account login consent"},
+	authResp, err := testRequestAuth(sys, cli, map[string]string{
+		"scope":         "openid email",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+		"redirect_uri":  rediUri,
+		"prompt":        "select_account login consent",
 	})
 	if err != nil {
 		t.Fatal(err)

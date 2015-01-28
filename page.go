@@ -72,77 +72,34 @@ const (
 	tokTypeBear = "Bearer"
 )
 
-const (
-	errInvReq = iota
-	errAccDeny
-	errUnsuppRespType
-	errInvScop
-	errServErr
-
-	errInteractReq
-	errLoginReq
-	errAccSelReq
-	errConsReq
-	errReqNotSupp
-	errReqUriNotSupp
-	errRegNotSupp
-
-	errUnsuppGrntType
-	errInvGrnt
-	errInvTa
-
-	errInvTok
-)
-
-var errCods []string = []string{
-	errInvReq:         "invalid_request",
-	errAccDeny:        "access_dnied",
-	errUnsuppRespType: "unsupported_response_type",
-	errInvScop:        "invalid_scope",
-	errServErr:        "server_error",
-
-	errInteractReq:   "interaction_required",
-	errLoginReq:      "login_required",
-	errAccSelReq:     "account_selection_required",
-	errConsReq:       "consent_required",
-	errReqNotSupp:    "request_not_supported",
-	errReqUriNotSupp: "request_uri_not_supported",
-	errRegNotSupp:    "registration_not_supported",
-
-	errUnsuppGrntType: "unsupported_grant_type",
-	errInvGrnt:        "invalid_grant",
-	errInvTa:          "invalid_client",
-
-	// OpenID Connect の仕様ではサンプルとしてしか登場しない。
-	errInvTok: "invalid_token",
-}
-
-// リダイレクトしてエラーを通知する。
-func redirectError(w http.ResponseWriter, r *http.Request, sys *system, sess *session, rediUri *url.URL, errCod int, errDesc string) error {
-	log.Debug(errDesc)
+func redirectError(w http.ResponseWriter, r *http.Request, sys *system, sess *session, rediUri *url.URL, err error) error {
 	if sess != nil && sess.id() != "" {
+		// 認証経過を廃棄。
 		sess.abort()
 		if err := sys.sessCont.put(sess); err != nil {
 			err = erro.Wrap(err)
 			log.Err(erro.Unwrap(err))
 			log.Debug(err)
+		} else {
+			log.Debug("Session " + mosaic(sess.id()) + " was aborted")
 		}
-		log.Debug("Session " + mosaic(sess.id()) + " was aborted")
 	}
 
 	q := rediUri.Query()
-	q.Set(formErr, errCods[errCod])
-	if errDesc != "" {
-		q.Set(formErrDesc, errDesc)
+	switch e := erro.Unwrap(err).(type) {
+	case *idpError:
+		log.Err(e.errorDescription())
+		log.Debug(e)
+		q.Set(formErr, e.errorCode())
+		q.Set(formErrDesc, e.errorDescription())
+	default:
+		log.Err(e)
+		log.Debug(err)
+		q.Set(formErr, errServErr)
+		q.Set(formErrDesc, e.Error())
 	}
+
 	rediUri.RawQuery = q.Encode()
 	http.Redirect(w, r, rediUri.String(), http.StatusFound)
 	return nil
-}
-
-// リダイレクトしてサーバーエラーを通知する。
-func redirectServerError(w http.ResponseWriter, r *http.Request, sys *system, sess *session, rediUri *url.URL, err error) error {
-	log.Err(erro.Unwrap(err))
-	log.Debug(err)
-	return redirectError(w, r, sys, sess, rediUri, errServErr, erro.Unwrap(err).Error())
 }

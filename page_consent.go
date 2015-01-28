@@ -47,7 +47,7 @@ func redirectConsentUi(w http.ResponseWriter, r *http.Request, sys *system, sess
 
 	tic, err := sys.newTicket()
 	if err != nil {
-		return redirectServerError(w, r, sys, sess, sess.request().redirectUri(), erro.Wrap(err))
+		return redirectError(w, r, sys, sess, sess.request().redirectUri(), newIdpError(errServErr, erro.Unwrap(err).Error(), 0, erro.Wrap(err)))
 	}
 	sess.setConsentTicket(tic)
 
@@ -57,13 +57,13 @@ func redirectConsentUi(w http.ResponseWriter, r *http.Request, sys *system, sess
 	if sess.id() == "" {
 		id, err := sys.sessCont.newId()
 		if err != nil {
-			return redirectServerError(w, r, sys, sess, sess.request().redirectUri(), erro.Wrap(err))
+			return redirectError(w, r, sys, sess, sess.request().redirectUri(), newIdpError(errServErr, erro.Unwrap(err).Error(), 0, erro.Wrap(err)))
 		}
 		sess.setId(id)
 	}
 	sess.setExpirationDate(time.Now().Add(sys.sessExpiDur))
 	if err := sys.sessCont.put(sess); err != nil {
-		return redirectServerError(w, r, sys, sess, sess.request().redirectUri(), erro.Wrap(err))
+		return redirectError(w, r, sys, sess, sess.request().redirectUri(), newIdpError(errServErr, erro.Unwrap(err).Error(), 0, erro.Wrap(err)))
 	}
 
 	// セッションを保存した。
@@ -87,7 +87,7 @@ func consentPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 	sessId := req.session()
 	if sessId == "" {
 		// セッションが通知されてない。
-		return responseError(w, http.StatusBadRequest, errInvReq, "no session")
+		return responseError(w, newIdpError(errInvReq, "no session", http.StatusBadRequest, nil))
 	}
 
 	// セッションが通知された。
@@ -95,13 +95,13 @@ func consentPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 
 	sess, err := sys.sessCont.get(sessId)
 	if err != nil {
-		return responseServerError(w, http.StatusInternalServerError, erro.Wrap(err))
+		return responseError(w, newIdpError(errServErr, erro.Unwrap(err).Error(), 0, erro.Wrap(err)))
 	} else if sess == nil {
 		// セッションなんて無かった。
-		return responseError(w, http.StatusBadRequest, errInvReq, "no session "+mosaic(sessId))
+		return responseError(w, newIdpError(errInvReq, "no session "+mosaic(sessId), http.StatusBadRequest, nil))
 	} else if !sess.valid() {
 		// 無効なセッション。
-		return responseError(w, http.StatusBadRequest, errInvReq, "invalid session "+mosaic(sessId))
+		return responseError(w, newIdpError(errInvReq, "invalid session "+mosaic(sessId), http.StatusBadRequest, nil))
 	}
 
 	// セッションが有効だった。
@@ -110,7 +110,7 @@ func consentPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 	authReq := sess.request()
 	if authReq == nil {
 		// ユーザー認証・認可処理が始まっていない。
-		return responseError(w, http.StatusBadRequest, errInvReq, "session "+mosaic(sessId)+" is not in authentication process")
+		return responseError(w, newIdpError(errInvReq, "session "+mosaic(sessId)+" is not in authentication process", http.StatusBadRequest, nil))
 	}
 
 	// ユーザー認証・認可処理中。
@@ -119,10 +119,10 @@ func consentPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 	tic := sess.consentTicket()
 	if tic == "" {
 		// 同意中でない。
-		return redirectError(w, r, sys, sess, authReq.redirectUri(), errAccDeny, "not in consent process")
+		return redirectError(w, r, sys, sess, authReq.redirectUri(), newIdpError(errAccDeny, "not in consent process", 0, nil))
 	} else if t := req.ticket(); t != tic {
 		// 無効な同意券。
-		return redirectError(w, r, sys, sess, authReq.redirectUri(), errAccDeny, "invalid consent ticket "+mosaic(t))
+		return redirectError(w, r, sys, sess, authReq.redirectUri(), newIdpError(errAccDeny, "invalid consent ticket "+mosaic(t), 0, nil))
 	}
 
 	// 同意券が有効だった。
@@ -131,7 +131,7 @@ func consentPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 	scops, clms, denyScops, denyClms := req.consentInfo()
 	if scops == nil || clms == nil || denyScops == nil || denyClms == nil {
 		// 同意情報不備。
-		return redirectError(w, r, sys, sess, authReq.redirectUri(), errAccDeny, "consent info was not found")
+		return redirectError(w, r, sys, sess, authReq.redirectUri(), newIdpError(errAccDeny, "consent info was not found", 0, nil))
 	}
 
 	// 同意情報があった。
@@ -140,7 +140,7 @@ func consentPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 	sess.consent(scops, clms, denyScops, denyClms)
 	if s, c := sess.unconsentedEssentials(); len(s) > 0 || len(c) > 0 {
 		// 同意が足りなかった。
-		return redirectError(w, r, sys, sess, authReq.redirectUri(), errAccDeny, fmt.Sprint("essential consent for ", s, c, " was denied"))
+		return redirectError(w, r, sys, sess, authReq.redirectUri(), newIdpError(errAccDeny, fmt.Sprint("essential consent for ", s, c, " was denied"), 0, nil))
 	}
 
 	// 同意できた。

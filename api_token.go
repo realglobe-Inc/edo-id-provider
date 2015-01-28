@@ -48,7 +48,7 @@ func responseToken(w http.ResponseWriter, tok *token) error {
 	}
 	buff, err := json.Marshal(m)
 	if err != nil {
-		return responseServerError(w, http.StatusBadRequest, erro.Wrap(err))
+		return responseError(w, newIdpError(errServErr, erro.Unwrap(err).Error(), http.StatusBadRequest, erro.Wrap(err)))
 	}
 
 	w.Header().Add("Cache-Control", "no-store")
@@ -65,16 +65,16 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 	req := newTokenRequest(r)
 
 	if grntType := req.grantType(); grntType == "" {
-		return responseError(w, http.StatusBadRequest, errInvReq, "no "+formGrntType)
+		return responseError(w, newIdpError(errInvReq, "no "+formGrntType, http.StatusBadRequest, nil))
 	} else if grntType == grntTypeCod {
-		return responseError(w, http.StatusBadRequest, errUnsuppGrntType, grntType+" is not supported")
+		return responseError(w, newIdpError(errUnsuppGrntType, grntType+" is not supported", http.StatusBadRequest, nil))
 	}
 
 	log.Debug("Grant type is " + grntTypeCod)
 
 	rawCod := req.code()
 	if rawCod == "" {
-		return responseError(w, http.StatusBadRequest, errInvReq, "no "+formCod)
+		return responseError(w, newIdpError(errInvReq, "no "+formCod, http.StatusBadRequest, nil))
 	}
 
 	log.Debug("Raw code " + mosaic(rawCod) + " is declared")
@@ -93,12 +93,12 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 
 	cod, err := sys.codCont.get(codId)
 	if err != nil {
-		return responseServerError(w, http.StatusBadRequest, erro.Wrap(err))
+		return responseError(w, newIdpError(errServErr, erro.Unwrap(err).Error(), http.StatusBadRequest, erro.Wrap(err)))
 	} else if cod == nil {
-		return responseError(w, http.StatusBadRequest, errInvGrnt, "code "+mosaic(codId)+" is not exist")
+		return responseError(w, newIdpError(errInvGrnt, "code "+mosaic(codId)+" is not exist", http.StatusBadRequest, nil))
 	} else if !cod.valid() {
 		// TODO 発行したアクセストークンを無効に。
-		return responseError(w, http.StatusBadRequest, errInvGrnt, "code "+mosaic(codId)+" is invalid")
+		return responseError(w, newIdpError(errInvGrnt, "code "+mosaic(codId)+" is invalid", http.StatusBadRequest, nil))
 	}
 
 	log.Debug("Code " + mosaic(codId) + " is exist")
@@ -106,7 +106,7 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 	// 認可コードを使用済みにする。
 	cod.disable()
 	if err := sys.codCont.put(cod); err != nil {
-		return responseServerError(w, http.StatusBadRequest, erro.Wrap(err))
+		return responseError(w, newIdpError(errServErr, erro.Unwrap(err).Error(), http.StatusBadRequest, erro.Wrap(err)))
 	}
 
 	log.Debug("Code " + mosaic(codId) + " is disabled")
@@ -116,31 +116,31 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 		taId = cod.taId()
 		log.Debug("TA ID is " + taId + " in code")
 	} else if taId != cod.taId() {
-		return responseError(w, http.StatusBadRequest, errInvTa, "you are not code holder")
+		return responseError(w, newIdpError(errInvTa, "you are not code holder", http.StatusBadRequest, nil))
 	} else {
 		log.Debug("TA ID " + taId + " is declared")
 	}
 
 	rediUri := req.redirectUri()
 	if rediUri == "" {
-		return responseError(w, http.StatusBadRequest, errInvReq, "no "+formRediUri)
+		return responseError(w, newIdpError(errInvReq, "no "+formRediUri, http.StatusBadRequest, nil))
 	} else if rediUri != cod.redirectUri() {
-		return responseError(w, http.StatusBadRequest, errInvTa, "invalid "+formRediUri)
+		return responseError(w, newIdpError(errInvTa, "invalid "+formRediUri, http.StatusBadRequest, nil))
 	}
 
 	log.Debug(formRediUri + " matches that of code")
 
 	if taAssType := req.taAssertionType(); taAssType == "" {
-		return responseError(w, http.StatusBadRequest, errInvTa, "no "+formTaAssType)
+		return responseError(w, newIdpError(errInvTa, "no "+formTaAssType, http.StatusBadRequest, nil))
 	} else if taAssType != taAssTypeJwt {
-		return responseError(w, http.StatusBadRequest, errInvTa, taAssType+" is not supported")
+		return responseError(w, newIdpError(errInvTa, taAssType+" is not supported", http.StatusBadRequest, nil))
 	}
 
 	log.Debug(formTaAssType + " is " + taAssTypeJwt)
 
 	taAss := req.taAssertion()
 	if taAss == "" {
-		return responseError(w, http.StatusBadRequest, errInvTa, "no "+formTaAss)
+		return responseError(w, newIdpError(errInvTa, "no "+formTaAss, http.StatusBadRequest, nil))
 	}
 
 	log.Debug(formTaAss + " is found")
@@ -151,28 +151,28 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 		err = erro.Wrap(err)
 		log.Err(erro.Unwrap(err))
 		log.Debug(err)
-		return responseError(w, http.StatusBadRequest, errInvTa, erro.Unwrap(err).Error())
+		return responseError(w, newIdpError(errInvTa, erro.Unwrap(err).Error(), http.StatusBadRequest, nil))
 	}
 
 	now := time.Now()
 	if assJws.Claim(clmIss) != taId {
-		return responseError(w, http.StatusBadRequest, errInvTa, "assertion "+clmIss+" is not "+taId)
+		return responseError(w, newIdpError(errInvTa, "assertion "+clmIss+" is not "+taId, http.StatusBadRequest, nil))
 	} else if assJws.Claim(clmSub) != taId {
-		return responseError(w, http.StatusBadRequest, errInvTa, "assertion "+clmSub+" is not "+taId)
+		return responseError(w, newIdpError(errInvTa, "assertion "+clmSub+" is not "+taId, http.StatusBadRequest, nil))
 	} else if jti := assJws.Claim(clmJti); jti == nil || jti == "" {
-		return responseError(w, http.StatusBadRequest, errInvTa, "no assertion "+clmJti)
+		return responseError(w, newIdpError(errInvTa, "no assertion "+clmJti, http.StatusBadRequest, nil))
 	} else if exp, _ := assJws.Claim(clmExp).(float64); exp == 0 {
-		return responseError(w, http.StatusBadRequest, errInvTa, "no assertion "+clmExp)
+		return responseError(w, newIdpError(errInvTa, "no assertion "+clmExp, http.StatusBadRequest, nil))
 	} else if intExp := int64(exp); exp != float64(intExp) {
-		return responseError(w, http.StatusBadRequest, errInvTa, "assertion "+clmExp+" is not integer")
+		return responseError(w, newIdpError(errInvTa, "assertion "+clmExp+" is not integer", http.StatusBadRequest, nil))
 	} else if intExp < now.Unix() {
-		return responseError(w, http.StatusBadRequest, errInvTa, "assertion expired")
+		return responseError(w, newIdpError(errInvTa, "assertion expired", http.StatusBadRequest, nil))
 	} else if aud := assJws.Claim(clmAud); aud == nil {
-		return responseError(w, http.StatusBadRequest, errInvTa, "no assertion "+clmAud)
+		return responseError(w, newIdpError(errInvTa, "no assertion "+clmAud, http.StatusBadRequest, nil))
 	} else if !audienceHas(aud, sys.selfId+tokPath) {
-		return responseError(w, http.StatusBadRequest, errInvTa, "assertion "+clmAud+" does not contain "+sys.selfId+tokPath)
+		return responseError(w, newIdpError(errInvTa, "assertion "+clmAud+" does not contain "+sys.selfId+tokPath, http.StatusBadRequest, nil))
 	} else if c := assJws.Claim(clmCod); !((rawCod != "" || c == rawCod) || c == codId) {
-		return responseError(w, http.StatusBadRequest, errInvTa, "invalid assertion "+clmCod)
+		return responseError(w, newIdpError(errInvTa, "invalid assertion "+clmCod, http.StatusBadRequest, nil))
 	}
 
 	// クライアント認証情報は揃ってた。
@@ -180,16 +180,16 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 
 	ta, err := sys.taCont.get(taId)
 	if err != nil {
-		return responseServerError(w, http.StatusBadRequest, erro.Wrap(err))
+		return responseError(w, newIdpError(errServErr, erro.Unwrap(err).Error(), http.StatusBadRequest, erro.Wrap(err)))
 	}
 
 	if assJws.Header(jwtAlg) == algNone {
-		return responseError(w, http.StatusBadRequest, errInvTa, "asserion "+jwtAlg+" must not be "+algNone)
+		return responseError(w, newIdpError(errInvTa, "asserion "+jwtAlg+" must not be "+algNone, http.StatusBadRequest, nil))
 	} else if err := assJws.Verify(ta.keys()); err != nil {
 		err = erro.Wrap(err)
 		log.Err(erro.Unwrap(err))
 		log.Debug(err)
-		return responseError(w, http.StatusBadRequest, errInvTa, erro.Unwrap(err).Error())
+		return responseError(w, newIdpError(errInvTa, erro.Unwrap(err).Error(), http.StatusBadRequest, nil))
 	}
 
 	// クライアント認証できた。
@@ -212,11 +212,11 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 		idTokJws.SetClaim(clmNonc, cod.nonce())
 	}
 	if err := idTokJws.Sign(map[string]crypto.PrivateKey{sys.sigKid: sys.sigKey}); err != nil {
-		return responseServerError(w, http.StatusBadRequest, erro.Wrap(err))
+		return responseError(w, newIdpError(errServErr, erro.Unwrap(err).Error(), http.StatusBadRequest, erro.Wrap(err)))
 	}
 	buff, err := idTokJws.Encode()
 	if err != nil {
-		return responseServerError(w, http.StatusBadRequest, erro.Wrap(err))
+		return responseError(w, newIdpError(errServErr, erro.Unwrap(err).Error(), http.StatusBadRequest, erro.Wrap(err)))
 	}
 	idTok := string(buff)
 
@@ -225,7 +225,7 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 
 	tokId, err := sys.tokCont.newId()
 	if err != nil {
-		return responseServerError(w, http.StatusBadRequest, erro.Wrap(err))
+		return responseError(w, newIdpError(errServErr, erro.Unwrap(err).Error(), http.StatusBadRequest, erro.Wrap(err)))
 	}
 	tok := newToken(
 		tokId,
@@ -239,7 +239,7 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 		idTok,
 	)
 	if err := sys.tokCont.put(tok); err != nil {
-		return responseServerError(w, http.StatusBadRequest, erro.Wrap(err))
+		return responseError(w, newIdpError(errServErr, erro.Unwrap(err).Error(), http.StatusBadRequest, erro.Wrap(err)))
 	}
 
 	// アクセストークンが決まった。

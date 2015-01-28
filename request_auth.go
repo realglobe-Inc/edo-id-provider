@@ -32,7 +32,7 @@ type claimRequest struct {
 	Loc string `json:"locale,omitempty"`
 }
 
-// エラーは HttpStatusError の予定。
+// エラーは idpError。
 func newAuthRequest(r *http.Request) (*authRequest, error) {
 	// TODO claims, request, request_uri パラメータのサポート。
 

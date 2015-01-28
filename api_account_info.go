@@ -13,7 +13,7 @@ const (
 func responseAccountInfo(w http.ResponseWriter, info map[string]interface{}) error {
 	buff, err := json.Marshal(info)
 	if err != nil {
-		return responseServerError(w, http.StatusBadRequest, erro.Wrap(err))
+		return responseError(w, newIdpError(errServErr, erro.Unwrap(err).Error(), http.StatusBadRequest, erro.Wrap(err)))
 	}
 
 	if _, err := w.Write(buff); err != nil {
@@ -28,43 +28,43 @@ func accountInfoApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 	req := newAccountInfoRequest(r)
 
 	if req.scheme() != scBear {
-		return responseError(w, http.StatusBadRequest, errInvReq, "authorization scheme "+req.scheme()+" is not supported")
+		return responseError(w, newIdpError(errInvReq, "authorization scheme "+req.scheme()+" is not supported", http.StatusBadRequest, nil))
 	}
 
 	log.Debug("Authrization scheme " + req.scheme() + " is OK")
 
 	tokId := req.token()
 	if tokId == "" {
-		return responseError(w, http.StatusBadRequest, errInvReq, "no token")
+		return responseError(w, newIdpError(errInvReq, "no token", http.StatusBadRequest, nil))
 	}
 
 	log.Debug("Token " + mosaic(tokId) + " is declared")
 
 	tok, err := sys.tokCont.get(tokId)
 	if err != nil {
-		return responseServerError(w, http.StatusBadRequest, erro.Wrap(err))
+		return responseError(w, newIdpError(errServErr, erro.Unwrap(err).Error(), http.StatusBadRequest, erro.Wrap(err)))
 	} else if tok == nil {
-		return responseError(w, http.StatusBadRequest, errInvTok, "token "+mosaic(tokId)+" is not exist")
+		return responseError(w, newIdpError(errInvTok, "token "+mosaic(tokId)+" is not exist", http.StatusBadRequest, nil))
 	} else if !tok.valid() {
-		return responseError(w, http.StatusBadRequest, errInvTok, "token "+mosaic(tokId)+" is invalid")
+		return responseError(w, newIdpError(errInvTok, "token "+mosaic(tokId)+" is invalid", http.StatusBadRequest, nil))
 	}
 
 	log.Debug("Token " + mosaic(tokId) + " is exist")
 
 	t, err := sys.taCont.get(tok.taId())
 	if err != nil {
-		return responseServerError(w, http.StatusBadRequest, erro.Wrap(err))
+		return responseError(w, newIdpError(errServErr, erro.Unwrap(err).Error(), http.StatusBadRequest, erro.Wrap(err)))
 	} else if t == nil {
-		return responseError(w, http.StatusBadRequest, errInvTok, "token "+mosaic(tokId)+" is linked to invalid TA "+tok.taId())
+		return responseError(w, newIdpError(errInvTok, "token "+mosaic(tokId)+" is linked to invalid TA "+tok.taId(), http.StatusBadRequest, nil))
 	}
 
 	log.Debug("Token TA " + t.id() + " is exist")
 
 	acc, err := sys.accCont.get(tok.accountId())
 	if err != nil {
-		return responseServerError(w, http.StatusBadRequest, erro.Wrap(err))
+		return responseError(w, newIdpError(errServErr, erro.Unwrap(err).Error(), http.StatusBadRequest, erro.Wrap(err)))
 	} else if acc == nil {
-		return responseError(w, http.StatusBadRequest, errInvTok, "token "+mosaic(tokId)+" is linked to invalid account "+tok.accountId())
+		return responseError(w, newIdpError(errInvTok, "token "+mosaic(tokId)+" is linked to invalid account "+tok.accountId(), http.StatusBadRequest, nil))
 	}
 
 	log.Debug("Token account " + acc.id() + " is exist")

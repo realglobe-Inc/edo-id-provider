@@ -462,11 +462,9 @@ func testGetAccountInfo(idpSys *system, tokRes map[string]interface{}, reqHeads 
 	return res, nil
 }
 
-// 認証リクエストからアカウント情報取得までする。
-func testFromRequestAuthToGetAccountInfo(idpSys *system, cli *http.Client,
-	authParams, selParams, loginParams, consParams map[string]string,
-	assHeads, assClms map[string]interface{}, tokParams map[string]string, kid string, sigKey crypto.PrivateKey,
-	accInfHeads map[string]string) (map[string]interface{}, error) {
+// 認証リクエストから認可コード取得までする。
+func testFromRequestAuthToConsent(idpSys *system, cli *http.Client,
+	authParams, selParams, loginParams, consParams map[string]string) (*http.Response, error) {
 
 	// リクエストする。
 	authResp, err := testRequestAuth(idpSys, cli, authParams)
@@ -490,7 +488,17 @@ func testFromRequestAuthToGetAccountInfo(idpSys *system, cli *http.Client,
 	defer loginResp.Body.Close()
 
 	// 必要なら同意する。
-	consResp, err := testConsent(idpSys, cli, loginResp, consParams)
+	return testConsent(idpSys, cli, loginResp, consParams)
+}
+
+// 認証リクエストからアカウント情報取得までする。
+func testFromRequestAuthToGetAccountInfo(idpSys *system, cli *http.Client,
+	authParams, selParams, loginParams, consParams map[string]string,
+	assHeads, assClms map[string]interface{}, tokParams map[string]string, kid string, sigKey crypto.PrivateKey,
+	accInfHeads map[string]string) (map[string]interface{}, error) {
+
+	// リクエストから同意までする。
+	consResp, err := testFromRequestAuthToConsent(idpSys, cli, authParams, selParams, loginParams, consParams)
 	if err != nil {
 		return nil, erro.Wrap(err)
 	}

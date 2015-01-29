@@ -384,7 +384,7 @@ func testGetToken(idpSys *system, consResp *http.Response, assHeads, assClms map
 	if err != nil {
 		return nil, erro.Wrap(err)
 	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Content-Type", util.ContentTypeForm)
 	resp, err := (&http.Client{}).Do(req)
 	if err != nil {
 		return nil, erro.Wrap(err)

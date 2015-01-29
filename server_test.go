@@ -667,3 +667,95 @@ func TestDenyOverlapParameterInAuthRequest(t *testing.T) {
 		t.Fatal("no error")
 	}
 }
+
+// 認証中にエラーが起きたら認証経過を破棄できるか。
+func TestAbortSession(t *testing.T) {
+	// ////////////////////////////////
+	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
+	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp([]*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトできたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	// サーバ起動待ち。
+	time.Sleep(10 * time.Millisecond)
+
+	cookJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Jar: cookJar}
+
+	// リクエストする。
+	authResp, err := testRequestAuth(idpSys, cli, map[string]string{
+		"scope":         "openid email",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+		"redirect_uri":  rediUri,
+		"prompt":        "select_account",
+		"unknown":       "unknown",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer authResp.Body.Close()
+
+	// アカウント選択でアカウント選択券を渡さないで認証経過をリセット。
+	selResp, err := testSelectAccount(idpSys, cli, authResp, map[string]string{
+		"username": testAcc.name(),
+		"ticket":   "",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer selResp.Body.Close()
+
+	if selResp.Request.FormValue(formErr) != errAccDeny {
+		t.Fatal(selResp.Request.FormValue(formErr), errAccDeny)
+	}
+
+	// アカウント選択でさっきのアカウント選択券を渡す。
+	q := url.Values{
+		"username": {testAcc.name()},
+		"ticket":   {authResp.Request.URL.Fragment},
+	}
+	req, err := http.NewRequest("GET", idpSys.selfId+"/auth/select?"+q.Encode(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err := cli.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		util.LogRequest(level.ERR, req, true)
+		util.LogResponse(level.ERR, resp, true)
+		t.Fatal(resp.StatusCode, http.StatusBadRequest)
+	}
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		util.LogRequest(level.ERR, req, true)
+		util.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	}
+
+	var res struct{ Error string }
+	if err := json.Unmarshal(data, &res); err != nil {
+		util.LogRequest(level.ERR, req, true)
+		util.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if res.Error != errInvReq {
+		t.Fatal(res.Error, errInvReq)
+	}
+}

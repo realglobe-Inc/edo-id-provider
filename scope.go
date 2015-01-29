@@ -33,6 +33,7 @@ var scopToClms = map[string]map[string]bool{
 }
 
 // scope に対応するクレームを返す。
+// 返り値は自由に書き換えて良い。
 func scopesToClaims(scops map[string]bool) map[string]bool {
 	clms := map[string]bool{}
 	for scop, ok := range scops {

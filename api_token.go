@@ -62,6 +62,10 @@ func responseToken(w http.ResponseWriter, tok *token) error {
 }
 
 func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
+	if r.Method != "POST" {
+		return newIdpError(errInvReq, r.Method+" is not supported", http.StatusMethodNotAllowed, nil)
+	}
+
 	req := newTokenRequest(r)
 
 	if grntType := req.grantType(); grntType == "" {

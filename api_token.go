@@ -67,6 +67,12 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 	}
 
 	req := newTokenRequest(r)
+	// 重複パラメータが無いか検査。
+	for k, v := range r.Form {
+		if len(v) > 1 {
+			return newIdpError(errInvReq, k+" is overlapped", http.StatusBadRequest, nil)
+		}
+	}
 
 	if grntType := req.grantType(); grntType == "" {
 		return newIdpError(errInvReq, "no "+formGrntType, http.StatusBadRequest, nil)

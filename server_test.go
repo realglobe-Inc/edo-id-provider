@@ -746,6 +746,62 @@ func TestDenyOverlapParameterInAuthRequest(t *testing.T) {
 	}
 }
 
+// 認証リクエストに client_id が無い時に拒否できるか。
+func TestDenyNoClientIdInAuthRequest(t *testing.T) {
+	// ////////////////////////////////
+	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
+	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	_, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトできたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	// サーバ起動待ち。
+	time.Sleep(10 * time.Millisecond)
+
+	cookJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Jar: cookJar}
+
+	resp, err := testRequestAuthWithoutCheck(idpSys, cli, map[string]string{
+		"scope":         "openid email",
+		"response_type": "code",
+		"client_id":     "",
+		"redirect_uri":  rediUri,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		util.LogResponse(level.ERR, resp, true)
+		t.Fatal(resp.StatusCode, http.StatusBadRequest)
+	}
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		util.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	}
+
+	var res struct{ Error string }
+	if err := json.Unmarshal(data, &res); err != nil {
+		util.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if res.Error != errInvReq {
+		t.Fatal(res.Error, errInvReq)
+	}
+}
+
 // 認証リクエストに response_type が無い時に拒否できるか。
 func TestDenyNoResponseTypeInAuthRequest(t *testing.T) {
 	// ////////////////////////////////

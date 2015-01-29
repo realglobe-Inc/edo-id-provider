@@ -127,7 +127,7 @@ func TestBoot(t *testing.T) {
 
 // testTa を基に TA 偽装用テストサーバーを立てる。
 // 使い終わったら Close すること。
-func setupTestTa() (ta_ *ta, rediUri, taKid string, taPriKey crypto.PrivateKey, taServ *util.TestHttpServer, err error) {
+func setupTestTa(rediUriPaths []string) (ta_ *ta, rediUri, taKid string, taPriKey crypto.PrivateKey, taServ *util.TestHttpServer, err error) {
 	taPort, err := util.FreePort()
 	if err != nil {
 		return nil, "", "", nil, nil, erro.Wrap(err)
@@ -138,18 +138,26 @@ func setupTestTa() (ta_ *ta, rediUri, taKid string, taPriKey crypto.PrivateKey, 
 	}
 	taBuff := *testTa
 	taBuff.Id = "http://localhost:" + strconv.Itoa(taPort)
-	rediUri = taBuff.Id + "/redirect_endpoint"
-	taBuff.RediUris = map[string]bool{rediUri: true}
+	if len(rediUriPaths) == 0 {
+		rediUri = taBuff.Id + "/redirect_endpoint"
+		taBuff.RediUris = map[string]bool{rediUri: true}
+	} else {
+		taBuff.RediUris = map[string]bool{}
+		for _, v := range rediUriPaths {
+			rediUri = taBuff.Id + v
+			taBuff.RediUris[rediUri] = true
+		}
+	}
 	return &taBuff, rediUri, testTaKid, testTaPriKey, taServer, nil
 }
 
 // TA 偽装サーバーと edo-id-provider を立てる。
-func setupTestTaAndIdp(testAccs []*account, testTas []*ta) (ta_ *ta, rediUri,
+func setupTestTaAndIdp(rediUriPaths []string, testAccs []*account, testTas []*ta) (ta_ *ta, rediUri,
 	taKid string, taPriKey crypto.PrivateKey, taServ *util.TestHttpServer,
 	idpSys *system, shutCh chan struct{}, err error) {
 
 	// TA 偽装サーバー。
-	ta_, rediUri, taKid, taPriKey, taServ, err = setupTestTa()
+	ta_, rediUri, taKid, taPriKey, taServ, err = setupTestTa(rediUriPaths)
 	if err != nil {
 		return
 	}
@@ -505,7 +513,7 @@ func TestSuccess(t *testing.T) {
 	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp([]*account{testAcc}, nil)
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -566,7 +574,7 @@ func TestIgnoreUnknownParameterInAuthRequest(t *testing.T) {
 	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp([]*account{testAcc}, nil)
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -629,7 +637,7 @@ func TestDenyOverlapParameterInAuthRequest(t *testing.T) {
 	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp([]*account{testAcc}, nil)
+	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -675,7 +683,7 @@ func TestDenyNoResponseTypeInAuthRequest(t *testing.T) {
 	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp([]*account{testAcc}, nil)
+	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -717,7 +725,7 @@ func TestDenyUnknownResponseTypeInAuthRequest(t *testing.T) {
 	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp([]*account{testAcc}, nil)
+	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -759,7 +767,7 @@ func TestAbortSession(t *testing.T) {
 	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp([]*account{testAcc}, nil)
+	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

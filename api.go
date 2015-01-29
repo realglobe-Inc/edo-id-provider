@@ -61,6 +61,7 @@ func panicErrorWrapper(handler util.HandlerFunc) http.HandlerFunc {
 		defer func() {
 			if rcv := recover(); rcv != nil {
 				responseError(w, erro.New(rcv))
+				return
 			}
 		}()
 

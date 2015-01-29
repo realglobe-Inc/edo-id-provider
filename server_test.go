@@ -1385,6 +1385,48 @@ func TestDenyTokenRequestWithoutClientId(t *testing.T) {
 	}
 }
 
+// 認証リクエストに scope が無かったら拒否できるか。
+func TestDenyAuthRequestWithoutScope(t *testing.T) {
+	// ////////////////////////////////
+	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
+	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトできたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	// サーバ起動待ち。
+	time.Sleep(10 * time.Millisecond)
+
+	cookJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Jar: cookJar}
+
+	resp, err := testRequestAuth(idpSys, cli, map[string]string{
+		"scope":         "",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+		"redirect_uri":  rediUri,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if q := resp.Request.URL.Query(); q.Get("error") == errInvReq {
+		t.Fatal(q.Get("error"), errInvReq)
+	}
+}
+
 // 認証中にエラーが起きたら認証経過を破棄できるか。
 func TestAbortSession(t *testing.T) {
 	// ////////////////////////////////

@@ -172,10 +172,10 @@ func setupTestTaAndIdp(rediUriPaths []string, testAccs []*account, testTas []*ta
 	return
 }
 
-// 認証リクエストを出す。
+// 認証リクエストを出し結果を無検査で返す。
 // 返り値を Close すること。
 // パラメータ値が空文字列なら、そのパラメータを設定しない。
-func testRequestAuth(idpSys *system, cli *http.Client, authParams map[string]string) (*http.Response, error) {
+func testRequestAuthWithoutCheck(idpSys *system, cli *http.Client, authParams map[string]string) (*http.Response, error) {
 	q := url.Values{}
 	for k, v := range authParams {
 		if v != "" {
@@ -191,9 +191,19 @@ func testRequestAuth(idpSys *system, cli *http.Client, authParams map[string]str
 	if err != nil {
 		return nil, erro.Wrap(err)
 	}
+	return resp, nil
+}
+
+// 認証リクエストを出す。
+// 返り値を Close すること。
+// パラメータ値が空文字列なら、そのパラメータを設定しない。
+func testRequestAuth(idpSys *system, cli *http.Client, authParams map[string]string) (*http.Response, error) {
+	resp, err := testRequestAuthWithoutCheck(idpSys, cli, authParams)
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
 
 	if resp.StatusCode != http.StatusOK {
-		util.LogRequest(level.ERR, req, true)
 		util.LogResponse(level.ERR, resp, true)
 		resp.Body.Close()
 		return nil, erro.New("invalid response ", resp.StatusCode, " "+http.StatusText(resp.StatusCode))
@@ -201,10 +211,10 @@ func testRequestAuth(idpSys *system, cli *http.Client, authParams map[string]str
 	return resp, nil
 }
 
-// アカウント選択 UI にリダイレクトされてたらアカウント選択する。
+// アカウント選択 UI にリダイレクトされてたらアカウント選択して結果を無検査で返す。
 // 返り値の Body を Close すること。
 // パラメータ値が空文字列なら、そのパラメータを設定しない。
-func testSelectAccount(idpSys *system, cli *http.Client, authResp *http.Response, selParams map[string]string) (*http.Response, error) {
+func testSelectAccountWithoutCheck(idpSys *system, cli *http.Client, authResp *http.Response, selParams map[string]string) (*http.Response, error) {
 	if authResp.Request.URL.Path != idpSys.uiUri+"/select.html" {
 		// アカウント選択 UI にリダイレクトされてない。
 		return authResp, nil
@@ -233,9 +243,19 @@ func testSelectAccount(idpSys *system, cli *http.Client, authResp *http.Response
 	if err != nil {
 		return nil, erro.Wrap(err)
 	}
+	return resp, nil
+}
+
+// アカウント選択 UI にリダイレクトされてたらアカウント選択する。
+// 返り値の Body を Close すること。
+// パラメータ値が空文字列なら、そのパラメータを設定しない。
+func testSelectAccount(idpSys *system, cli *http.Client, authResp *http.Response, selParams map[string]string) (*http.Response, error) {
+	resp, err := testSelectAccountWithoutCheck(idpSys, cli, authResp, selParams)
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
 
 	if resp.StatusCode != http.StatusOK {
-		util.LogRequest(level.ERR, req, true)
 		util.LogResponse(level.ERR, resp, true)
 		resp.Body.Close()
 		return nil, erro.New("invalid response ", resp.StatusCode, " "+http.StatusText(resp.StatusCode))
@@ -243,10 +263,10 @@ func testSelectAccount(idpSys *system, cli *http.Client, authResp *http.Response
 	return resp, nil
 }
 
-// ログイン UI にリダイレクトされてたらログインする。
+// ログイン UI にリダイレクトされてたらログインして結果を無検査で返す。
 // 返り値の Body を Close すること。
 // パラメータ値が空文字列なら、そのパラメータを設定しない。
-func testLogin(idpSys *system, cli *http.Client, selResp *http.Response, loginParams map[string]string) (*http.Response, error) {
+func testLoginWithoutCheck(idpSys *system, cli *http.Client, selResp *http.Response, loginParams map[string]string) (*http.Response, error) {
 	if selResp.Request.URL.Path != idpSys.uiUri+"/login.html" {
 		// ログイン UI にリダイレクトされてない。
 		return selResp, nil
@@ -275,9 +295,19 @@ func testLogin(idpSys *system, cli *http.Client, selResp *http.Response, loginPa
 	if err != nil {
 		return nil, erro.Wrap(err)
 	}
+	return resp, nil
+}
+
+// ログイン UI にリダイレクトされてたらログインする。
+// 返り値の Body を Close すること。
+// パラメータ値が空文字列なら、そのパラメータを設定しない。
+func testLogin(idpSys *system, cli *http.Client, selResp *http.Response, loginParams map[string]string) (*http.Response, error) {
+	resp, err := testLoginWithoutCheck(idpSys, cli, selResp, loginParams)
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
 
 	if resp.StatusCode != http.StatusOK {
-		util.LogRequest(level.ERR, req, true)
 		util.LogResponse(level.ERR, resp, true)
 		resp.Body.Close()
 		return nil, erro.New("invalid response ", resp.StatusCode, " "+http.StatusText(resp.StatusCode))
@@ -285,10 +315,10 @@ func testLogin(idpSys *system, cli *http.Client, selResp *http.Response, loginPa
 	return resp, nil
 }
 
-// 同意 UI にリダイレクトされてたら同意する。
+// 同意 UI にリダイレクトされてたら同意して結果を無検査で返す。
 // 返り値の Body を Close すること。
 // パラメータ値が空文字列なら、そのパラメータを設定しない。
-func testConsent(idpSys *system, cli *http.Client, loginResp *http.Response, consParams map[string]string) (*http.Response, error) {
+func testConsentWithoutCheck(idpSys *system, cli *http.Client, loginResp *http.Response, consParams map[string]string) (*http.Response, error) {
 	if loginResp.Request.URL.Path != idpSys.uiUri+"/consent.html" {
 		// 同意 UI にリダイレクトされてない。
 		return loginResp, nil
@@ -318,9 +348,19 @@ func testConsent(idpSys *system, cli *http.Client, loginResp *http.Response, con
 	if err != nil {
 		return nil, erro.Wrap(err)
 	}
+	return resp, nil
+}
+
+// 同意 UI にリダイレクトされてたら同意する。
+// 返り値の Body を Close すること。
+// パラメータ値が空文字列なら、そのパラメータを設定しない。
+func testConsent(idpSys *system, cli *http.Client, loginResp *http.Response, consParams map[string]string) (*http.Response, error) {
+	resp, err := testConsentWithoutCheck(idpSys, cli, loginResp, consParams)
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
 
 	if resp.StatusCode != http.StatusOK {
-		util.LogRequest(level.ERR, req, true)
 		util.LogResponse(level.ERR, resp, true)
 		resp.Body.Close()
 		return nil, erro.New("invalid response ", resp.StatusCode, " "+http.StatusText(resp.StatusCode))
@@ -328,11 +368,19 @@ func testConsent(idpSys *system, cli *http.Client, loginResp *http.Response, con
 	return resp, nil
 }
 
-// アクセストークンを取得する。
-// 返り値は JSON を Unmarshal したもの。
-// パラメータ値が nil や空文字列なら、そのパラメータを設定しない。
-func testGetToken(idpSys *system, consResp *http.Response, assHeads, assClms map[string]interface{},
-	reqParams map[string]string, kid string, sigKey crypto.PrivateKey) (map[string]interface{}, error) {
+// トークンリクエストして結果を無検査で返す。
+// 返り値の Body を Close すること。
+// パラメータ値が空値なら、そのパラメータを設定しない。
+func testGetTokenWithoutCheck(idpSys *system, consResp *http.Response, assHeads, assClms map[string]interface{},
+	reqParams map[string]string, kid string, sigKey crypto.PrivateKey) (*http.Response, error) {
+	cod := consResp.Request.FormValue("code")
+	if cod == "" {
+		util.LogRequest(level.ERR, consResp.Request, true)
+		return nil, erro.New("no code")
+	}
+
+	// 認可コードを取得できた。
+
 	if assHeads == nil {
 		assHeads = map[string]interface{}{}
 	}
@@ -342,14 +390,6 @@ func testGetToken(idpSys *system, consResp *http.Response, assHeads, assClms map
 	if reqParams == nil {
 		reqParams = map[string]string{}
 	}
-
-	cod := consResp.Request.FormValue("code")
-	if cod == "" {
-		util.LogRequest(level.ERR, consResp.Request, true)
-		return nil, erro.New("no code")
-	}
-
-	// 認可コードを取得できた。
 
 	// クライアント認証用データを準備。
 
@@ -393,35 +433,43 @@ func testGetToken(idpSys *system, consResp *http.Response, assHeads, assClms map
 	if err != nil {
 		return nil, erro.Wrap(err)
 	}
+	return resp, nil
+}
+
+// アクセストークンを取得する。
+// 返り値は JSON を Unmarshal したもの。
+// パラメータ値が空値なら、そのパラメータを設定しない。
+func testGetToken(idpSys *system, consResp *http.Response, assHeads, assClms map[string]interface{},
+	reqParams map[string]string, kid string, sigKey crypto.PrivateKey) (map[string]interface{}, error) {
+	resp, err := testGetTokenWithoutCheck(idpSys, consResp, assHeads, assClms, reqParams, kid, sigKey)
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		util.LogRequest(level.ERR, req, true)
 		util.LogResponse(level.ERR, resp, true)
 		return nil, erro.New("invalid response ", resp.StatusCode, " "+http.StatusText(resp.StatusCode))
 	}
 
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		util.LogRequest(level.ERR, req, true)
 		util.LogResponse(level.ERR, resp, true)
 		return nil, erro.Wrap(err)
 	}
 
 	var res map[string]interface{}
 	if err := json.Unmarshal(data, &res); err != nil {
-		util.LogRequest(level.ERR, req, true)
 		util.LogResponse(level.ERR, resp, true)
 		return nil, erro.Wrap(err)
 	}
-
 	return res, nil
 }
 
 // アカウント情報を取得する。
-// 返り値は JSON を Unmarshal したもの。
-// パラメータ値が nil や空文字列なら、そのパラメータを設定しない。
-func testGetAccountInfo(idpSys *system, tokRes map[string]interface{}, reqHeads map[string]string) (map[string]interface{}, error) {
+// 返り値の Body を Close すること。
+// パラメータ値が空値なら、そのパラメータを設定しない。
+func testGetAccountInfoWithoutCheck(idpSys *system, tokRes map[string]interface{}, reqHeads map[string]string) (*http.Response, error) {
 	tok, _ := tokRes["access_token"].(string)
 	if tok == "" {
 		return nil, erro.New("no access token")
@@ -445,10 +493,20 @@ func testGetAccountInfo(idpSys *system, tokRes map[string]interface{}, reqHeads 
 	if err != nil {
 		return nil, erro.Wrap(err)
 	}
+	return resp, nil
+}
+
+// アカウント情報を取得する。
+// 返り値は JSON を Unmarshal したもの。
+// パラメータ値が空値なら、そのパラメータを設定しない。
+func testGetAccountInfo(idpSys *system, tokRes map[string]interface{}, reqHeads map[string]string) (map[string]interface{}, error) {
+	resp, err := testGetAccountInfoWithoutCheck(idpSys, tokRes, reqHeads)
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		util.LogRequest(level.ERR, req, true)
 		util.LogResponse(level.ERR, resp, true)
 		resp.Body.Close()
 		return nil, erro.New("invalid response ", resp.StatusCode, " "+http.StatusText(resp.StatusCode))

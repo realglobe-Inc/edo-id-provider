@@ -77,8 +77,6 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 		return newIdpError(errInvReq, "no "+formCod, http.StatusBadRequest, nil)
 	}
 
-	log.Debug("Raw code " + mosaic(rawCod) + " is declared")
-
 	var codId string
 	if codJws, err := util.ParseJws(rawCod); err != nil {
 		// JWS から抜き出した ID だけ送られてきた。
@@ -86,6 +84,7 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 		rawCod = ""
 	} else {
 		// JWS のまま送られてきた。
+		log.Debug("Raw code " + mosaic(rawCod) + " is declared")
 		codId, _ = codJws.Claim(clmJti).(string)
 	}
 

@@ -926,6 +926,68 @@ func TestDirectErrorResponseInInvalidRedirectUri(t *testing.T) {
 	}
 }
 
+// redirect_uri が無いときにリダイレクトせずに拒否できるか。
+func TestDirectErrorResponseInNoRedirectUri(t *testing.T) {
+	// ////////////////////////////////
+	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
+	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testTa2, _, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトできたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	// サーバ起動待ち。
+	time.Sleep(10 * time.Millisecond)
+
+	cookJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Jar: cookJar}
+
+	req, err := http.NewRequest("GET", idpSys.selfId+"/auth?"+url.Values{
+		"scope":         {"openid email"},
+		"response_type": {"code"},
+		"client_id":     {testTa2.id()},
+	}.Encode(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err := cli.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		util.LogRequest(level.ERR, req, true)
+		util.LogResponse(level.ERR, resp, true)
+		t.Fatal(resp.StatusCode, http.StatusBadRequest)
+	}
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		util.LogRequest(level.ERR, req, true)
+		util.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	}
+
+	var res struct{ Error string }
+	if err := json.Unmarshal(data, &res); err != nil {
+		util.LogRequest(level.ERR, req, true)
+		util.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if res.Error != errInvReq {
+		t.Fatal(res.Error, errInvReq)
+	}
+}
+
 // 認証中にエラーが起きたら認証経過を破棄できるか。
 func TestAbortSession(t *testing.T) {
 	// ////////////////////////////////

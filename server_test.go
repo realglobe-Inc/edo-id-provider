@@ -224,10 +224,11 @@ func testSelectAccount(idpSys *system, cli *http.Client, authResp *http.Response
 	if v, ok := selParams["ticket"]; !(ok && v == "") {
 		q.Set("ticket", tic)
 	}
-	req, err := http.NewRequest("GET", idpSys.selfId+"/auth/select?"+q.Encode(), nil)
+	req, err := http.NewRequest("POST", idpSys.selfId+"/auth/select", strings.NewReader(q.Encode()))
 	if err != nil {
 		return nil, erro.Wrap(err)
 	}
+	req.Header.Set("Content-Type", util.ContentTypeForm)
 	resp, err := cli.Do(req)
 	if err != nil {
 		return nil, erro.Wrap(err)
@@ -265,10 +266,11 @@ func testLogin(idpSys *system, cli *http.Client, selResp *http.Response, loginPa
 	if v, ok := loginParams["ticket"]; !(ok && v == "") {
 		q.Set("ticket", tic)
 	}
-	req, err := http.NewRequest("GET", idpSys.selfId+"/auth/login?"+q.Encode(), nil)
+	req, err := http.NewRequest("POST", idpSys.selfId+"/auth/login", strings.NewReader(q.Encode()))
 	if err != nil {
 		return nil, erro.Wrap(err)
 	}
+	req.Header.Set("Content-Type", util.ContentTypeForm)
 	resp, err := cli.Do(req)
 	if err != nil {
 		return nil, erro.Wrap(err)
@@ -306,10 +308,11 @@ func testConsent(idpSys *system, cli *http.Client, loginResp *http.Response, con
 		q.Set("ticket", tic)
 	}
 	q.Set("ticket", tic)
-	req, err := http.NewRequest("GET", idpSys.selfId+"/auth/consent?"+q.Encode(), nil)
+	req, err := http.NewRequest("POST", idpSys.selfId+"/auth/consent", strings.NewReader(q.Encode()))
 	if err != nil {
 		return nil, erro.Wrap(err)
 	}
+	req.Header.Set("Content-Type", util.ContentTypeForm)
 	resp, err := cli.Do(req)
 	if err != nil {
 		return nil, erro.Wrap(err)

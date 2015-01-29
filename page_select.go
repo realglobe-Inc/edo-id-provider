@@ -67,6 +67,8 @@ func redirectSelectUi(w http.ResponseWriter, r *http.Request, sys *system, sess 
 		Expires:  sess.expirationDate(),
 		Secure:   sys.secCook,
 		HttpOnly: true})
+	w.Header().Add("Cache-Control", "no-store")
+	w.Header().Add("Pragma", "no-cache")
 	http.Redirect(w, r, sys.uiUri+"/"+selHtml+query+"#"+tic, http.StatusFound)
 	return nil
 

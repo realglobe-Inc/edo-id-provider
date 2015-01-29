@@ -100,6 +100,8 @@ func redirectError(w http.ResponseWriter, r *http.Request, sys *system, sess *se
 	}
 
 	rediUri.RawQuery = q.Encode()
+	w.Header().Add("Cache-Control", "no-store")
+	w.Header().Add("Pragma", "no-cache")
 	http.Redirect(w, r, rediUri.String(), http.StatusFound)
 	return nil
 }

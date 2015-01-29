@@ -43,6 +43,8 @@ func responseError(w http.ResponseWriter, err error) {
 
 	w.Header().Set("Content-Type", util.ContentTypeJson)
 	w.Header().Set("Content-Length", strconv.Itoa(len(buff)))
+	w.Header().Add("Cache-Control", "no-store")
+	w.Header().Add("Pragma", "no-cache")
 	w.WriteHeader(stat)
 	if _, err := w.Write(buff); err != nil {
 		err = erro.Wrap(err)

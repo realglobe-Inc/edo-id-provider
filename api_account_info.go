@@ -16,6 +16,8 @@ func responseAccountInfo(w http.ResponseWriter, info map[string]interface{}) err
 		return newIdpError(errServErr, erro.Unwrap(err).Error(), http.StatusBadRequest, erro.Wrap(err))
 	}
 
+	w.Header().Add("Cache-Control", "no-store")
+	w.Header().Add("Pragma", "no-cache")
 	if _, err := w.Write(buff); err != nil {
 		err = erro.Wrap(err)
 		log.Err(erro.Unwrap(err))

@@ -291,6 +291,7 @@ func testLogin(idpSys *system, cli *http.Client, selResp *http.Response, loginPa
 func testConsent(idpSys *system, cli *http.Client, loginResp *http.Response, consParams map[string]string) (*http.Response, error) {
 	if loginResp.Request.URL.Path != idpSys.uiUri+"/consent.html" {
 		// 同意 UI にリダイレクトされてない。
+		return loginResp, nil
 	}
 
 	if consParams == nil {

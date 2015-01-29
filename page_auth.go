@@ -145,7 +145,9 @@ func authPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 	// scope には問題無い。
 	log.Debug("Scope has " + scopOpId)
 
-	if len(req.responseType()) != 1 || !req.responseType()[respTypeCod] {
+	if l := len(req.responseType()); l == 0 {
+		return redirectError(w, r, sys, nil, req.redirectUri(), newIdpError(errInvReq, "no "+formRespType, 0, nil))
+	} else if l != 1 || !req.responseType()[respTypeCod] {
 		return redirectError(w, r, sys, nil, req.redirectUri(), newIdpError(errUnsuppRespType, formRespType+" is not "+respTypeCod, 0, nil))
 	}
 

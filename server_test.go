@@ -951,36 +951,26 @@ func TestDirectErrorResponseInInvalidRedirectUri(t *testing.T) {
 	}
 	cli := &http.Client{Jar: cookJar}
 
-	req, err := http.NewRequest("GET", idpSys.selfId+"/auth?"+url.Values{
-		"scope":         {"openid email"},
-		"response_type": {"code"},
-		"client_id":     {testTa2.id()},
-		"redirect_uri":  {rediUri + "/"},
-	}.Encode(), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	resp, err := cli.Do(req)
-	if err != nil {
-		t.Fatal(err)
-	}
+	resp, err := testRequestAuthWithoutCheck(idpSys, cli, map[string]string{
+		"scope":         "openid email",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+		"redirect_uri":  rediUri + "/a",
+	})
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusBadRequest {
-		util.LogRequest(level.ERR, req, true)
 		util.LogResponse(level.ERR, resp, true)
 		t.Fatal(resp.StatusCode, http.StatusBadRequest)
 	}
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		util.LogRequest(level.ERR, req, true)
 		util.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	}
 
 	var res struct{ Error string }
 	if err := json.Unmarshal(data, &res); err != nil {
-		util.LogRequest(level.ERR, req, true)
 		util.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if res.Error != errInvReq {
@@ -1014,35 +1004,28 @@ func TestDirectErrorResponseInNoRedirectUri(t *testing.T) {
 	}
 	cli := &http.Client{Jar: cookJar}
 
-	req, err := http.NewRequest("GET", idpSys.selfId+"/auth?"+url.Values{
-		"scope":         {"openid email"},
-		"response_type": {"code"},
-		"client_id":     {testTa2.id()},
-	}.Encode(), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	resp, err := cli.Do(req)
+	resp, err := testRequestAuthWithoutCheck(idpSys, cli, map[string]string{
+		"scope":         "openid email",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusBadRequest {
-		util.LogRequest(level.ERR, req, true)
 		util.LogResponse(level.ERR, resp, true)
 		t.Fatal(resp.StatusCode, http.StatusBadRequest)
 	}
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		util.LogRequest(level.ERR, req, true)
 		util.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	}
 
 	var res struct{ Error string }
 	if err := json.Unmarshal(data, &res); err != nil {
-		util.LogRequest(level.ERR, req, true)
 		util.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if res.Error != errInvReq {
@@ -1378,64 +1361,38 @@ func TestDenyTokenRequestWithoutClientId(t *testing.T) {
 	}
 	defer consResp.Body.Close()
 
-	cod := consResp.Request.FormValue("code")
-	if cod == "" {
-		util.LogRequest(level.ERR, consResp.Request, true)
-		t.Fatal("no code")
-	}
-
-	// 認可コードを取得できた。
-
-	assJws := util.NewJws()
-	assJws.SetHeader("alg", "RS256")
-	assJws.SetHeader("kid", kid)
-	assJws.SetClaim("iss", testTa2.id())
-	assJws.SetClaim("sub", testTa2.id())
-	assJws.SetClaim("aud", idpSys.selfId+"/token")
-	assJws.SetClaim("jti", strconv.FormatInt(time.Now().UnixNano(), 16))
-	assJws.SetClaim("exp", time.Now().Add(idpSys.idTokExpiDur).Unix())
-	assJws.SetClaim("code", cod)
-	if err := assJws.Sign(map[string]crypto.PrivateKey{kid: sigKey}); err != nil {
-		t.Fatal(err)
-	}
-	assBuff, err := assJws.Encode()
-	if err != nil {
-		t.Fatal(err)
-	}
-	ass := string(assBuff)
-
-	req, err := http.NewRequest("POST", idpSys.selfId+"/token", strings.NewReader(url.Values{
-		"grant_type":            {"authorization_code"},
-		"redirect_uri":          {rediUri},
-		"client_assertion_type": {"urn:ietf:params:oauth:client-assertion-type:jwt-bearer"},
-		"code":                  {cod},
-		"client_assertion":      {ass},
-	}.Encode()))
-	if err != nil {
-		t.Fatal(err)
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	resp, err := (&http.Client{}).Do(req)
+	resp, err := testGetTokenWithoutCheck(idpSys, consResp, map[string]interface{}{
+		"alg": "RS256",
+		"kid": kid,
+	}, map[string]interface{}{
+		"iss": testTa2.id(),
+		"sub": testTa2.id(),
+		"aud": idpSys.selfId + "/token",
+		"jti": strconv.FormatInt(time.Now().UnixNano(), 16),
+		"exp": time.Now().Add(idpSys.idTokExpiDur).Unix(),
+	}, map[string]string{
+		"grant_type":            "authorization_code",
+		"redirect_uri":          rediUri,
+		"client_id":             "",
+		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+	}, kid, sigKey)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusBadRequest {
-		util.LogRequest(level.ERR, req, true)
 		util.LogResponse(level.ERR, resp, true)
 		t.Fatal(resp.StatusCode, http.StatusBadRequest)
 	}
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		util.LogRequest(level.ERR, req, true)
 		util.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	}
 
 	var res struct{ Error string }
 	if err := json.Unmarshal(data, &res); err != nil {
-		util.LogRequest(level.ERR, req, true)
 		util.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if res.Error != errInvReq {
@@ -1541,35 +1498,26 @@ func TestAbortSession(t *testing.T) {
 	}
 
 	// アカウント選択でさっきのアカウント選択券を渡す。
-	q := url.Values{
-		"username": {testAcc.name()},
-		"ticket":   {authResp.Request.URL.Fragment},
-	}
-	req, err := http.NewRequest("GET", idpSys.selfId+"/auth/select?"+q.Encode(), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	resp, err := cli.Do(req)
+	resp, err := testSelectAccountWithoutCheck(idpSys, cli, authResp, map[string]string{
+		"username": testAcc.name(),
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusBadRequest {
-		util.LogRequest(level.ERR, req, true)
 		util.LogResponse(level.ERR, resp, true)
 		t.Fatal(resp.StatusCode, http.StatusBadRequest)
 	}
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		util.LogRequest(level.ERR, req, true)
 		util.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	}
 
 	var res struct{ Error string }
 	if err := json.Unmarshal(data, &res); err != nil {
-		util.LogRequest(level.ERR, req, true)
 		util.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if res.Error != errInvReq {

@@ -20,12 +20,13 @@ func testCodeContainer(t *testing.T, codCont codeContainer) {
 		t.Fatal(err)
 	}
 	now := time.Now()
+	exp := now.Add(testCodExpiDur)
 	cod := newCode(
 		codId,
 		"account-id",
 		"ta-id",
 		"https://example.com/redirect/uri?a=b",
-		now.Add(testCodExpiDur),
+		exp,
 		testTokExpiDur,
 		nil,
 		nil,
@@ -40,16 +41,34 @@ func testCodeContainer(t *testing.T, codCont codeContainer) {
 		t.Fatal(err)
 	}
 
-	// ある。
-	if c, err := codCont.get(cod.id()); err != nil {
-		t.Fatal(err)
-	} else if c == nil {
-		t.Error(c)
-	} else if !reflect.DeepEqual(c, cod) {
-		t.Error(c)
+	// 有効。
+	for cur := time.Now(); cur.Before(exp); cur = time.Now() {
+		if c, err := codCont.get(cod.id()); err != nil {
+			t.Fatal(err)
+		} else if c == nil {
+			t.Fatal(cur, exp)
+		} else if !reflect.DeepEqual(c, cod) {
+			t.Error(c, cur, exp)
+		}
+
+		time.Sleep(testCodExpiDur / 4)
 	}
 
-	time.Sleep(cod.expirationDate().Add(codCont.(*codeContainerImpl).savDur).Sub(time.Now()) + time.Millisecond) // redis の粒度がミリ秒のため。
+	// 無効。
+	for cur, end := time.Now(), cod.expirationDate().Add(codCont.(*codeContainerImpl).savDur-time.Millisecond); // redis の粒度がミリ秒のため。
+	cur.Before(end); cur = time.Now() {
+		if c, err := codCont.get(cod.id()); err != nil {
+			t.Fatal(err)
+		} else if c == nil {
+			t.Fatal(cur, exp)
+		} else if c.id() != cod.id() || c.valid() {
+			t.Error(c, cur, exp)
+		}
+
+		time.Sleep(codCont.(*codeContainerImpl).savDur / 4)
+	}
+
+	time.Sleep(time.Millisecond) // redis の粒度がミリ秒のため。
 
 	// もう無い。
 	if c, err := codCont.get(cod.id()); err != nil {

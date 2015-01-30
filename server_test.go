@@ -1442,7 +1442,7 @@ func TestDenyTokenRequestWithoutClientId(t *testing.T) {
 	}
 }
 
-// 認証リクエストが 2 回使われたら拒否できるか。
+// 認可コードが 2 回使われたら拒否できるか。
 func TestDenyUsedCode(t *testing.T) {
 	// ////////////////////////////////
 	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)

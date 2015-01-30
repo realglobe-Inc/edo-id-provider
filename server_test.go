@@ -452,14 +452,11 @@ func testGetToken(idpSys *system, consResp *http.Response, assHeads, assClms map
 		return nil, erro.New("invalid response ", resp.StatusCode, " "+http.StatusText(resp.StatusCode))
 	}
 
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
+	var res map[string]interface{}
+	if data, err := ioutil.ReadAll(resp.Body); err != nil {
 		util.LogResponse(level.ERR, resp, true)
 		return nil, erro.Wrap(err)
-	}
-
-	var res map[string]interface{}
-	if err := json.Unmarshal(data, &res); err != nil {
+	} else if err := json.Unmarshal(data, &res); err != nil {
 		util.LogResponse(level.ERR, resp, true)
 		return nil, erro.Wrap(err)
 	}
@@ -512,13 +509,10 @@ func testGetAccountInfo(idpSys *system, tokRes map[string]interface{}, reqHeads 
 		return nil, erro.New("invalid response ", resp.StatusCode, " "+http.StatusText(resp.StatusCode))
 	}
 
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, erro.Wrap(err)
-	}
-
 	var res map[string]interface{}
-	if err := json.Unmarshal(data, &res); err != nil {
+	if data, err := ioutil.ReadAll(resp.Body); err != nil {
+		return nil, erro.Wrap(err)
+	} else if err := json.Unmarshal(data, &res); err != nil {
 		return nil, erro.Wrap(err)
 	}
 	return res, nil
@@ -602,7 +596,7 @@ func TestSuccess(t *testing.T) {
 	}
 	cli := &http.Client{Jar: cookJar}
 
-	res, err := testFromRequestAuthToGetAccountInfo(idpSys, cli, map[string]string{
+	if res, err := testFromRequestAuthToGetAccountInfo(idpSys, cli, map[string]string{
 		"scope":         "openid email",
 		"response_type": "code",
 		"client_id":     testTa2.id(),
@@ -629,8 +623,7 @@ func TestSuccess(t *testing.T) {
 		"redirect_uri":          rediUri,
 		"client_id":             testTa2.id(),
 		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
-	}, kid, sigKey, nil)
-	if err != nil {
+	}, kid, sigKey, nil); err != nil {
 		t.Fatal(err)
 	} else if em, _ := res["email"].(string); em != testAcc.attribute("email") {
 		t.Fatal(em, testAcc.attribute("email"))
@@ -663,7 +656,7 @@ func TestIgnoreUnknownParameterInAuthRequest(t *testing.T) {
 	}
 	cli := &http.Client{Jar: cookJar}
 
-	res, err := testFromRequestAuthToGetAccountInfo(idpSys, cli, map[string]string{
+	if res, err := testFromRequestAuthToGetAccountInfo(idpSys, cli, map[string]string{
 		"scope":         "openid email",
 		"response_type": "code",
 		"client_id":     testTa2.id(),
@@ -692,8 +685,7 @@ func TestIgnoreUnknownParameterInAuthRequest(t *testing.T) {
 		"client_id":             testTa2.id(),
 		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
 		"unknown":               "unknown",
-	}, kid, sigKey, nil)
-	if err != nil {
+	}, kid, sigKey, nil); err != nil {
 		t.Fatal(err)
 	} else if em, _ := res["email"].(string); em != testAcc.attribute("email") {
 		t.Fatal(em, testAcc.attribute("email"))
@@ -720,14 +712,12 @@ func TestDenyOverlapParameterInAuthRequest(t *testing.T) {
 	// サーバ起動待ち。
 	time.Sleep(10 * time.Millisecond)
 
-	q := url.Values{
+	req, err := http.NewRequest("GET", idpSys.selfId+"/auth?"+url.Values{
 		"scope":         {"openid email"},
 		"response_type": {"code"},
 		"client_id":     {testTa2.id()},
 		"redirect_uri":  {rediUri},
-	}
-
-	req, err := http.NewRequest("GET", idpSys.selfId+"/auth?"+q.Encode()+"&scope=aaaa", nil)
+	}.Encode()+"&scope=aaaa", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -787,14 +777,12 @@ func TestDenyNoClientIdInAuthRequest(t *testing.T) {
 		util.LogResponse(level.ERR, resp, true)
 		t.Fatal(resp.StatusCode, http.StatusBadRequest)
 	}
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		util.LogResponse(level.ERR, resp, true)
-		t.Fatal(err)
-	}
 
 	var res struct{ Error string }
-	if err := json.Unmarshal(data, &res); err != nil {
+	if data, err := ioutil.ReadAll(resp.Body); err != nil {
+		util.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if err := json.Unmarshal(data, &res); err != nil {
 		util.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if res.Error != errInvReq {
@@ -1019,14 +1007,12 @@ func TestDirectErrorResponseInInvalidRedirectUri(t *testing.T) {
 		util.LogResponse(level.ERR, resp, true)
 		t.Fatal(resp.StatusCode, http.StatusBadRequest)
 	}
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		util.LogResponse(level.ERR, resp, true)
-		t.Fatal(err)
-	}
 
 	var res struct{ Error string }
-	if err := json.Unmarshal(data, &res); err != nil {
+	if data, err := ioutil.ReadAll(resp.Body); err != nil {
+		util.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if err := json.Unmarshal(data, &res); err != nil {
 		util.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if res.Error != errInvReq {
@@ -1074,14 +1060,12 @@ func TestDirectErrorResponseInNoRedirectUri(t *testing.T) {
 		util.LogResponse(level.ERR, resp, true)
 		t.Fatal(resp.StatusCode, http.StatusBadRequest)
 	}
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		util.LogResponse(level.ERR, resp, true)
-		t.Fatal(err)
-	}
 
 	var res struct{ Error string }
-	if err := json.Unmarshal(data, &res); err != nil {
+	if data, err := ioutil.ReadAll(resp.Body); err != nil {
+		util.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if err := json.Unmarshal(data, &res); err != nil {
 		util.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if res.Error != errInvReq {
@@ -1184,15 +1168,13 @@ func TestDenyNonPostTokenRequest(t *testing.T) {
 			util.LogResponse(level.ERR, resp, true)
 			t.Fatal(resp.StatusCode, http.StatusMethodNotAllowed)
 		}
-		data, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
+
+		var res struct{ Error string }
+		if data, err := ioutil.ReadAll(resp.Body); err != nil {
 			util.LogRequest(level.ERR, req, true)
 			util.LogResponse(level.ERR, resp, true)
 			t.Fatal(err)
-		}
-
-		var res struct{ Error string }
-		if err := json.Unmarshal(data, &res); err != nil {
+		} else if err := json.Unmarshal(data, &res); err != nil {
 			util.LogRequest(level.ERR, req, true)
 			util.LogResponse(level.ERR, resp, true)
 			t.Fatal(err)
@@ -1228,7 +1210,7 @@ func TestIgnoreUnknownParameterInTokenRequest(t *testing.T) {
 	}
 	cli := &http.Client{Jar: cookJar}
 
-	res, err := testFromRequestAuthToGetAccountInfo(idpSys, cli, map[string]string{
+	if res, err := testFromRequestAuthToGetAccountInfo(idpSys, cli, map[string]string{
 		"scope":         "openid",
 		"response_type": "code",
 		"client_id":     testTa2.id(),
@@ -1255,8 +1237,7 @@ func TestIgnoreUnknownParameterInTokenRequest(t *testing.T) {
 		"client_id":             testTa2.id(),
 		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
 		"unknown_name":          "unknown_value",
-	}, kid, sigKey, nil)
-	if err != nil {
+	}, kid, sigKey, nil); err != nil {
 		t.Fatal(err)
 	} else if em, _ := res["email"].(string); em != testAcc.attribute("email") {
 		t.Fatal(em, testAcc.attribute("email"))
@@ -1356,15 +1337,13 @@ func TestDenyOverlapParameterInTokenRequest(t *testing.T) {
 		util.LogResponse(level.ERR, resp, true)
 		t.Fatal(resp.StatusCode, http.StatusBadRequest)
 	}
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
+
+	var res struct{ Error string }
+	if data, err := ioutil.ReadAll(resp.Body); err != nil {
 		util.LogRequest(level.ERR, req, true)
 		util.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
-	}
-
-	var res struct{ Error string }
-	if err := json.Unmarshal(data, &res); err != nil {
+	} else if err := json.Unmarshal(data, &res); err != nil {
 		util.LogRequest(level.ERR, req, true)
 		util.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
@@ -1441,14 +1420,12 @@ func TestDenyTokenRequestWithoutClientId(t *testing.T) {
 		util.LogResponse(level.ERR, resp, true)
 		t.Fatal(resp.StatusCode, http.StatusBadRequest)
 	}
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		util.LogResponse(level.ERR, resp, true)
-		t.Fatal(err)
-	}
 
 	var res struct{ Error string }
-	if err := json.Unmarshal(data, &res); err != nil {
+	if data, err := ioutil.ReadAll(resp.Body); err != nil {
+		util.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if err := json.Unmarshal(data, &res); err != nil {
 		util.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if res.Error != errInvReq {
@@ -1547,14 +1524,12 @@ func TestDenyUsedCode(t *testing.T) {
 		util.LogResponse(level.ERR, resp, true)
 		t.Fatal(resp.StatusCode, http.StatusBadRequest)
 	}
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		util.LogResponse(level.ERR, resp, true)
-		t.Fatal(err)
-	}
 
 	var res struct{ Error string }
-	if err := json.Unmarshal(data, &res); err != nil {
+	if data, err := ioutil.ReadAll(resp.Body); err != nil {
+		util.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if err := json.Unmarshal(data, &res); err != nil {
 		util.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if res.Error != errInvGrnt {
@@ -1672,14 +1647,12 @@ func TestAbortSession(t *testing.T) {
 		util.LogResponse(level.ERR, resp, true)
 		t.Fatal(resp.StatusCode, http.StatusBadRequest)
 	}
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		util.LogResponse(level.ERR, resp, true)
-		t.Fatal(err)
-	}
 
 	var res struct{ Error string }
-	if err := json.Unmarshal(data, &res); err != nil {
+	if data, err := ioutil.ReadAll(resp.Body); err != nil {
+		util.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if err := json.Unmarshal(data, &res); err != nil {
 		util.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if res.Error != errInvReq {

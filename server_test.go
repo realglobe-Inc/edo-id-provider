@@ -547,6 +547,21 @@ func testFromRequestAuthToConsent(idpSys *system, cli *http.Client,
 	return testConsent(idpSys, cli, loginResp, consParams)
 }
 
+// トークンリクエストからアカウント情報取得までする。
+func testGetTokenAndAccountInfo(idpSys *system, consResp *http.Response,
+	assHeads, assClms map[string]interface{}, tokParams map[string]string, kid string, sigKey crypto.PrivateKey,
+	accInfHeads map[string]string) (map[string]interface{}, error) {
+
+	// アクセストークンを取得する。
+	tokRes, err := testGetToken(idpSys, consResp, assHeads, assClms, tokParams, kid, sigKey)
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
+
+	// アカウント情報を取得する。
+	return testGetAccountInfo(idpSys, tokRes, accInfHeads)
+}
+
 // 認証リクエストからアカウント情報取得までする。
 func testFromRequestAuthToGetAccountInfo(idpSys *system, cli *http.Client,
 	authParams, selParams, loginParams, consParams map[string]string,
@@ -560,14 +575,8 @@ func testFromRequestAuthToGetAccountInfo(idpSys *system, cli *http.Client,
 	}
 	defer consResp.Body.Close()
 
-	// アクセストークンを取得する。
-	tokRes, err := testGetToken(idpSys, consResp, assHeads, assClms, tokParams, kid, sigKey)
-	if err != nil {
-		return nil, erro.Wrap(err)
-	}
-
-	// アカウント情報を取得する。
-	return testGetAccountInfo(idpSys, tokRes, accInfHeads)
+	// アクセストークンを取得してアカウント情報を取得する。
+	return testGetTokenAndAccountInfo(idpSys, consResp, assHeads, assClms, tokParams, kid, sigKey, accInfHeads)
 }
 
 // 認証してアカウント情報を取得できるか。

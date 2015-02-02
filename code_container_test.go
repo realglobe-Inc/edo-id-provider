@@ -55,14 +55,26 @@ func testCodeContainer(t *testing.T, codCont codeContainer) {
 	}
 
 	// 無効。
-	for cur, end := time.Now(), cod.expirationDate().Add(codCont.(*codeContainerImpl).savDur-time.Millisecond); // redis の粒度がミリ秒のため。
-	cur.Before(end); cur = time.Now() {
-		if c, err := codCont.get(cod.id()); err != nil {
+	for end := cod.expirationDate().Add(codCont.(*codeContainerImpl).savDur - time.Millisecond); ; // redis の粒度がミリ秒のため。
+	{
+		c, err := codCont.get(cod.id())
+		if err != nil {
 			t.Fatal(err)
-		} else if c == nil {
-			t.Fatal(cur, exp)
+		}
+		cur := time.Now()
+
+		// get と time.Now() の間に GC 等で時間が掛かることもあるため、
+		// cur > end でも nil が返っているとは限らない。
+		// cur <= end であれば非 nil が返らなければならない。
+
+		if c == nil {
+			if cur.After(end) {
+				break
+			} else {
+				t.Fatal(cur, end)
+			}
 		} else if c.id() != cod.id() || c.valid() {
-			t.Error(c, cur, exp)
+			t.Error(c, cur, end)
 		}
 
 		time.Sleep(codCont.(*codeContainerImpl).savDur / 4)

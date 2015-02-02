@@ -29,20 +29,24 @@ func testSessionContainer(t *testing.T, sessCont sessionContainer) {
 	}
 
 	// 期限延長テスト。
-	cur := time.Now()
-	for end := cur.Add(2 * testSessExpiDur); cur.Before(end); cur = time.Now() {
+	for end := time.Now().Add(2 * testSessExpiDur); ; {
 		se, err := sessCont.get(sess.id())
 		if err != nil {
 			t.Fatal(err)
-		} else if cur.After(exp) {
-			// 期限切れ。
-			if se != nil {
-				t.Fatal(se, cur, exp, end)
+		}
+		cur := time.Now()
+
+		// get と time.Now() の間に GC 等で時間が掛かることもあるため、
+		// cur > exp でも nil が返っているとは限らない。
+		// cur <= exp であれば非 nil が返らなければならない。
+
+		if se == nil {
+			if !cur.After(exp) {
+				t.Fatal(cur, exp, end)
 			}
+			// 期限切れ。
 			buff := *sess
 			se = &buff
-		} else if se == nil {
-			t.Fatal(cur, exp, end)
 		} else if se.id() != sess.id() {
 			t.Error(se, cur, exp, end)
 		}
@@ -52,7 +56,12 @@ func testSessionContainer(t *testing.T, sessCont sessionContainer) {
 		if err := sessCont.put(se); err != nil {
 			t.Fatal(err)
 		}
-		time.Sleep(exp.Sub(time.Now()) / 2)
+
+		if cur.After(end) {
+			break
+		}
+
+		time.Sleep(exp.Sub(time.Now()) / 4)
 	}
 
 	time.Sleep(exp.Sub(time.Now()) + time.Millisecond) // redis の粒度がミリ秒のため。

@@ -106,3 +106,7 @@ func (this *token) valid() bool {
 func (this *token) updateDate() time.Time {
 	return this.Upd
 }
+
+func (this *token) disable() {
+	this.Valid = false
+}

@@ -16,11 +16,12 @@ func unmarshalSession(data []byte) (val interface{}, err error) {
 }
 
 // スレッドセーフ。
-func newFileSessionContainer(minIdLen int, path, expiPath string, caStaleDur, caExpiDur time.Duration) sessionContainer {
+func newFileSessionContainer(minIdLen int, procId string,
+	path, expiPath string, caStaleDur, caExpiDur time.Duration) sessionContainer {
 	return &sessionContainerImpl{
 		driver.NewFileTimeLimitedKeyValueStore(path, expiPath,
 			keyToJsonPath, nil, json.Marshal, unmarshalSession,
 			caStaleDur, caExpiDur),
-		newIdGenerator(minIdLen),
+		newIdGenerator(minIdLen, procId),
 	}
 }

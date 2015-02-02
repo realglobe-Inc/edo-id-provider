@@ -5,6 +5,7 @@ import (
 	"testing"
 )
 
+// てきとうに使って重複しないかどうか。
 func TestIdGenerator(t *testing.T) {
 	const (
 		l = 5
@@ -12,7 +13,7 @@ func TestIdGenerator(t *testing.T) {
 	)
 
 	for j := 0; j < l; j++ {
-		idGen := newIdGenerator(l)
+		idGen := newIdGenerator(l, "")
 
 		m := map[string]bool{}
 		for i := 0; i < n; i++ {
@@ -27,13 +28,14 @@ func TestIdGenerator(t *testing.T) {
 	}
 }
 
+// 皆で使って重複しないかどうか。
 func TestIdGeneratorConcurrent(t *testing.T) {
 	const (
 		p = 10
 		n = 5000
 	)
 
-	idGen := newIdGenerator(0)
+	idGen := newIdGenerator(0, "")
 
 	glbl := map[string]bool{}
 	var lock sync.Mutex
@@ -92,7 +94,7 @@ func TestIdGeneratorConcurrent(t *testing.T) {
 func TestIdGeneratorSerial(t *testing.T) {
 	const s = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
 
-	idGen := newIdGenerator(0)
+	idGen := newIdGenerator(0, "")
 
 	for j := 0; j < 8; j++ {
 		idGen.ser = 1 << uint(j)

@@ -18,5 +18,5 @@ func TestFileTokenContainer(t *testing.T) {
 	}
 	defer os.RemoveAll(expiPath)
 
-	testTokenContainer(t, newFileTokenContainer(10, testSavDur, path, expiPath, testStaleDur, testCaExpiDur))
+	testTokenContainer(t, newFileTokenContainer(10, "", testSavDur, path, expiPath, testStaleDur, testCaExpiDur))
 }

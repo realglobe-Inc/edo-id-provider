@@ -16,12 +16,12 @@ func unmarshalCode(data []byte) (val interface{}, err error) {
 }
 
 // スレッドセーフ。
-func newFileCodeContainer(minIdLen int, savDur time.Duration, path, expiPath string, caStaleDur, caExpiDur time.Duration) codeContainer {
+func newFileCodeContainer(minIdLen int, procId string, savDur time.Duration, path, expiPath string, caStaleDur, caExpiDur time.Duration) codeContainer {
 	return &codeContainerImpl{
 		driver.NewFileTimeLimitedKeyValueStore(path, expiPath,
 			keyToJsonPath, nil, json.Marshal, unmarshalCode,
 			caStaleDur, caExpiDur),
-		newIdGenerator(minIdLen),
+		newIdGenerator(minIdLen, procId),
 		savDur,
 	}
 }

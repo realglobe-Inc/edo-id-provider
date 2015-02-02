@@ -5,5 +5,5 @@ import (
 )
 
 func TestMemoryCodeContainer(t *testing.T) {
-	testCodeContainer(t, newMemoryCodeContainer(10, testSavDur, testStaleDur, testCaExpiDur))
+	testCodeContainer(t, newMemoryCodeContainer(10, "", testSavDur, testStaleDur, testCaExpiDur))
 }

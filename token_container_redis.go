@@ -14,10 +14,10 @@ func getTokenStamp(val interface{}) *driver.Stamp {
 	return &driver.Stamp{Date: upd, Digest: strconv.FormatInt(upd.UnixNano(), 16)}
 }
 
-func newRedisTokenContainer(minIdLen int, savDur time.Duration, pool *redis.Pool, tag string, caStaleDur, caExpiDur time.Duration) tokenContainer {
+func newRedisTokenContainer(minIdLen int, procId string, savDur time.Duration, pool *redis.Pool, tag string, caStaleDur, caExpiDur time.Duration) tokenContainer {
 	return &tokenContainerImpl{
 		driver.NewRedisTimeLimitedKeyValueStore(pool, tag+":", json.Marshal, unmarshalToken, getTokenStamp, caStaleDur, caExpiDur),
-		newIdGenerator(minIdLen),
+		newIdGenerator(minIdLen, procId),
 		savDur,
 	}
 }

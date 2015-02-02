@@ -15,12 +15,15 @@ type idGenerator struct {
 	randLen int
 	// インスタンス内での ID 被りを防ぐための通し番号。
 	ser int64
+	// インスタンスごとの ID 被りを防ぐために与えられる文字列。
+	suf string
 }
 
-func newIdGenerator(randLen int) idGenerator {
+func newIdGenerator(randLen int, suf string) idGenerator {
 	return idGenerator{
 		randLen: randLen,
 		ser:     rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		suf:     suf,
 	}
 }
 
@@ -45,5 +48,5 @@ func (this *idGenerator) newId() (id string, err error) {
 	}
 	id += base64.URLEncoding.EncodeToString(buff)[:sLen]
 
-	return id, nil
+	return id + this.suf, nil
 }

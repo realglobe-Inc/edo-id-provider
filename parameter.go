@@ -34,9 +34,12 @@ type parameters struct {
 	socPath string
 	// TCP ソケット。
 	socPort int
-
 	// プロトコル種別。
 	protType string
+
+	// プロセス固有文字列。
+	// プロセスごとに異なる値にすれば、データベースを共有するプロセス間での発行データの ID 被りを確実に防げる。
+	procId string
 
 	// Set-Cookie に Secure をつけるか。
 	secCook bool
@@ -174,8 +177,9 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.StringVar(&param.socType, "socType", "tcp", "Socket type.")
 	flags.StringVar(&param.socPath, "socPath", filepath.Join(filepath.Dir(os.Args[0]), "run", label+".soc"), "UNIX socket path.")
 	flags.IntVar(&param.socPort, "socPort", 16040, "TCP socket port.")
-
 	flags.StringVar(&param.protType, "protType", "http", "Protocol type.")
+
+	flags.StringVar(&param.procId, "procId", "", "Process ID to escape ID overlap.")
 
 	flags.BoolVar(&param.secCook, "secCook", true, "Add Secure in Set-Cookie.")
 

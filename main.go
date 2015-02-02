@@ -99,16 +99,16 @@ func mainCore(param *parameters) error {
 	var sessCont sessionContainer
 	switch param.sessContType {
 	case "memory":
-		sessCont = newMemorySessionContainer(param.sessIdLen, param.caStaleDur, param.caExpiDur)
+		sessCont = newMemorySessionContainer(param.sessIdLen, param.procId, param.caStaleDur, param.caExpiDur)
 		log.Info("Use memory session container.")
 	case "file":
-		sessCont = newFileSessionContainer(param.sessIdLen, param.sessContPath, param.sessExpiContPath, param.caStaleDur, param.caExpiDur)
+		sessCont = newFileSessionContainer(param.sessIdLen, param.procId, param.sessContPath, param.sessExpiContPath, param.caStaleDur, param.caExpiDur)
 		log.Info("Use file session container " + param.sessContPath + "," + param.sessExpiContPath)
 	case "redis":
 		if redPools[param.sessContUrl] == nil {
 			redPools[param.sessContUrl] = driver.NewRedisPool(param.sessContUrl, connNum, idlDur)
 		}
-		sessCont = newRedisSessionContainer(param.sessIdLen, redPools[param.sessContUrl], param.sessContPrefix, param.caStaleDur, param.caExpiDur)
+		sessCont = newRedisSessionContainer(param.sessIdLen, param.procId, redPools[param.sessContUrl], param.sessContPrefix, param.caStaleDur, param.caExpiDur)
 		log.Info("Use redis session container " + param.sessContUrl)
 	default:
 		return erro.New("invalid session container type " + param.sessContType)
@@ -117,16 +117,16 @@ func mainCore(param *parameters) error {
 	var codCont codeContainer
 	switch param.codContType {
 	case "memory":
-		codCont = newMemoryCodeContainer(param.codIdLen, param.codSavDur, param.caStaleDur, param.caExpiDur)
+		codCont = newMemoryCodeContainer(param.codIdLen, param.procId, param.codSavDur, param.caStaleDur, param.caExpiDur)
 		log.Info("Use memory code container.")
 	case "file":
-		codCont = newFileCodeContainer(param.codIdLen, param.codSavDur, param.codContPath, param.codExpiContPath, param.caStaleDur, param.caExpiDur)
+		codCont = newFileCodeContainer(param.codIdLen, param.procId, param.codSavDur, param.codContPath, param.codExpiContPath, param.caStaleDur, param.caExpiDur)
 		log.Info("Use file code container " + param.codContPath + "," + param.codExpiContPath)
 	case "redis":
 		if redPools[param.codContUrl] == nil {
 			redPools[param.codContUrl] = driver.NewRedisPool(param.codContUrl, connNum, idlDur)
 		}
-		codCont = newRedisCodeContainer(param.codIdLen, param.codSavDur, redPools[param.codContUrl], param.codContPrefix, param.caStaleDur, param.caExpiDur)
+		codCont = newRedisCodeContainer(param.codIdLen, param.procId, param.codSavDur, redPools[param.codContUrl], param.codContPrefix, param.caStaleDur, param.caExpiDur)
 		log.Info("Use redis code container " + param.codContUrl)
 	default:
 		return erro.New("invalid code container type " + param.codContType)
@@ -140,16 +140,16 @@ func mainCore(param *parameters) error {
 	var tokCont tokenContainer
 	switch param.tokContType {
 	case "memory":
-		tokCont = newMemoryTokenContainer(param.tokIdLen, param.tokSavDur, param.caStaleDur, param.caExpiDur)
+		tokCont = newMemoryTokenContainer(param.tokIdLen, param.procId, param.tokSavDur, param.caStaleDur, param.caExpiDur)
 		log.Info("Use memory token container.")
 	case "file":
-		tokCont = newFileTokenContainer(param.tokIdLen, param.tokSavDur, param.tokContPath, param.tokExpiContPath, param.caStaleDur, param.caExpiDur)
+		tokCont = newFileTokenContainer(param.tokIdLen, param.procId, param.tokSavDur, param.tokContPath, param.tokExpiContPath, param.caStaleDur, param.caExpiDur)
 		log.Info("Use file token container " + param.tokContPath + "," + param.tokExpiContPath)
 	case "redis":
 		if redPools[param.tokContUrl] == nil {
 			redPools[param.tokContUrl] = driver.NewRedisPool(param.tokContUrl, connNum, idlDur)
 		}
-		tokCont = newRedisTokenContainer(param.tokIdLen, param.tokSavDur, redPools[param.tokContUrl], param.tokContPrefix, param.caStaleDur, param.caExpiDur)
+		tokCont = newRedisTokenContainer(param.tokIdLen, param.procId, param.tokSavDur, redPools[param.tokContUrl], param.tokContPrefix, param.caStaleDur, param.caExpiDur)
 		log.Info("Use redis token container " + param.tokContUrl)
 	default:
 		return erro.New("invalid token container type " + param.tokContType)

@@ -18,5 +18,5 @@ func TestFileCodeContainer(t *testing.T) {
 	}
 	defer os.RemoveAll(expiPath)
 
-	testCodeContainer(t, newFileCodeContainer(10, testSavDur, path, expiPath, testStaleDur, testCaExpiDur))
+	testCodeContainer(t, newFileCodeContainer(10, "", testSavDur, path, expiPath, testStaleDur, testCaExpiDur))
 }

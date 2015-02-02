@@ -14,9 +14,10 @@ func getSessionStamp(val interface{}) *driver.Stamp {
 	return &driver.Stamp{Date: upd, Digest: strconv.FormatInt(upd.UnixNano(), 16)}
 }
 
-func newRedisSessionContainer(minIdLen int, pool *redis.Pool, tag string, caStaleDur, caExpiDur time.Duration) sessionContainer {
+func newRedisSessionContainer(minIdLen int, procId string,
+	pool *redis.Pool, tag string, caStaleDur, caExpiDur time.Duration) sessionContainer {
 	return &sessionContainerImpl{
 		driver.NewRedisTimeLimitedKeyValueStore(pool, tag+":", json.Marshal, unmarshalSession, getSessionStamp, caStaleDur, caExpiDur),
-		newIdGenerator(minIdLen),
+		newIdGenerator(minIdLen, procId),
 	}
 }

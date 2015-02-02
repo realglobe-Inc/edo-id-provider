@@ -18,5 +18,5 @@ func TestFileSessionContainer(t *testing.T) {
 	}
 	defer os.RemoveAll(expiPath)
 
-	testSessionContainer(t, newFileSessionContainer(10, path, expiPath, testStaleDur, testCaExpiDur))
+	testSessionContainer(t, newFileSessionContainer(10, "", path, expiPath, testStaleDur, testCaExpiDur))
 }

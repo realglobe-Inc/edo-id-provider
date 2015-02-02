@@ -9,10 +9,10 @@ import (
 type memorySessionContainer sessionContainerImpl
 
 // スレッドセーフ。
-func newMemorySessionContainer(minIdLen int, caStaleDur, caExpiDur time.Duration) sessionContainer {
+func newMemorySessionContainer(minIdLen int, procId string, caStaleDur, caExpiDur time.Duration) sessionContainer {
 	return &sessionContainerImpl{
 		driver.NewMemoryTimeLimitedKeyValueStore(caStaleDur, caExpiDur),
-		newIdGenerator(minIdLen),
+		newIdGenerator(minIdLen, procId),
 	}
 }
 

@@ -8,7 +8,7 @@ import (
 // スレッドセーフ。
 func newMemoryCodeContainer(minIdLen int, procId string, savDur, caStaleDur, caExpiDur time.Duration) codeContainer {
 	return &codeContainerImpl{
-		driver.NewMemoryTimeLimitedKeyValueStore(caStaleDur, caExpiDur),
+		driver.NewMemoryVolatileKeyValueStore(caStaleDur, caExpiDur),
 		newIdGenerator(minIdLen, procId),
 		savDur,
 	}

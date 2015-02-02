@@ -16,7 +16,7 @@ func getTokenStamp(val interface{}) *driver.Stamp {
 
 func newRedisTokenContainer(minIdLen int, procId string, savDur time.Duration, pool *redis.Pool, tag string, caStaleDur, caExpiDur time.Duration) tokenContainer {
 	return &tokenContainerImpl{
-		driver.NewRedisTimeLimitedKeyValueStore(pool, tag+":", json.Marshal, unmarshalToken, getTokenStamp, caStaleDur, caExpiDur),
+		driver.NewRedisVolatileKeyValueStore(pool, tag+":", json.Marshal, unmarshalToken, getTokenStamp, caStaleDur, caExpiDur),
 		newIdGenerator(minIdLen, procId),
 		savDur,
 	}

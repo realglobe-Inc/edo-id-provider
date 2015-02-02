@@ -12,7 +12,7 @@ type sessionContainer interface {
 }
 
 type sessionContainerImpl struct {
-	base driver.TimeLimitedKeyValueStore
+	base driver.VolatileKeyValueStore
 
 	idGenerator
 }

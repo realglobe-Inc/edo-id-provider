@@ -13,7 +13,7 @@ type codeContainer interface {
 }
 
 type codeContainerImpl struct {
-	base driver.TimeLimitedKeyValueStore
+	base driver.VolatileKeyValueStore
 
 	idGenerator
 	// 有効期限が切れてからも保持する期間。

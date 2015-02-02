@@ -16,7 +16,7 @@ func getCodeStamp(val interface{}) *driver.Stamp {
 
 func newRedisCodeContainer(minIdLen int, procId string, expiDur time.Duration, pool *redis.Pool, tag string, caStaleDur, caExpiDur time.Duration) codeContainer {
 	return &codeContainerImpl{
-		driver.NewRedisTimeLimitedKeyValueStore(pool, tag+":", json.Marshal, unmarshalCode, getCodeStamp, caStaleDur, caExpiDur),
+		driver.NewRedisVolatileKeyValueStore(pool, tag+":", json.Marshal, unmarshalCode, getCodeStamp, caStaleDur, caExpiDur),
 		newIdGenerator(minIdLen, procId),
 		expiDur,
 	}

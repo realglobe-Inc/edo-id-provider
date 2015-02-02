@@ -106,7 +106,25 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 	} else if cod == nil {
 		return newIdpError(errInvGrnt, "code "+mosaic(codId)+" is not exist", http.StatusBadRequest, nil)
 	} else if !cod.valid() {
-		// TODO 発行したアクセストークンを無効に。
+		// 発行したアクセストークンを無効に。
+		for tokId := range cod.tokens() {
+			tok, err := sys.tokCont.get(tokId)
+			if err != nil {
+				err = erro.Wrap(err)
+				log.Err(erro.Unwrap(err))
+				log.Debug(err)
+				continue
+			} else if tok == nil {
+				continue
+			}
+			tok.disable()
+			if err := sys.tokCont.put(tok); err != nil {
+				err = erro.Wrap(err)
+				log.Err(erro.Unwrap(err))
+				log.Debug(err)
+				continue
+			}
+		}
 		return newIdpError(errInvGrnt, "code "+mosaic(codId)+" is invalid", http.StatusBadRequest, nil)
 	}
 

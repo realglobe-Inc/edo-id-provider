@@ -87,3 +87,37 @@ func TestIdGeneratorConcurrent(t *testing.T) {
 		t.Error(len(glbl), p*n)
 	}
 }
+
+// 通し番号分がきちんと使われているかどうか。
+func TestIdGeneratorSerial(t *testing.T) {
+	const s = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+
+	idGen := newIdGenerator(0)
+
+	for j := 0; j < 8; j++ {
+		idGen.ser = 1 << uint(j)
+		for i := 0; ; i++ {
+			if i > len(s) {
+				t.Fatal("no ", s[len(s)-1])
+			}
+
+			id, err := idGen.newId()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if id[len(id)-1] == s[len(s)-1] {
+				break
+			}
+		}
+
+		for i := 0; i < len(s); i++ {
+			id, err := idGen.newId()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if id[len(id)-1] != s[i] {
+				t.Error(id[len(id)-1], s[i])
+			}
+		}
+	}
+}

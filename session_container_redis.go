@@ -15,7 +15,8 @@ func getSessionStamp(val interface{}) *driver.Stamp {
 }
 
 func newRedisSessionContainer(minIdLen int, pool *redis.Pool, tag string, caStaleDur, caExpiDur time.Duration) sessionContainer {
-	return newSessionContainerImpl(
+	return &sessionContainerImpl{
 		driver.NewRedisTimeLimitedKeyValueStore(pool, tag+":", json.Marshal, unmarshalSession, getSessionStamp, caStaleDur, caExpiDur),
-		minIdLen)
+		newIdGenerator(minIdLen),
+	}
 }

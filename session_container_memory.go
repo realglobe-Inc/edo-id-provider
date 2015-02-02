@@ -10,9 +10,10 @@ type memorySessionContainer sessionContainerImpl
 
 // スレッドセーフ。
 func newMemorySessionContainer(minIdLen int, caStaleDur, caExpiDur time.Duration) sessionContainer {
-	return newSessionContainerImpl(
+	return &sessionContainerImpl{
 		driver.NewMemoryTimeLimitedKeyValueStore(caStaleDur, caExpiDur),
-		minIdLen)
+		newIdGenerator(minIdLen),
+	}
 }
 
 func (this *memorySessionContainer) put(sess *session) error {

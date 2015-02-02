@@ -17,13 +17,6 @@ type sessionContainerImpl struct {
 	idGenerator
 }
 
-func newSessionContainerImpl(base driver.TimeLimitedKeyValueStore, minIdLen int) *sessionContainerImpl {
-	return &sessionContainerImpl{
-		base:        base,
-		idGenerator: newIdGenerator(minIdLen),
-	}
-}
-
 func (this *sessionContainerImpl) put(sess *session) error {
 	if _, err := this.base.Put(sess.id(), sess, sess.expirationDate()); err != nil {
 		return erro.Wrap(err)

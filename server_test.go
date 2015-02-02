@@ -1546,6 +1546,121 @@ func TestDenyUsedCode(t *testing.T) {
 	}
 }
 
+// 2 回使われた認可コードで発行したアクセストークンを無効にできるか。
+func _TestDisableTokenOfUsedCode(t *testing.T) {
+	// ////////////////////////////////
+	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
+	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトできたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	// サーバ起動待ち。
+	time.Sleep(10 * time.Millisecond)
+
+	cookJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Jar: cookJar}
+
+	consResp, err := testFromRequestAuthToConsent(idpSys, cli, map[string]string{
+		"scope":         "openid email",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+		"redirect_uri":  rediUri,
+	}, map[string]string{
+		"username": testAcc.name(),
+	}, map[string]string{
+		"username": testAcc.name(),
+		"password": testAcc.password(),
+	}, map[string]string{
+		"consented_scope": "openid email",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer consResp.Body.Close()
+
+	// アクセストークンを取得してアカウント情報も取得する。
+	tokRes, err := testGetToken(idpSys, consResp, map[string]interface{}{
+		"alg": "RS256",
+		"kid": kid,
+	}, map[string]interface{}{
+		"iss": testTa2.id(),
+		"sub": testTa2.id(),
+		"aud": idpSys.selfId + "/token",
+		"jti": strconv.FormatInt(time.Now().UnixNano(), 16),
+		"exp": time.Now().Add(idpSys.idTokExpiDur).Unix(),
+	}, map[string]string{
+		"grant_type":            "authorization_code",
+		"redirect_uri":          rediUri,
+		"client_id":             testTa2.id(),
+		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+	}, kid, sigKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res, err := testGetAccountInfo(idpSys, tokRes, nil); err != nil {
+		t.Fatal(err)
+	} else if em, _ := res["email"].(string); em != testAcc.attribute("email") {
+		t.Fatal(em, testAcc.attribute("email"))
+	}
+
+	// もう一度アクセストークンを要求して拒否される。
+	tokResp, err := testGetTokenWithoutCheck(idpSys, consResp, map[string]interface{}{
+		"alg": "RS256",
+		"kid": kid,
+	}, map[string]interface{}{
+		"iss": testTa2.id(),
+		"sub": testTa2.id(),
+		"aud": idpSys.selfId + "/token",
+		"jti": strconv.FormatInt(time.Now().UnixNano(), 16),
+		"exp": time.Now().Add(idpSys.idTokExpiDur).Unix(),
+	}, map[string]string{
+		"grant_type":            "authorization_code",
+		"redirect_uri":          rediUri,
+		"client_id":             testTa2.id(),
+		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+	}, kid, sigKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tokResp.Body.Close()
+
+	// 拒否されていることは別テスト。
+
+	// さっき取得したアクセストークンでのアカウント情報取得も拒否される。
+	resp, err := testGetAccountInfoWithoutCheck(idpSys, tokRes, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.StatusCode != http.StatusBadRequest {
+		util.LogResponse(level.ERR, resp, true)
+		t.Fatal(resp.StatusCode, http.StatusBadRequest)
+	}
+
+	var res struct{ Error string }
+	if data, err := ioutil.ReadAll(resp.Body); err != nil {
+		util.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if err := json.Unmarshal(data, &res); err != nil {
+		util.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if res.Error != errInvTok {
+		t.Fatal(res.Error, errInvTok)
+	}
+}
+
 // 認証リクエストに scope が無かったら拒否できるか。
 func TestDenyAuthRequestWithoutScope(t *testing.T) {
 	// ////////////////////////////////

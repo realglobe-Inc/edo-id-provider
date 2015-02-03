@@ -18,7 +18,7 @@ func unmarshalCode(data []byte) (val interface{}, err error) {
 // スレッドセーフ。
 func newFileCodeContainer(minIdLen int, procId string, savDur time.Duration, path, expiPath string, caStaleDur, caExpiDur time.Duration) codeContainer {
 	return &codeContainerImpl{
-		driver.NewFileVolatileKeyValueStore(path, expiPath,
+		driver.NewFileConcurrentVolatileKeyValueStore(path, expiPath,
 			keyToJsonPath, nil, json.Marshal, unmarshalCode,
 			caStaleDur, caExpiDur),
 		newIdGenerator(minIdLen, procId),

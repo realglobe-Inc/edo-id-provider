@@ -28,7 +28,13 @@ func newIdGenerator(randLen int, suf string) idGenerator {
 }
 
 func (this *idGenerator) newId() (id string, err error) {
-	id, err = util.SecureRandomString(this.randLen)
+	return this.id(this.randLen)
+}
+
+// 乱数部分の長さを指定して ID を発行させる。
+// randLen が 0 なら err は必ず nil。
+func (this *idGenerator) id(randLen int) (id string, err error) {
+	id, err = util.SecureRandomString(randLen)
 	if err != nil {
 		return "", erro.Wrap(err)
 	}

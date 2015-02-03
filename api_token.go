@@ -106,25 +106,7 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 	} else if cod == nil {
 		return newIdpError(errInvGrnt, "code "+mosaic(codId)+" is not exist", http.StatusBadRequest, nil)
 	} else if !cod.valid() {
-		// 発行したアクセストークンを無効に。
-		for tokId := range cod.tokens() {
-			tok, err := sys.tokCont.get(tokId)
-			if err != nil {
-				err = erro.Wrap(err)
-				log.Err(erro.Unwrap(err))
-				log.Debug(err)
-				continue
-			} else if tok == nil {
-				continue
-			}
-			tok.disable()
-			if err := sys.tokCont.put(tok); err != nil {
-				err = erro.Wrap(err)
-				log.Err(erro.Unwrap(err))
-				log.Debug(err)
-				continue
-			}
-		}
+		disposeCode(sys, codId)
 		return newIdpError(errInvGrnt, "code "+mosaic(codId)+" is invalid", http.StatusBadRequest, nil)
 	}
 
@@ -267,6 +249,7 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 	if ok, err := sys.codCont.putIfEntered(cod, codTic); err != nil {
 		return newIdpError(errServErr, erro.Unwrap(err).Error(), http.StatusBadRequest, erro.Wrap(err))
 	} else if !ok {
+		disposeCode(sys, codId)
 		return newIdpError(errInvGrnt, "code "+mosaic(codId)+" is used by others", http.StatusBadRequest, nil)
 	}
 
@@ -297,5 +280,58 @@ func audienceHas(aud interface{}, tgt string) bool {
 		return false
 	default:
 		return false
+	}
+}
+
+// 認可コードを廃棄処分する。
+func disposeCode(sys *system, codId string) {
+	cod, codTic, err := sys.codCont.getAndSetEntry(codId)
+	if err != nil {
+		// 何もできない。
+		err = erro.Wrap(err)
+		log.Err(erro.Unwrap(err))
+		log.Debug(err)
+		return
+	} else if cod == nil {
+		return
+	}
+
+	for tokId := range cod.tokens() {
+		disposeToken(sys, tokId)
+	}
+
+	if !cod.valid() {
+		return
+	}
+
+	cod.disable()
+	if _, err := sys.codCont.putIfEntered(cod, codTic); err != nil {
+		err = erro.Wrap(err)
+		log.Err(erro.Unwrap(err))
+		log.Debug(err)
+		return
+	}
+}
+
+// アクセストークンを廃棄処分する。
+func disposeToken(sys *system, tokId string) {
+	tok, err := sys.tokCont.get(tokId)
+	if err != nil {
+		err = erro.Wrap(err)
+		log.Err(erro.Unwrap(err))
+		log.Debug(err)
+		return
+	} else if tok == nil {
+		return
+	} else if !tok.valid() {
+		return
+	}
+
+	tok.disable()
+	if err := sys.tokCont.put(tok); err != nil {
+		err = erro.Wrap(err)
+		log.Err(erro.Unwrap(err))
+		log.Debug(err)
+		return
 	}
 }

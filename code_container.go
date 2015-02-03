@@ -10,10 +10,14 @@ type codeContainer interface {
 	newId() (id string, err error)
 	get(codId string) (*code, error)
 	put(cod *code) error
+	// tic は書き込み券。
+	getAndSetEntry(codId string) (cod *code, tic string, err error)
+	// tic が最後に発行された書き込み券だった場合のみ書き込まれ、ok が true になる。
+	putIfEntered(cod *code, tic string) (ok bool, err error)
 }
 
 type codeContainerImpl struct {
-	base driver.VolatileKeyValueStore
+	base driver.ConcurrentVolatileKeyValueStore
 
 	idGenerator
 	// 有効期限が切れてからも保持する期間。
@@ -35,4 +39,23 @@ func (this *codeContainerImpl) put(cod *code) error {
 		return erro.Wrap(err)
 	}
 	return nil
+}
+
+func (this *codeContainerImpl) getAndSetEntry(codId string) (cod *code, tic string, err error) {
+	tic, _ = this.idGenerator.id(0)
+	val, _, err := this.base.GetAndSetEntry(codId, nil, codId+":entry", tic, time.Now().Add(time.Minute))
+	if err != nil {
+		return nil, "", erro.Wrap(err)
+	} else if val == nil {
+		return nil, "", nil
+	}
+	return val.(*code), tic, nil
+}
+
+func (this *codeContainerImpl) putIfEntered(cod *code, tic string) (ok bool, err error) {
+	ok, _, err = this.base.PutIfEntered(cod.id(), cod, cod.expirationDate().Add(this.savDur), cod.id()+":entry", tic)
+	if err != nil {
+		return false, erro.Wrap(err)
+	}
+	return ok, nil
 }

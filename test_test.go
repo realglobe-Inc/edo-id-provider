@@ -16,4 +16,6 @@ const (
 	testSavDur    = 15 * time.Millisecond
 	testStaleDur  = 5 * time.Millisecond
 	testCaExpiDur = time.Millisecond
+
+	testTicDur = 10 * time.Millisecond
 )

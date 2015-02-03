@@ -76,7 +76,7 @@ func newTestSystem(selfId string) *system {
 		newMemoryAccountContainer(testStaleDur, testCaExpiDur),
 		newMemoryConsentContainer(testStaleDur, testCaExpiDur),
 		newMemorySessionContainer(testIdLen, "", testStaleDur, testCaExpiDur),
-		newMemoryCodeContainer(testIdLen, "", testSavDur, testStaleDur, testCaExpiDur),
+		newMemoryCodeContainer(testIdLen, "", testSavDur, testTicDur, testStaleDur, testCaExpiDur),
 		newMemoryTokenContainer(testIdLen, "", testSavDur, testStaleDur, testCaExpiDur),
 		testCodExpiDur + 2*time.Second, // 以下、プロトコルを通すと粒度が秒になるため。
 		testTokExpiDur + 2*time.Second,

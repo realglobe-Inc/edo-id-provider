@@ -22,6 +22,8 @@ type codeContainerImpl struct {
 	idGenerator
 	// 有効期限が切れてからも保持する期間。
 	savDur time.Duration
+	// 書き込み券の有効期間。
+	ticExpDur time.Duration
 }
 
 func (this *codeContainerImpl) get(codId string) (*code, error) {
@@ -43,7 +45,7 @@ func (this *codeContainerImpl) put(cod *code) error {
 
 func (this *codeContainerImpl) getAndSetEntry(codId string) (cod *code, tic string, err error) {
 	tic, _ = this.idGenerator.id(0)
-	val, _, err := this.base.GetAndSetEntry(codId, nil, codId+":entry", tic, time.Now().Add(time.Minute))
+	val, _, err := this.base.GetAndSetEntry(codId, nil, codId+":entry", tic, time.Now().Add(this.ticExpDur))
 	if err != nil {
 		return nil, "", erro.Wrap(err)
 	} else if val == nil {

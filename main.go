@@ -117,16 +117,16 @@ func mainCore(param *parameters) error {
 	var codCont codeContainer
 	switch param.codContType {
 	case "memory":
-		codCont = newMemoryCodeContainer(param.codIdLen, param.procId, param.codSavDur, param.caStaleDur, param.caExpiDur)
+		codCont = newMemoryCodeContainer(param.codIdLen, param.procId, param.codTicExpDur, param.codSavDur, param.caStaleDur, param.caExpiDur)
 		log.Info("Use memory code container.")
 	case "file":
-		codCont = newFileCodeContainer(param.codIdLen, param.procId, param.codSavDur, param.codContPath, param.codExpiContPath, param.caStaleDur, param.caExpiDur)
+		codCont = newFileCodeContainer(param.codIdLen, param.procId, param.codTicExpDur, param.codSavDur, param.codContPath, param.codExpiContPath, param.caStaleDur, param.caExpiDur)
 		log.Info("Use file code container " + param.codContPath + "," + param.codExpiContPath)
 	case "redis":
 		if redPools[param.codContUrl] == nil {
 			redPools[param.codContUrl] = driver.NewRedisPool(param.codContUrl, connNum, idlDur)
 		}
-		codCont = newRedisCodeContainer(param.codIdLen, param.procId, param.codSavDur, redPools[param.codContUrl], param.codContPrefix, param.caStaleDur, param.caExpiDur)
+		codCont = newRedisCodeContainer(param.codIdLen, param.procId, param.codTicExpDur, param.codSavDur, redPools[param.codContUrl], param.codContPrefix, param.caStaleDur, param.caExpiDur)
 		log.Info("Use redis code container " + param.codContUrl)
 	default:
 		return erro.New("invalid code container type " + param.codContType)

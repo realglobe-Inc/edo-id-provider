@@ -100,7 +100,7 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 
 	log.Debug("Code " + mosaic(codId) + " is declared")
 
-	cod, err := sys.codCont.get(codId)
+	cod, codTic, err := sys.codCont.getAndSetEntry(codId)
 	if err != nil {
 		return erro.Wrap(err)
 	} else if cod == nil {
@@ -132,9 +132,6 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 
 	// 認可コードを使用済みにする。
 	cod.disable()
-	if err := sys.codCont.put(cod); err != nil {
-		return newIdpError(errServErr, erro.Unwrap(err).Error(), http.StatusBadRequest, erro.Wrap(err))
-	}
 
 	log.Debug("Code " + mosaic(codId) + " is disabled")
 
@@ -261,12 +258,26 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 		cod.claims(),
 		idTok,
 	)
+
+	// アクセストークンが決まった。
+	log.Debug("Token " + mosaic(tok.id()) + " was generated")
+
+	// アクセストークンを認可コードに結びつける。
+	cod.addToken(tokId)
+	if ok, err := sys.codCont.putIfEntered(cod, codTic); err != nil {
+		return newIdpError(errServErr, erro.Unwrap(err).Error(), http.StatusBadRequest, erro.Wrap(err))
+	} else if !ok {
+		return newIdpError(errInvGrnt, "code "+mosaic(codId)+" is used by others", http.StatusBadRequest, nil)
+	}
+
+	log.Debug("Token " + mosaic(tok.id()) + " was linked to code " + mosaic(cod.id()))
+
+	// アクセストークンを保存する。
 	if err := sys.tokCont.put(tok); err != nil {
 		return erro.Wrap(err)
 	}
 
-	// アクセストークンが決まった。
-	log.Debug("Token " + mosaic(tok.id()) + " is generated")
+	log.Debug("Token " + mosaic(tok.id()) + " was registerd")
 
 	return responseToken(w, tok)
 }

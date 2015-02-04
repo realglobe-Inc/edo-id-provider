@@ -8,6 +8,16 @@ import (
 )
 
 func testCodeContainer(t *testing.T, codCont codeContainer) {
+	var savDur time.Duration
+	switch c := codCont.(type) {
+	case *codeContainerImpl:
+		savDur = c.savDur
+	case *memoryCodeContainer:
+		savDur = c.savDur
+	default:
+		t.Fatal("unknown code container")
+	}
+
 	// 無い。
 	if c, err := codCont.get("ccccc"); err != nil {
 		t.Fatal(err)
@@ -57,7 +67,7 @@ func testCodeContainer(t *testing.T, codCont codeContainer) {
 	}
 
 	// 無効。
-	for end := cod.expirationDate().Add(codCont.(*codeContainerImpl).savDur - time.Millisecond); ; // redis の粒度がミリ秒のため。
+	for end := cod.expirationDate().Add(savDur - time.Millisecond); ; // redis の粒度がミリ秒のため。
 	{
 		c, err := codCont.get(cod.id())
 		if err != nil {
@@ -79,7 +89,7 @@ func testCodeContainer(t *testing.T, codCont codeContainer) {
 			t.Error(c, cur, end)
 		}
 
-		time.Sleep(codCont.(*codeContainerImpl).savDur / 4)
+		time.Sleep(savDur / 4)
 	}
 
 	time.Sleep(time.Millisecond) // redis の粒度がミリ秒のため。

@@ -327,7 +327,7 @@ func TestDenyTokenRequestWithoutClientId(t *testing.T) {
 	}
 	cli := &http.Client{Jar: cookJar}
 
-	consResp, err := testFromRequestAuthToConsent(idpSys, cli, map[string]string{
+	resp, err := testFromRequestAuthToGetTokenWithoutCheck(idpSys, cli, map[string]string{
 		"scope":         "openid email",
 		"response_type": "code",
 		"client_id":     testTa2.id(),
@@ -339,13 +339,7 @@ func TestDenyTokenRequestWithoutClientId(t *testing.T) {
 		"password": testAcc.password(),
 	}, map[string]string{
 		"consented_scope": "openid email",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer consResp.Body.Close()
-
-	resp, err := testGetTokenWithoutCheck(idpSys, consResp, map[string]interface{}{
+	}, map[string]interface{}{
 		"alg": "RS256",
 		"kid": kid,
 	}, map[string]interface{}{

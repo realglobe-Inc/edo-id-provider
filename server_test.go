@@ -569,6 +569,22 @@ func testFromRequestAuthToGetTokenWithoutCheck(idpSys *system, cli *http.Client,
 	return testGetTokenWithoutCheck(idpSys, consResp, assHeads, assClms, tokParams, kid, sigKey)
 }
 
+// 認証リクエストからトークンリクエストまでする。
+func testFromRequestAuthToGetToken(idpSys *system, cli *http.Client,
+	authParams, selParams, loginParams, consParams map[string]string,
+	assHeads, assClms map[string]interface{}, tokParams map[string]string, kid string, sigKey crypto.PrivateKey) (map[string]interface{}, error) {
+
+	// リクエストから同意までする。
+	consResp, err := testFromRequestAuthToConsent(idpSys, cli, authParams, selParams, loginParams, consParams)
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
+	defer consResp.Body.Close()
+
+	// アクセストークンを取得してアカウント情報を取得する。
+	return testGetToken(idpSys, consResp, assHeads, assClms, tokParams, kid, sigKey)
+}
+
 // トークンリクエストからアカウント情報取得までする。
 func testGetTokenAndAccountInfo(idpSys *system, consResp *http.Response,
 	assHeads, assClms map[string]interface{}, tokParams map[string]string, kid string, sigKey crypto.PrivateKey,

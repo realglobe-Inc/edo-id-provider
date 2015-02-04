@@ -97,6 +97,9 @@ func redirectError(w http.ResponseWriter, r *http.Request, sys *system, sess *se
 		q.Set(formErr, errServErr)
 		q.Set(formErrDesc, e.Error())
 	}
+	if authReq.state() != "" {
+		q.Set(formStat, authReq.state())
+	}
 
 	authReq.redirectUri().RawQuery = q.Encode()
 	w.Header().Add("Cache-Control", "no-store")

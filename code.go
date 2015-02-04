@@ -38,6 +38,20 @@ type code struct {
 	Toks util.StringSet `json:"access_tokens,omitempty"`
 }
 
+func (this *code) copy() *code {
+	c := *this
+	if this.Scops != nil {
+		c.Scops = util.NewStringSet(this.Scops)
+	}
+	if this.Clms != nil {
+		c.Clms = util.NewStringSet(this.Clms)
+	}
+	if this.Toks != nil {
+		c.Toks = util.NewStringSet(this.Toks)
+	}
+	return &c
+}
+
 func newCode(codId,
 	accId,
 	taId,

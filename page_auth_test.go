@@ -171,6 +171,7 @@ func TestDenyNoScopeInAuthRequest(t *testing.T) {
 }
 
 // 認証リクエストに client_id が無い時に拒否できるか。
+// 必須パラメータ無しで error は invalid_request か。
 func TestDenyNoClientIdInAuthRequest(t *testing.T) {
 	// ////////////////////////////////
 	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
@@ -225,6 +226,7 @@ func TestDenyNoClientIdInAuthRequest(t *testing.T) {
 }
 
 // 認証リクエストに response_type が無い時に拒否できるか。
+// 必須パラメータ無しで error は invalid_request か。
 func TestDenyNoResponseTypeInAuthRequest(t *testing.T) {
 	// ////////////////////////////////
 	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
@@ -267,6 +269,7 @@ func TestDenyNoResponseTypeInAuthRequest(t *testing.T) {
 }
 
 // 認証リクエストの response_type が未知の時に拒否できるか。
+// error は unsupported_response_type か。
 func TestDenyUnknownResponseTypeInAuthRequest(t *testing.T) {
 	// ////////////////////////////////
 	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)

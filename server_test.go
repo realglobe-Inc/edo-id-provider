@@ -231,7 +231,7 @@ func testSelectAccountWithoutCheck(idpSys *system, cli *http.Client, authResp *h
 			q.Set(k, v)
 		}
 	}
-	if v, ok := selParams["ticket"]; !(ok && v == "") {
+	if _, ok := selParams["ticket"]; !ok {
 		q.Set("ticket", tic)
 	}
 	req, err := http.NewRequest("POST", idpSys.selfId+"/auth/select", strings.NewReader(q.Encode()))
@@ -283,7 +283,7 @@ func testLoginWithoutCheck(idpSys *system, cli *http.Client, selResp *http.Respo
 			q.Set(k, v)
 		}
 	}
-	if v, ok := loginParams["ticket"]; !(ok && v == "") {
+	if _, ok := loginParams["ticket"]; !ok {
 		q.Set("ticket", tic)
 	}
 	req, err := http.NewRequest("POST", idpSys.selfId+"/auth/login", strings.NewReader(q.Encode()))
@@ -335,7 +335,7 @@ func testConsentWithoutCheck(idpSys *system, cli *http.Client, loginResp *http.R
 			q.Set(k, v)
 		}
 	}
-	if v, ok := consParams["ticket"]; !(ok && v == "") {
+	if _, ok := consParams["ticket"]; !ok {
 		q.Set("ticket", tic)
 	}
 	q.Set("ticket", tic)
@@ -418,10 +418,10 @@ func testGetTokenWithoutCheck(idpSys *system, consResp *http.Response, assHeads,
 			q.Set(k, v)
 		}
 	}
-	if v, ok := reqParams["code"]; !(ok && v == "") {
+	if _, ok := reqParams["code"]; !ok {
 		q.Set("code", cod)
 	}
-	if v, ok := reqParams["client_assertion"]; !(ok && v == "") {
+	if _, ok := reqParams["client_assertion"]; !ok {
 		q.Set("client_assertion", ass)
 	}
 	req, err := http.NewRequest("POST", idpSys.selfId+"/token", strings.NewReader(q.Encode()))
@@ -483,7 +483,7 @@ func testGetAccountInfoWithoutCheck(idpSys *system, tokRes map[string]interface{
 			req.Header.Set(k, v)
 		}
 	}
-	if v, ok := reqHeads["Authorization"]; !(ok && v == "") {
+	if _, ok := reqHeads["Authorization"]; !ok {
 		req.Header.Set("Authorization", "Bearer "+tok)
 	}
 	resp, err := (&http.Client{}).Do(req)

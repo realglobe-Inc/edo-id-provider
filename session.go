@@ -76,9 +76,23 @@ func (this *sessionAccountMap) UnmarshalJSON(data []byte) error {
 
 func (this *session) copy() *session {
 	c := *this
-	c.Accs = sessionAccountMap{}
-	for accId, acc := range this.Accs {
-		c.Accs[accId] = acc
+	if this.Accs != nil {
+		c.Accs = sessionAccountMap{}
+		for accId, acc := range this.Accs {
+			c.Accs[accId] = acc
+		}
+	}
+	if this.ConsScops != nil {
+		c.ConsScops = util.NewStringSet(this.ConsScops)
+	}
+	if this.ConsClms != nil {
+		c.ConsClms = util.NewStringSet(this.ConsClms)
+	}
+	if this.DenyScops != nil {
+		c.DenyScops = util.NewStringSet(this.DenyScops)
+	}
+	if this.DenyClms != nil {
+		c.DenyClms = util.NewStringSet(this.DenyClms)
 	}
 	return &c
 }
@@ -87,7 +101,6 @@ func (this *session) copy() *session {
 func newSession() *session {
 	return &session{
 		Date: time.Now(),
-		Accs: sessionAccountMap{},
 	}
 }
 

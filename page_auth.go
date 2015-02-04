@@ -77,13 +77,12 @@ func publishCode(w http.ResponseWriter, r *http.Request, sys *system, sess *sess
 	}
 	encCod := string(buff)
 
-	rediUri := authReq.redirectUri()
-	q := rediUri.Query()
+	q := authReq.redirectUri().Query()
 	q.Set(formCod, encCod)
 	if stat := authReq.state(); stat != "" {
 		q.Set(formStat, stat)
 	}
-	rediUri.RawQuery = q.Encode()
+	authReq.redirectUri().RawQuery = q.Encode()
 	http.SetCookie(w, &http.Cookie{
 		Name:     cookSess,
 		Value:    sess.id(),
@@ -93,7 +92,7 @@ func publishCode(w http.ResponseWriter, r *http.Request, sys *system, sess *sess
 		HttpOnly: true})
 	w.Header().Add("Cache-Control", "no-store")
 	w.Header().Add("Pragma", "no-cache")
-	http.Redirect(w, r, rediUri.String(), http.StatusFound)
+	http.Redirect(w, r, authReq.redirectUri().String(), http.StatusFound)
 	return nil
 }
 

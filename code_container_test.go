@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -48,7 +49,8 @@ func testCodeContainer(t *testing.T, codCont codeContainer) {
 		} else if c == nil {
 			t.Fatal(cur, exp)
 		} else if !reflect.DeepEqual(c, cod) {
-			t.Error(c, cur, exp)
+			t.Error(fmt.Sprintf("%#v", c))
+			t.Error(fmt.Sprintf("%#v", cod))
 		}
 
 		time.Sleep(testCodExpiDur / 4)

@@ -106,6 +106,7 @@ func TestDenyNonPostTokenRequest(t *testing.T) {
 			t.Fatal(err)
 		}
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.Header.Set("Connection", "close")
 		resp, err := (&http.Client{}).Do(req)
 		if err != nil {
 			t.Fatal(err)
@@ -275,6 +276,7 @@ func TestDenyOverlapParameterInTokenRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Connection", "close")
 	resp, err := (&http.Client{}).Do(req)
 	if err != nil {
 		t.Fatal(err)

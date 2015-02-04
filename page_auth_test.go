@@ -112,6 +112,7 @@ func TestDenyOverlapParameterInAuthRequest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	req.Header.Set("Connection", "close")
 	resp, err := (&http.Client{}).Do(req)
 	if err != nil {
 		t.Fatal(err)

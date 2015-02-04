@@ -187,6 +187,7 @@ func testRequestAuthWithoutCheck(idpSys *system, cli *http.Client, authParams ma
 	if err != nil {
 		return nil, erro.Wrap(err)
 	}
+	req.Header.Set("Connection", "close")
 	resp, err := cli.Do(req)
 	if err != nil {
 		return nil, erro.Wrap(err)
@@ -239,6 +240,7 @@ func testSelectAccountWithoutCheck(idpSys *system, cli *http.Client, authResp *h
 		return nil, erro.Wrap(err)
 	}
 	req.Header.Set("Content-Type", util.ContentTypeForm)
+	req.Header.Set("Connection", "close")
 	resp, err := cli.Do(req)
 	if err != nil {
 		return nil, erro.Wrap(err)
@@ -291,6 +293,7 @@ func testLoginWithoutCheck(idpSys *system, cli *http.Client, selResp *http.Respo
 		return nil, erro.Wrap(err)
 	}
 	req.Header.Set("Content-Type", util.ContentTypeForm)
+	req.Header.Set("Connection", "close")
 	resp, err := cli.Do(req)
 	if err != nil {
 		return nil, erro.Wrap(err)
@@ -344,6 +347,7 @@ func testConsentWithoutCheck(idpSys *system, cli *http.Client, loginResp *http.R
 		return nil, erro.Wrap(err)
 	}
 	req.Header.Set("Content-Type", util.ContentTypeForm)
+	req.Header.Set("Connection", "close")
 	resp, err := cli.Do(req)
 	if err != nil {
 		return nil, erro.Wrap(err)
@@ -429,6 +433,7 @@ func testGetTokenWithoutCheck(idpSys *system, consResp *http.Response, assHeads,
 		return nil, erro.Wrap(err)
 	}
 	req.Header.Set("Content-Type", util.ContentTypeForm)
+	req.Header.Set("Connection", "close")
 	resp, err := (&http.Client{}).Do(req)
 	if err != nil {
 		return nil, erro.Wrap(err)
@@ -486,6 +491,7 @@ func testGetAccountInfoWithoutCheck(idpSys *system, tokRes map[string]interface{
 	if _, ok := reqHeads["Authorization"]; !ok {
 		req.Header.Set("Authorization", "Bearer "+tok)
 	}
+	req.Header.Set("Connection", "close")
 	resp, err := (&http.Client{}).Do(req)
 	if err != nil {
 		return nil, erro.Wrap(err)

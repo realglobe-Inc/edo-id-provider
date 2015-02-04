@@ -15,6 +15,11 @@ func publishCode(w http.ResponseWriter, r *http.Request, sys *system, sess *sess
 
 	consScops, consClms, denyScops, denyClms := sess.commit()
 
+	if !consScops[scopOpId] {
+		// openid すら許されなかった。
+		return redirectError(w, r, sys, sess, authReq.redirectUri(), newIdpError(errAccDeny, "user denied openid", 0, nil))
+	}
+
 	codId, err := sys.codCont.newId()
 	if err != nil {
 		return redirectError(w, r, sys, sess, authReq.redirectUri(), erro.Wrap(err))

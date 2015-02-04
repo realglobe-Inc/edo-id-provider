@@ -121,7 +121,7 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 	if taId == "" {
 		return newIdpError(errInvReq, "no "+formTaId, http.StatusBadRequest, nil)
 	} else if taId != cod.taId() {
-		return newIdpError(errInvTa, "you are not code holder", http.StatusBadRequest, nil)
+		return newIdpError(errInvGrnt, "you are not code holder", http.StatusBadRequest, nil)
 	} else {
 		log.Debug("TA ID " + taId + " is declared")
 	}

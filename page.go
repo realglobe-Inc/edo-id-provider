@@ -11,6 +11,7 @@ const (
 	// OAuth と OpenID Connect で定義されているパラメータ。
 	formScop      = "scope"
 	formTaId      = "client_id"
+	formTaScrt    = "client_secret"
 	formPrmpt     = "prompt"
 	formRediUri   = "redirect_uri"
 	formRespType  = "response_type"

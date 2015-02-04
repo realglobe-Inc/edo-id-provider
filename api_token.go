@@ -150,6 +150,11 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 
 	log.Debug(formTaAss + " is found")
 
+	// Authorization ヘッダと client_secret パラメータも認識はする。
+	if r.Header.Get(headAuth) != "" || r.FormValue(formTaScrt) != "" {
+		return newIdpError(errInvReq, "multi client authentication algorithms are exist", http.StatusBadRequest, nil)
+	}
+
 	// クライアント認証する。
 	assJws, err := util.ParseJws(taAss)
 	if err != nil {

@@ -132,7 +132,7 @@ func authPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 	req.setRedirectUri(rediUri)
 
 	if !req.scopes()[scopOpId] {
-		return redirectError(w, r, sys, nil, req.redirectUri(), newIdpError(errInvScop, formScop+" has no "+scopOpId, 0, nil))
+		return redirectError(w, r, sys, nil, req.redirectUri(), newIdpError(errInvReq, formScop+" has no "+scopOpId, 0, nil))
 	}
 
 	// 重複パラメータが無いか検査。

@@ -127,6 +127,7 @@ func TestDenyOverlapParameterInAuthRequest(t *testing.T) {
 }
 
 // 認証リクエストに scope が無かったら拒否できるか。
+// 必須パラメータ無しでエラーリダイレクトして error は invalid_request か。
 func TestDenyNoScopeInAuthRequest(t *testing.T) {
 	// ////////////////////////////////
 	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
@@ -163,7 +164,7 @@ func TestDenyNoScopeInAuthRequest(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	if q := resp.Request.URL.Query(); q.Get("error") == errInvReq {
+	if q := resp.Request.URL.Query(); q.Get("error") != errInvReq {
 		t.Fatal(q.Get("error"), errInvReq)
 	}
 }

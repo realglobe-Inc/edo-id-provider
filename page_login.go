@@ -184,6 +184,7 @@ func afterLogin(w http.ResponseWriter, r *http.Request, sys *system, sess *sessi
 	if satisfiable(scops, clms, sess.request().scopes(), sess.request().claimNames()) {
 		// 事前同意で十分。
 		log.Debug("Preliminarily consented")
+		sess.consent(sess.request().scopes(), sess.request().claimNames(), nil, nil)
 		return afterConsent(w, r, sys, sess)
 	}
 

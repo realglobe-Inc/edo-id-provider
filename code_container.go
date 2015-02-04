@@ -49,7 +49,7 @@ func (this *codeContainerImpl) getAndSetEntry(codId string) (cod *code, tic stri
 	if err != nil {
 		return nil, "", erro.Wrap(err)
 	} else if val == nil {
-		return nil, "", nil
+		return nil, tic, nil
 	}
 	return val.(*code), tic, nil
 }

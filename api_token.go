@@ -130,7 +130,7 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 	if rediUri == "" {
 		return newIdpError(errInvReq, "no "+formRediUri, http.StatusBadRequest, nil)
 	} else if rediUri != cod.redirectUri() {
-		return newIdpError(errInvTa, "invalid "+formRediUri, http.StatusBadRequest, nil)
+		return newIdpError(errInvGrnt, "invalid "+formRediUri, http.StatusBadRequest, nil)
 	}
 
 	log.Debug(formRediUri + " matches that of code")

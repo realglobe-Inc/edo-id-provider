@@ -10,7 +10,7 @@ type memorySessionContainer sessionContainerImpl
 
 // スレッドセーフ。
 func newMemorySessionContainer(minIdLen int, procId string, caStaleDur, caExpiDur time.Duration) sessionContainer {
-	return &sessionContainerImpl{
+	return &memorySessionContainer{
 		driver.NewMemoryConcurrentVolatileKeyValueStore(caStaleDur, caExpiDur),
 		newIdGenerator(minIdLen, procId),
 	}

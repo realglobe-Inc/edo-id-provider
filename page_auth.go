@@ -17,12 +17,12 @@ func publishCode(w http.ResponseWriter, r *http.Request, sys *system, sess *sess
 
 	if !consScops[scopOpId] {
 		// openid すら許されなかった。
-		return redirectError(w, r, sys, sess, authReq.redirectUri(), newIdpError(errAccDeny, "user denied openid", 0, nil))
+		return redirectError(w, r, sys, sess, authReq, newIdpError(errAccDeny, "user denied openid", 0, nil))
 	}
 
 	codId, err := sys.codCont.newId()
 	if err != nil {
-		return redirectError(w, r, sys, sess, authReq.redirectUri(), erro.Wrap(err))
+		return redirectError(w, r, sys, sess, authReq, erro.Wrap(err))
 	}
 	cod := newCode(
 		codId,
@@ -39,7 +39,7 @@ func publishCode(w http.ResponseWriter, r *http.Request, sys *system, sess *sess
 	log.Debug("Code " + mosaic(cod.id()) + " was generated.")
 
 	if err := sys.codCont.put(cod); err != nil {
-		return redirectError(w, r, sys, sess, authReq.redirectUri(), erro.Wrap(err))
+		return redirectError(w, r, sys, sess, authReq, erro.Wrap(err))
 	}
 
 	// 認可コードを発行した。
@@ -48,19 +48,19 @@ func publishCode(w http.ResponseWriter, r *http.Request, sys *system, sess *sess
 	if sess.id() == "" {
 		id, err := sys.sessCont.newId()
 		if err != nil {
-			return redirectError(w, r, sys, sess, authReq.redirectUri(), erro.Wrap(err))
+			return redirectError(w, r, sys, sess, authReq, erro.Wrap(err))
 		}
 		sess.setId(id)
 	}
 	sess.setExpirationDate(time.Now().Add(sys.sessExpiDur))
 	if err := sys.sessCont.put(sess); err != nil {
-		return redirectError(w, r, sys, sess, authReq.redirectUri(), erro.Wrap(err))
+		return redirectError(w, r, sys, sess, authReq, erro.Wrap(err))
 	}
 
 	log.Debug("Session " + mosaic(sess.id()) + " was registered")
 
 	if err := sys.consCont.put(sess.currentAccount(), authReq.ta(), consScops, consClms, denyScops, denyClms); err != nil {
-		return redirectError(w, r, sys, sess, authReq.redirectUri(), erro.Wrap(err))
+		return redirectError(w, r, sys, sess, authReq, erro.Wrap(err))
 	}
 
 	// 認可コードを IdP の ID を含んだ JWS にする。
@@ -69,11 +69,11 @@ func publishCode(w http.ResponseWriter, r *http.Request, sys *system, sess *sess
 	jws.SetClaim(clmJti, cod.id())
 	jws.SetClaim(clmIss, sys.selfId)
 	if err := jws.Sign(nil); err != nil {
-		return redirectError(w, r, sys, sess, authReq.redirectUri(), erro.Wrap(err))
+		return redirectError(w, r, sys, sess, authReq, erro.Wrap(err))
 	}
 	buff, err := jws.Encode()
 	if err != nil {
-		return redirectError(w, r, sys, sess, authReq.redirectUri(), erro.Wrap(err))
+		return redirectError(w, r, sys, sess, authReq, erro.Wrap(err))
 	}
 	encCod := string(buff)
 
@@ -137,13 +137,13 @@ func authPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 	req.setRedirectUri(rediUri)
 
 	if !req.scopes()[scopOpId] {
-		return redirectError(w, r, sys, nil, req.redirectUri(), newIdpError(errInvReq, formScop+" has no "+scopOpId, 0, nil))
+		return redirectError(w, r, sys, nil, req, newIdpError(errInvReq, formScop+" has no "+scopOpId, 0, nil))
 	}
 
 	// 重複パラメータが無いか検査。
 	for k, v := range r.Form {
 		if len(v) > 1 {
-			return redirectError(w, r, sys, nil, req.redirectUri(), newIdpError(errInvReq, k+" is overlapped", 0, nil))
+			return redirectError(w, r, sys, nil, req, newIdpError(errInvReq, k+" is overlapped", 0, nil))
 		}
 	}
 
@@ -151,9 +151,9 @@ func authPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 	log.Debug("Scope has " + scopOpId)
 
 	if l := len(req.responseType()); l == 0 {
-		return redirectError(w, r, sys, nil, req.redirectUri(), newIdpError(errInvReq, "no "+formRespType, 0, nil))
+		return redirectError(w, r, sys, nil, req, newIdpError(errInvReq, "no "+formRespType, 0, nil))
 	} else if l != 1 || !req.responseType()[respTypeCod] {
-		return redirectError(w, r, sys, nil, req.redirectUri(), newIdpError(errUnsuppRespType, formRespType+" is not "+respTypeCod, 0, nil))
+		return redirectError(w, r, sys, nil, req, newIdpError(errUnsuppRespType, formRespType+" is not "+respTypeCod, 0, nil))
 	}
 
 	// response_type には問題無い。
@@ -167,7 +167,7 @@ func authPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 		var err error
 		sess, err = sys.sessCont.get(sessId)
 		if err != nil {
-			return redirectError(w, r, sys, nil, req.redirectUri(), erro.Wrap(err))
+			return redirectError(w, r, sys, nil, req, erro.Wrap(err))
 		} else if sess == nil {
 			// セッションなんて無かった。
 			log.Warn("Session " + mosaic(sessId) + " is not exist")
@@ -186,7 +186,7 @@ func authPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 	prmpts := req.prompts()
 	if prmpts[prmptSelAcc] {
 		if prmpts[prmptNone] {
-			return redirectError(w, r, sys, nil, req.redirectUri(), newIdpError(errAccSelReq, "cannot select account without UI", 0, nil))
+			return redirectError(w, r, sys, nil, req, newIdpError(errAccSelReq, "cannot select account without UI", 0, nil))
 		}
 
 		return redirectSelectUi(w, r, sys, sess, "")

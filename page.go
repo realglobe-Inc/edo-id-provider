@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"net/http"
-	"net/url"
 )
 
 const cookSess = "X-Edo-Idp-Session"
@@ -72,7 +71,7 @@ const (
 	tokTypeBear = "Bearer"
 )
 
-func redirectError(w http.ResponseWriter, r *http.Request, sys *system, sess *session, rediUri *url.URL, err error) error {
+func redirectError(w http.ResponseWriter, r *http.Request, sys *system, sess *session, authReq *authRequest, err error) error {
 	if sess != nil && sess.id() != "" {
 		// 認証経過を廃棄。
 		sess.abort()
@@ -85,7 +84,7 @@ func redirectError(w http.ResponseWriter, r *http.Request, sys *system, sess *se
 		}
 	}
 
-	q := rediUri.Query()
+	q := authReq.redirectUri().Query()
 	switch e := erro.Unwrap(err).(type) {
 	case *idpError:
 		log.Err(e.errorDescription())
@@ -99,9 +98,9 @@ func redirectError(w http.ResponseWriter, r *http.Request, sys *system, sess *se
 		q.Set(formErrDesc, e.Error())
 	}
 
-	rediUri.RawQuery = q.Encode()
+	authReq.redirectUri().RawQuery = q.Encode()
 	w.Header().Add("Cache-Control", "no-store")
 	w.Header().Add("Pragma", "no-cache")
-	http.Redirect(w, r, rediUri.String(), http.StatusFound)
+	http.Redirect(w, r, authReq.redirectUri().String(), http.StatusFound)
 	return nil
 }

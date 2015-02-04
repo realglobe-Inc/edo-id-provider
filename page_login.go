@@ -28,7 +28,7 @@ func redirectLoginUi(w http.ResponseWriter, r *http.Request, sys *system, sess *
 	if accNames := sess.accountNames(); len(accNames) > 0 {
 		buff, err := json.Marshal(util.StringSet(accNames))
 		if err != nil {
-			return redirectError(w, r, sys, sess, sess.request().redirectUri(), erro.Wrap(err))
+			return redirectError(w, r, sys, sess, sess.request(), erro.Wrap(err))
 		}
 
 		v.Set(formUsrNams, string(buff))
@@ -45,7 +45,7 @@ func redirectLoginUi(w http.ResponseWriter, r *http.Request, sys *system, sess *
 
 	tic, err := sys.newTicket()
 	if err != nil {
-		return redirectError(w, r, sys, sess, sess.request().redirectUri(), erro.Wrap(err))
+		return redirectError(w, r, sys, sess, sess.request(), erro.Wrap(err))
 	}
 	sess.setLoginTicket(tic)
 
@@ -55,13 +55,13 @@ func redirectLoginUi(w http.ResponseWriter, r *http.Request, sys *system, sess *
 	if sess.id() == "" {
 		id, err := sys.sessCont.newId()
 		if err != nil {
-			return redirectError(w, r, sys, sess, sess.request().redirectUri(), erro.Wrap(err))
+			return redirectError(w, r, sys, sess, sess.request(), erro.Wrap(err))
 		}
 		sess.setId(id)
 	}
 	sess.setExpirationDate(time.Now().Add(sys.sessExpiDur))
 	if err := sys.sessCont.put(sess); err != nil {
-		return redirectError(w, r, sys, sess, sess.request().redirectUri(), erro.Wrap(err))
+		return redirectError(w, r, sys, sess, sess.request(), erro.Wrap(err))
 	}
 
 	// セッションを保存した。
@@ -119,10 +119,10 @@ func loginPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 	tic := sess.loginTicket()
 	if tic == "" {
 		// ログイン中でない。
-		return redirectError(w, r, sys, sess, authReq.redirectUri(), newIdpError(errAccDeny, "not in login process", 0, nil))
+		return redirectError(w, r, sys, sess, authReq, newIdpError(errAccDeny, "not in login process", 0, nil))
 	} else if t := req.ticket(); t != tic {
 		// 無効なログイン券。
-		return redirectError(w, r, sys, sess, authReq.redirectUri(), newIdpError(errAccDeny, "invalid login ticket "+mosaic(t), 0, nil))
+		return redirectError(w, r, sys, sess, authReq, newIdpError(errAccDeny, "invalid login ticket "+mosaic(t), 0, nil))
 	}
 
 	// ログイン券が有効だった。
@@ -140,7 +140,7 @@ func loginPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 
 	acc, err := sys.accCont.getByName(accName)
 	if err != nil {
-		return redirectError(w, r, sys, sess, authReq.redirectUri(), erro.Wrap(err))
+		return redirectError(w, r, sys, sess, authReq, erro.Wrap(err))
 	} else if acc == nil {
 		// アカウントが無い。
 		log.Debug("Accout " + accName + " was not found")
@@ -165,7 +165,7 @@ func afterLogin(w http.ResponseWriter, r *http.Request, sys *system, sess *sessi
 
 	prmpts := sess.request().prompts()
 	if prmpts[prmptCons] && prmpts[prmptNone] {
-		return redirectError(w, r, sys, sess, sess.request().redirectUri(), newIdpError(errConsReq, "cannot consent without UI", 0, nil))
+		return redirectError(w, r, sys, sess, sess.request(), newIdpError(errConsReq, "cannot consent without UI", 0, nil))
 	}
 
 	if prmpts[prmptCons] {
@@ -179,7 +179,7 @@ func afterLogin(w http.ResponseWriter, r *http.Request, sys *system, sess *sessi
 	// 事前同意を調べる。
 	scops, clms, err := sys.consCont.get(sess.currentAccount(), sess.request().ta())
 	if err != nil {
-		return redirectError(w, r, sys, sess, sess.request().redirectUri(), erro.Wrap(err))
+		return redirectError(w, r, sys, sess, sess.request(), erro.Wrap(err))
 	}
 	if satisfiable(scops, clms, sess.request().scopes(), sess.request().claimNames()) {
 		// 事前同意で十分。
@@ -191,7 +191,7 @@ func afterLogin(w http.ResponseWriter, r *http.Request, sys *system, sess *sessi
 	log.Debug("Consent is required")
 
 	if prmpts[prmptNone] {
-		return redirectError(w, r, sys, sess, sess.request().redirectUri(), newIdpError(errConsReq, "cannot consent without UI", 0, nil))
+		return redirectError(w, r, sys, sess, sess.request(), newIdpError(errConsReq, "cannot consent without UI", 0, nil))
 	}
 
 	return redirectConsentUi(w, r, sys, sess, "")

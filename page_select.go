@@ -21,7 +21,7 @@ func redirectSelectUi(w http.ResponseWriter, r *http.Request, sys *system, sess 
 	if accs := sess.accountNames(); len(accs) > 0 {
 		buff, err := json.Marshal(util.StringSet(accs))
 		if err != nil {
-			return redirectError(w, r, sys, sess, sess.request().redirectUri(), erro.Wrap(err))
+			return redirectError(w, r, sys, sess, sess.request(), erro.Wrap(err))
 		}
 
 		v.Set(formUsrNams, string(buff))
@@ -38,7 +38,7 @@ func redirectSelectUi(w http.ResponseWriter, r *http.Request, sys *system, sess 
 
 	tic, err := sys.newTicket()
 	if err != nil {
-		return redirectError(w, r, sys, sess, sess.request().redirectUri(), erro.Wrap(err))
+		return redirectError(w, r, sys, sess, sess.request(), erro.Wrap(err))
 	}
 	sess.setSelectTicket(tic)
 
@@ -48,13 +48,13 @@ func redirectSelectUi(w http.ResponseWriter, r *http.Request, sys *system, sess 
 	if sess.id() == "" {
 		id, err := sys.sessCont.newId()
 		if err != nil {
-			return redirectError(w, r, sys, sess, sess.request().redirectUri(), erro.Wrap(err))
+			return redirectError(w, r, sys, sess, sess.request(), erro.Wrap(err))
 		}
 		sess.setId(id)
 	}
 	sess.setExpirationDate(time.Now().Add(sys.sessExpiDur))
 	if err := sys.sessCont.put(sess); err != nil {
-		return redirectError(w, r, sys, sess, sess.request().redirectUri(), erro.Wrap(err))
+		return redirectError(w, r, sys, sess, sess.request(), erro.Wrap(err))
 	}
 
 	// セッションを保存した。
@@ -113,10 +113,10 @@ func selectPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 	tic := sess.selectTicket()
 	if tic == "" {
 		// アカウント選択中でない。
-		return redirectError(w, r, sys, sess, authReq.redirectUri(), newIdpError(errAccDeny, "not in account selection process", 0, nil))
+		return redirectError(w, r, sys, sess, authReq, newIdpError(errAccDeny, "not in account selection process", 0, nil))
 	} else if t := req.ticket(); t != tic {
 		// 無効なアカウント選択券。
-		return redirectError(w, r, sys, sess, authReq.redirectUri(), newIdpError(errAccDeny, "invalid account selection ticket "+mosaic(t), 0, nil))
+		return redirectError(w, r, sys, sess, authReq, newIdpError(errAccDeny, "invalid account selection ticket "+mosaic(t), 0, nil))
 	}
 
 	// アカウント選択券が有効だった。
@@ -134,7 +134,7 @@ func selectPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 
 	acc, err := sys.accCont.getByName(accName)
 	if err != nil {
-		return redirectError(w, r, sys, sess, authReq.redirectUri(), erro.Wrap(err))
+		return redirectError(w, r, sys, sess, authReq, erro.Wrap(err))
 	} else if acc == nil {
 		// アカウントが無い。
 		log.Debug("Accout " + accName + " was not found")
@@ -154,7 +154,7 @@ func afterSelect(w http.ResponseWriter, r *http.Request, sys *system, sess *sess
 
 	prmpts := sess.request().prompts()
 	if prmpts[prmptLogin] && prmpts[prmptNone] {
-		return redirectError(w, r, sys, sess, sess.request().redirectUri(), newIdpError(errConsReq, "cannot login without UI", 0, nil))
+		return redirectError(w, r, sys, sess, sess.request(), newIdpError(errConsReq, "cannot login without UI", 0, nil))
 	}
 
 	if prmpts[prmptLogin] {
@@ -171,7 +171,7 @@ func afterSelect(w http.ResponseWriter, r *http.Request, sys *system, sess *sess
 	log.Debug("Logged is required")
 
 	if prmpts[prmptNone] {
-		return redirectError(w, r, sys, sess, sess.request().redirectUri(), newIdpError(errConsReq, "cannot login without UI", 0, nil))
+		return redirectError(w, r, sys, sess, sess.request(), newIdpError(errConsReq, "cannot login without UI", 0, nil))
 	}
 
 	return redirectLoginUi(w, r, sys, sess, "")

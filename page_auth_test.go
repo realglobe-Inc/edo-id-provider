@@ -83,6 +83,7 @@ func TestIgnoreUnknownParameterInAuthRequest(t *testing.T) {
 }
 
 // 認証リクエストの重複パラメータを拒否できるか。
+// エラーリダイレクトして error は invalid_request か。
 func TestDenyOverlapParameterInAuthRequest(t *testing.T) {
 	// ////////////////////////////////
 	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
@@ -121,7 +122,7 @@ func TestDenyOverlapParameterInAuthRequest(t *testing.T) {
 		util.LogRequest(level.ERR, req, true)
 		util.LogResponse(level.ERR, resp, true)
 		t.Fatal(resp.StatusCode, http.StatusOK)
-	} else if resp.Request.FormValue(formErr) == "" {
+	} else if resp.Request.FormValue(formErr) != errInvReq {
 		t.Fatal("no error")
 	}
 }

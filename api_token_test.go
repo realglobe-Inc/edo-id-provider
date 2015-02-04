@@ -22,6 +22,69 @@ func init() {
 	util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
 }
 
+// トークンレスポンスが access_token, token_type, expires_in を含むか。
+func TestTokenResponse(t *testing.T) {
+	// ////////////////////////////////
+	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
+	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトできたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	// サーバ起動待ち。
+	time.Sleep(10 * time.Millisecond)
+
+	cookJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Jar: cookJar}
+
+	if res, err := testFromRequestAuthToGetToken(idpSys, cli, map[string]string{
+		"scope":         "openid email",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+		"redirect_uri":  rediUri,
+	}, map[string]string{
+		"username": testAcc.name(),
+	}, map[string]string{
+		"username": testAcc.name(),
+		"password": testAcc.password(),
+	}, map[string]string{
+		"consented_scope": "openid email",
+	}, map[string]interface{}{
+		"alg": "RS256",
+		"kid": kid,
+	}, map[string]interface{}{
+		"iss": testTa2.id(),
+		"sub": testTa2.id(),
+		"aud": idpSys.selfId + "/token",
+		"jti": strconv.FormatInt(time.Now().UnixNano(), 16),
+		"exp": time.Now().Add(idpSys.idTokExpiDur).Unix(),
+	}, map[string]string{
+		"grant_type":            "authorization_code",
+		"redirect_uri":          rediUri,
+		"client_id":             testTa2.id(),
+		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+	}, kid, sigKey); err != nil {
+		t.Fatal(err)
+	} else if tok, _ := res["access_token"].(string); tok == "" {
+		t.Fatal("no token")
+	} else if respType, _ := res["token_type"].(string); respType == "" {
+		t.Fatal("no token type")
+	} else if _, ok := res["expires_in"].(float64); !ok {
+		t.Fatal("no expiration date")
+	}
+}
+
 // POST でないトークンリクエストを拒否できるか。
 func TestDenyNonPostTokenRequest(t *testing.T) {
 	// ////////////////////////////////

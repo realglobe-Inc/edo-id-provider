@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -29,7 +31,7 @@ func testSessionContainer(t *testing.T, sessCont sessionContainer) {
 	}
 
 	// 期限延長テスト。
-	for end := time.Now().Add(2 * testSessExpiDur); ; {
+	for preSe, end := sess, time.Now().Add(2*testSessExpiDur); ; {
 		se, err := sessCont.get(sess.id())
 		if err != nil {
 			t.Fatal(err)
@@ -47,8 +49,9 @@ func testSessionContainer(t *testing.T, sessCont sessionContainer) {
 			// 期限切れ。
 			buff := *sess
 			se = &buff
-		} else if se.id() != sess.id() {
-			t.Error(se, cur, exp, end)
+		} else if !reflect.DeepEqual(se, preSe) {
+			t.Error(fmt.Sprintf("%#v", se))
+			t.Error(fmt.Sprintf("%#v", preSe))
 		}
 
 		exp = time.Now().Add(testSessExpiDur)
@@ -56,11 +59,11 @@ func testSessionContainer(t *testing.T, sessCont sessionContainer) {
 		if err := sessCont.put(se); err != nil {
 			t.Fatal(err)
 		}
+		preSe = se
 
 		if cur.After(end) {
 			break
 		}
-
 		time.Sleep(exp.Sub(time.Now()) / 4)
 	}
 

@@ -38,7 +38,19 @@ var knownScops = map[string]map[string]bool{
 	},
 }
 
-// scope に対応するクレームを返す。
+// 知らないスコープを除く。
+// 返り値は scops。
+func stripUnknownScopes(scops map[string]bool) map[string]bool {
+	for scop := range scops {
+		if knownScops[scop] == nil {
+			log.Debug("Remove " + scop)
+			delete(scops, scop)
+		}
+	}
+	return scops
+}
+
+// スコープに対応するクレームを返す。
 // 返り値は自由に書き換えて良い。
 func scopesToClaims(scops map[string]bool) map[string]bool {
 	clms := map[string]bool{}

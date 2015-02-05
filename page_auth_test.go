@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -656,5 +657,55 @@ func TestReturnStateAtError(t *testing.T) {
 		t.Fatal(q.Get("error"), errUnsuppRespType)
 	} else if q.Get("state") != "test_state" {
 		t.Fatal(q.Get("state"), "test_state")
+	}
+}
+
+// POST での認証リクエストにも対応するか。
+func TestPostAuthRequest(t *testing.T) {
+	// ////////////////////////////////
+	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
+	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトできたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	// サーバ起動待ち。
+	time.Sleep(10 * time.Millisecond)
+
+	cookJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Jar: cookJar}
+
+	q := url.Values{}
+	q.Set("scope", "openid email")
+	q.Set("response_type", "code")
+	q.Set("client_id", testTa2.id())
+	q.Set("redirect_uri", rediUri)
+	q.Set("prompt", "select_account login consent")
+	req, err := http.NewRequest("POST", idpSys.selfId+"/auth", strings.NewReader(q.Encode()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Connection", "close")
+	resp, err := cli.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		util.LogResponse(level.ERR, resp, true)
+		t.Fatal(resp.StatusCode, http.StatusOK)
 	}
 }

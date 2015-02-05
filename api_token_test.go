@@ -1625,3 +1625,67 @@ func TestIdToken(t *testing.T) {
 		t.Fatal(iat, time.Now().Unix())
 	}
 }
+
+// 認証リクエストが max_age パラメータを含んでいたら、ID トークンが auth_time クレームを含むか。
+func TestAuthTimeOfIdToken(t *testing.T) {
+	// ////////////////////////////////
+	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
+	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトできたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	// サーバ起動待ち。
+	time.Sleep(10 * time.Millisecond)
+
+	cookJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Jar: cookJar}
+
+	if res, err := testFromRequestAuthToGetToken(idpSys, cli, map[string]string{
+		"scope":         "openid email",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+		"redirect_uri":  rediUri,
+		"max_age":       "1",
+	}, map[string]string{
+		"username": testAcc.name(),
+	}, map[string]string{
+		"username": testAcc.name(),
+		"password": testAcc.password(),
+	}, map[string]string{
+		"consented_scope": "openid email",
+	}, map[string]interface{}{
+		"alg": "RS256",
+		"kid": kid,
+	}, map[string]interface{}{
+		"iss": testTa2.id(),
+		"sub": testTa2.id(),
+		"aud": idpSys.selfId + "/token",
+		"jti": strconv.FormatInt(time.Now().UnixNano(), 16),
+		"exp": time.Now().Add(idpSys.idTokExpiDur).Unix(),
+	}, map[string]string{
+		"grant_type":            "authorization_code",
+		"redirect_uri":          rediUri,
+		"client_id":             testTa2.id(),
+		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+	}, kid, sigKey); err != nil {
+		t.Fatal(err)
+	} else if idTok, _ := res["id_token"].(string); idTok == "" {
+		t.Fatal("no id token")
+	} else if jws, err := util.ParseJws(idTok); err != nil {
+		t.Fatal(err)
+	} else if at, _ := jws.Claim("auth_time").(float64); at > float64(time.Now().Unix()) {
+		t.Fatal(at, time.Now().Unix())
+	}
+}

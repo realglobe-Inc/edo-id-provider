@@ -117,6 +117,7 @@ username と passwd フォームパラメータでアカウント名とパスワ
 |claim|同意が必要なクレームの空白区切りリスト|
 |client_id|情報提供先 TA の ID|
 |client_name|情報提供先 TA の名前|
+|expires_in|発行されるアクセストークンの有効期間 (秒)|
 |scope|同意が必要な scope の空白区切りリスト|
 |username|アカウント名|
 

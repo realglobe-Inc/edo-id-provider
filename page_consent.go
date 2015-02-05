@@ -5,6 +5,7 @@ import (
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 )
 
@@ -15,6 +16,7 @@ func redirectConsentUi(w http.ResponseWriter, r *http.Request, sys *system, sess
 	v.Set(formAccName, sess.currentAccountName())
 	v.Set(formTaId, sess.request().ta())
 	v.Set(formTaNam, sess.request().taName())
+	v.Set(formExpi, strconv.FormatInt(int64(sys.tokExpiDur/time.Second), 10))
 	scops := sess.request().scopes()
 	if len(scops) > 0 {
 		buff := valueSetToForm(scops)

@@ -43,7 +43,7 @@ func newAuthRequest(r *http.Request) (*authRequest, error) {
 		Stat:       r.FormValue(formStat),
 		Nonc:       r.FormValue(formNonc),
 		Prmpts:     formValueSet(r, formPrmpt),
-		Scops:      formValueSet(r, formScop),
+		Scops:      stripUnknownScopes(formValueSet(r, formScop)),
 		Clms:       map[string]*claimRequest{},
 	}, nil
 }

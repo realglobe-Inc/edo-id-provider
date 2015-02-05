@@ -21,9 +21,9 @@ func newConsentRequest(r *http.Request) *consentRequest {
 	return &consentRequest{
 		browserRequest: newBrowserRequest(r),
 		tic:            r.FormValue(formConsTic),
-		scops:          formValueSet(r, formConsScops),
+		scops:          stripUnknownScopes(formValueSet(r, formConsScops)),
 		clms:           formValueSet(r, formConsClms),
-		denyScops:      formValueSet(r, formDenyScops),
+		denyScops:      stripUnknownScopes(formValueSet(r, formDenyScops)),
 		denyClms:       formValueSet(r, formDenyClms),
 	}
 }

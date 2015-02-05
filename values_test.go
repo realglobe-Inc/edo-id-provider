@@ -17,16 +17,18 @@ const (
 	testIdLen = 5
 	testUiUri = "/html"
 
+	// 動作に影響は出ないはず。
 	testSavDur    = 15 * time.Millisecond
-	testStaleDur  = 5 * time.Millisecond
-	testCaExpiDur = time.Millisecond
+	testStaleDur  = 10 * time.Millisecond
+	testCaExpiDur = 5 * time.Millisecond
 
-	testCodExpiDur   = 10 * time.Millisecond
-	testTokExpiDur   = 10 * time.Millisecond
-	testIdTokExpiDur = 10 * time.Millisecond
-	testSessExpiDur  = 10 * time.Millisecond
-
-	testTicDur = 20 * time.Millisecond
+	// 動作に影響あり。
+	// Go の GC が 10ms くらいは時間を使うと言っているので、それ以上に。
+	testCodExpiDur   = 20 * time.Millisecond
+	testTokExpiDur   = 20 * time.Millisecond
+	testIdTokExpiDur = 20 * time.Millisecond
+	testSessExpiDur  = 20 * time.Millisecond
+	testTicDur       = 20 * time.Millisecond
 
 	testSigAlg = "RS256"
 )

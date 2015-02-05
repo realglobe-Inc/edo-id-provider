@@ -3,7 +3,7 @@ package main
 import ()
 
 var scopToClms = map[string]map[string]bool{
-	"profile": map[string]bool{
+	"profile": {
 		"name":               true,
 		"family_name":        true,
 		"given_name":         true,
@@ -19,14 +19,14 @@ var scopToClms = map[string]map[string]bool{
 		"locale":             true,
 		"updated_at":         true,
 	},
-	"email": map[string]bool{
+	"email": {
 		"email":          true,
 		"email_verified": true,
 	},
-	"address": map[string]bool{
+	"address": {
 		"address": true,
 	},
-	"phone": map[string]bool{
+	"phone": {
 		"phone_number":          true,
 		"phone_number_verified": true,
 	},

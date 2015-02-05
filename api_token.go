@@ -19,7 +19,7 @@ const (
 )
 
 const (
-	grntTypeCod = "code"
+	grntTypeCod = "authorization_code"
 )
 
 func responseToken(w http.ResponseWriter, tok *token) error {
@@ -76,7 +76,7 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 
 	if grntType := req.grantType(); grntType == "" {
 		return newIdpError(errInvReq, "no "+formGrntType, http.StatusBadRequest, nil)
-	} else if grntType == grntTypeCod {
+	} else if grntType != grntTypeCod {
 		return newIdpError(errUnsuppGrntType, grntType+" is not supported", http.StatusBadRequest, nil)
 	}
 

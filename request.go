@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"net/http"
 	"strings"
@@ -36,10 +37,7 @@ func formValueSet(r *http.Request, key string) map[string]bool {
 	if s == "" {
 		return set
 	}
-	for _, v := range strings.Split(s, " ") {
-		set[v] = true
-	}
-	return set
+	return util.StringSetFromSlice(strings.Split(s, " "))
 }
 
 // フォーム値用にスペース区切りにして返す。

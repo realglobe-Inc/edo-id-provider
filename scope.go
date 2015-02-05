@@ -2,7 +2,13 @@ package main
 
 import ()
 
-var scopToClms = map[string]map[string]bool{
+// サポートするスコープと紐付くクレーム。
+var knownScops = map[string]map[string]bool{
+	// ID トークンの被発行権。
+	"openid": {},
+	// リフレッシュトークンの被発行権。
+	//"offline_access": {},
+	// 以下、クレーム集合の取得権。
 	"profile": {
 		"name":               true,
 		"family_name":        true,
@@ -40,7 +46,7 @@ func scopesToClaims(scops map[string]bool) map[string]bool {
 		if !ok {
 			continue
 		}
-		for clm, ok := range scopToClms[scop] {
+		for clm, ok := range knownScops[scop] {
 			if !ok {
 				continue
 			}

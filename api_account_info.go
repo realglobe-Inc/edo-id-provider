@@ -6,10 +6,6 @@ import (
 	"net/http"
 )
 
-const (
-	scBear = "Bearer"
-)
-
 func responseAccountInfo(w http.ResponseWriter, info map[string]interface{}) error {
 	buff, err := json.Marshal(info)
 	if err != nil {

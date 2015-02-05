@@ -8,21 +8,11 @@ import (
 	"time"
 )
 
-const (
-	consHtml = "consent.html"
-)
-
-const (
-	formClm    = "claim"
-	formUsrNam = "username"
-	formTaNam  = "client_name"
-)
-
 // 同意ページにリダイレクトする。
 func redirectConsentUi(w http.ResponseWriter, r *http.Request, sys *system, sess *session, hint string) error {
 
 	v := url.Values{}
-	v.Set(formUsrNam, sess.currentAccountName())
+	v.Set(formAccName, sess.currentAccountName())
 	v.Set(formTaId, sess.request().ta())
 	v.Set(formTaNam, sess.request().taName())
 	scops := sess.request().scopes()

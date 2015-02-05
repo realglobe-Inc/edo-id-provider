@@ -4,10 +4,6 @@ import (
 	"net/http"
 )
 
-const (
-	formSelTic = "ticket"
-)
-
 type selectRequest struct {
 	*browserRequest
 

@@ -180,15 +180,6 @@ func mainCore(param *parameters) error {
 }
 
 // 振り分ける。
-const (
-	authPath   = "/auth"
-	loginPath  = "/auth/login"
-	selPath    = "/auth/select"
-	consPath   = "/auth/consent"
-	tokPath    = "/token"
-	accInfPath = "/userinfo"
-)
-
 func serve(sys *system, socType, socPath string, socPort int, protType string, shutCh chan struct{}) error {
 	routes := map[string]util.HandlerFunc{
 		authPath: func(w http.ResponseWriter, r *http.Request) error {

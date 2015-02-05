@@ -2,8 +2,6 @@ package main
 
 import (
 	"crypto"
-	"crypto/rand"
-	"crypto/rsa"
 	"encoding/json"
 	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
@@ -22,30 +20,6 @@ import (
 
 func init() {
 	util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
-}
-
-const (
-	testIdLen = 5
-	testUiUri = "/html"
-
-	testCodExpiDur   = 10 * time.Millisecond
-	testTokExpiDur   = 10 * time.Millisecond
-	testIdTokExpiDur = 10 * time.Millisecond
-	testSessExpiDur  = 10 * time.Millisecond
-
-	testSigAlg = "RS256"
-)
-
-var testIdpPriKey crypto.PrivateKey
-var testIdpPubKey crypto.PublicKey
-
-func init() {
-	priKey, err := rsa.GenerateKey(rand.Reader, 1024)
-	if err != nil {
-		panic(err)
-	}
-	testIdpPriKey = priKey
-	testIdpPubKey = &priKey.PublicKey
 }
 
 func newTestSystem(selfId string) *system {

@@ -5,10 +5,6 @@ import (
 	"strings"
 )
 
-const (
-	headAuth = "Authorization"
-)
-
 // アカウント情報リクエスト。
 type accountInfoRequest struct {
 	sc  string

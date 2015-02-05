@@ -9,19 +9,6 @@ import (
 	"time"
 )
 
-const (
-	jwtAlg = "alg"
-	jwtKid = "kid"
-)
-
-const (
-	algNone = "none"
-)
-
-const (
-	grntTypeCod = "authorization_code"
-)
-
 func responseToken(w http.ResponseWriter, tok *token) error {
 	m := map[string]interface{}{
 		formTokId:   tok.id(),

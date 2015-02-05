@@ -4,14 +4,6 @@ import (
 	"net/http"
 )
 
-const (
-	formConsTic   = "ticket"
-	formConsScops = "consented_scope"
-	formConsClms  = "consented_claim"
-	formDenyScops = "denied_scope"
-	formDenyClms  = "denied_claim"
-)
-
 type consentRequest struct {
 	*browserRequest
 

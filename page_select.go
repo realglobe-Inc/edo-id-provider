@@ -9,10 +9,6 @@ import (
 	"time"
 )
 
-const (
-	selHtml = "select.html"
-)
-
 // アカウント選択ページにリダイレクトする。
 func redirectSelectUi(w http.ResponseWriter, r *http.Request, sys *system, sess *session, hint string) error {
 	// TODO 試行回数でエラー。
@@ -24,7 +20,7 @@ func redirectSelectUi(w http.ResponseWriter, r *http.Request, sys *system, sess 
 			return redirectError(w, r, sys, sess, sess.request(), erro.Wrap(err))
 		}
 
-		v.Set(formUsrNams, string(buff))
+		v.Set(formAccNames, string(buff))
 	}
 	if hint != "" {
 		v.Set(formHint, hint)

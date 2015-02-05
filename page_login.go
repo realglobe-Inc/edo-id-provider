@@ -9,16 +9,6 @@ import (
 	"time"
 )
 
-const (
-	loginHtml = "login.html"
-)
-
-const (
-	formHint     = "hint"
-	formUsrNams  = "usernames"
-	formLoginTic = "ticket"
-)
-
 // ログインページにリダイレクトする。
 func redirectLoginUi(w http.ResponseWriter, r *http.Request, sys *system, sess *session, hint string) error {
 
@@ -31,7 +21,7 @@ func redirectLoginUi(w http.ResponseWriter, r *http.Request, sys *system, sess *
 			return redirectError(w, r, sys, sess, sess.request(), erro.Wrap(err))
 		}
 
-		v.Set(formUsrNams, string(buff))
+		v.Set(formAccNames, string(buff))
 	}
 	if hint != "" {
 		v.Set(formHint, hint)

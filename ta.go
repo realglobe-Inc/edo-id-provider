@@ -4,6 +4,7 @@ import (
 	"crypto"
 	"encoding/json"
 	"github.com/realglobe-Inc/edo/util"
+	"github.com/realglobe-Inc/edo/util/strset"
 	"gopkg.in/mgo.v2/bson"
 	"time"
 )
@@ -12,7 +13,7 @@ type ta struct {
 	Id   string `json:"id"   bson:"id"`
 	Name string `json:"name" bson:"name"`
 	// 登録された全ての redirect_uri。
-	RediUris util.StringSet `json:"redirect_uris" bson:"redirect_uris"`
+	RediUris strset.StringSet `json:"redirect_uris" bson:"redirect_uris"`
 	// kid から公開鍵へのマップ。
 	Keys publicKeyMap `json:"keys" bson:"keys"`
 	// 更新日時。

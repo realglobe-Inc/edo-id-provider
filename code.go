@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/realglobe-Inc/edo/util"
+	"github.com/realglobe-Inc/edo/util/strset"
 	"time"
 )
 
@@ -22,9 +23,9 @@ type code struct {
 	// 発行するアクセストークンの有効期間。
 	ExpiDur util.Duration `json:"expires_in"`
 	// 許可された scope。
-	Scops util.StringSet `json:"scope,omitempty"`
+	Scops strset.StringSet `json:"scope,omitempty"`
 	// 許可されたクレーム。
-	Clms util.StringSet `json:"claims,omitempty"`
+	Clms strset.StringSet `json:"claims,omitempty"`
 	// 認証リクエストの nonce パラメータの値。
 	Nonc string `json:"nonce,omitempty"`
 	// 発行時の権利者アカウントの最新認証日時。
@@ -35,19 +36,19 @@ type code struct {
 	// 更新日時。
 	Upd time.Time `json:"update_at"`
 	// 発行したアクセストークン。
-	Toks util.StringSet `json:"access_tokens,omitempty"`
+	Toks strset.StringSet `json:"access_tokens,omitempty"`
 }
 
 func (this *code) copy() *code {
 	c := *this
 	if this.Scops != nil {
-		c.Scops = util.NewStringSet(this.Scops)
+		c.Scops = strset.New(this.Scops)
 	}
 	if this.Clms != nil {
-		c.Clms = util.NewStringSet(this.Clms)
+		c.Clms = strset.New(this.Clms)
 	}
 	if this.Toks != nil {
-		c.Toks = util.NewStringSet(this.Toks)
+		c.Toks = strset.New(this.Toks)
 	}
 	return &c
 }
@@ -63,13 +64,13 @@ func newCode(codId,
 	nonc string,
 	authDate time.Time) *code {
 
-	var s util.StringSet
+	var s strset.StringSet
 	if len(scops) > 0 {
-		s = util.NewStringSet(scops)
+		s = strset.New(scops)
 	}
-	var c util.StringSet
+	var c strset.StringSet
 	if len(clms) > 0 {
-		c = util.NewStringSet(clms)
+		c = strset.New(clms)
 	}
 	now := time.Now()
 	return &code{
@@ -117,11 +118,11 @@ func (this *code) expirationDuration() time.Duration {
 	return time.Duration(this.ExpiDur)
 }
 
-func (this *code) scopes() util.StringSet {
+func (this *code) scopes() map[string]bool {
 	return this.Scops
 }
 
-func (this *code) claims() util.StringSet {
+func (this *code) claims() map[string]bool {
 	return this.Clms
 }
 
@@ -154,7 +155,7 @@ func (this *code) disable() {
 // 発行したアクセストークンを登録する。
 func (this *code) addToken(tok string) {
 	if this.Toks == nil {
-		this.Toks = util.StringSet{}
+		this.Toks = strset.StringSet{}
 	}
 	this.Toks[tok] = true
 	this.Upd = time.Now()

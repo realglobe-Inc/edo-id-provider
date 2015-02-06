@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/realglobe-Inc/edo/util"
+	"github.com/realglobe-Inc/edo/util/strset"
 	"net/http"
 	"net/url"
 )
@@ -15,12 +15,12 @@ type authRequest struct {
 	RawRediUri string `json:"redirect_uri"`
 	rediUri    *url.URL
 	// 結果の形式。
-	RespType util.StringSet `json:"response_type"`
+	RespType strset.StringSet `json:"response_type"`
 
 	Stat   string                   `json:"state,omitempty"`
 	Nonc   string                   `json:"nonce,omitempty"`
-	Prmpts util.StringSet           `json:"prompt,omitempty"`
-	Scops  util.StringSet           `json:"scope,omitempty"`
+	Prmpts strset.StringSet         `json:"prompt,omitempty"`
+	Scops  strset.StringSet         `json:"scope,omitempty"`
 	Clms   map[string]*claimRequest `json:"claims,omitempty"`
 }
 

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/realglobe-Inc/edo/util"
+	"github.com/realglobe-Inc/edo/util/strset"
 	"time"
 )
 
@@ -21,9 +21,9 @@ type token struct {
 	// 有効期限。
 	ExpiDate time.Time `json:"expires"`
 	// 許可された scope。
-	Scops util.StringSet `json:"scope,omitempty"`
+	Scops strset.StringSet `json:"scope,omitempty"`
 	// 許可されたクレーム。
-	Clms util.StringSet `json:"claims,omitempty"`
+	Clms strset.StringSet `json:"claims,omitempty"`
 	// ID トークン。
 	IdTok string `json:"id_token,omitempty"`
 
@@ -87,11 +87,11 @@ func (this *token) expirationDate() time.Time {
 	return this.ExpiDate
 }
 
-func (this *token) scopes() util.StringSet {
+func (this *token) scopes() map[string]bool {
 	return this.Scops
 }
 
-func (this *token) claims() util.StringSet {
+func (this *token) claims() map[string]bool {
 	return this.Clms
 }
 

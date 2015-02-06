@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/realglobe-Inc/edo/util"
+	"github.com/realglobe-Inc/edo/util/strset"
 	"time"
 )
 
@@ -31,11 +31,11 @@ type session struct {
 	// 進行中のリクエストにて選択またはログインしたアカウント。
 	Acc *sessionAccount `json:"accout,omitempty"`
 	// 進行中のリクエストにてなされた同意。
-	ConsScops util.StringSet `json:"consented_scopes,omitempty"`
-	ConsClms  util.StringSet `json:"consented_claims,omitempty"`
+	ConsScops strset.StringSet `json:"consented_scopes,omitempty"`
+	ConsClms  strset.StringSet `json:"consented_claims,omitempty"`
 	// 進行中のリクエストにてなされた拒否。
-	DenyScops util.StringSet `json:"denied_scopes,omitempty"`
-	DenyClms  util.StringSet `json:"denied_claims,omitempty"`
+	DenyScops strset.StringSet `json:"denied_scopes,omitempty"`
+	DenyClms  strset.StringSet `json:"denied_claims,omitempty"`
 }
 
 type sessionAccount struct {
@@ -83,16 +83,16 @@ func (this *session) copy() *session {
 		}
 	}
 	if this.ConsScops != nil {
-		c.ConsScops = util.NewStringSet(this.ConsScops)
+		c.ConsScops = strset.New(this.ConsScops)
 	}
 	if this.ConsClms != nil {
-		c.ConsClms = util.NewStringSet(this.ConsClms)
+		c.ConsClms = strset.New(this.ConsClms)
 	}
 	if this.DenyScops != nil {
-		c.DenyScops = util.NewStringSet(this.DenyScops)
+		c.DenyScops = strset.New(this.DenyScops)
 	}
 	if this.DenyClms != nil {
-		c.DenyClms = util.NewStringSet(this.DenyClms)
+		c.DenyClms = strset.New(this.DenyClms)
 	}
 	return &c
 }

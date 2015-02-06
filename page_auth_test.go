@@ -5,6 +5,7 @@ package main
 import (
 	"encoding/json"
 	"github.com/realglobe-Inc/edo/util"
+	"github.com/realglobe-Inc/edo/util/strset"
 	"github.com/realglobe-Inc/go-lib-rg/rglog/level"
 	"io/ioutil"
 	"net/http"
@@ -226,7 +227,7 @@ func TestIgnoreUnknownScopes(t *testing.T) {
 		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
 	}, kid, sigKey); err != nil {
 		t.Fatal(err)
-	} else if scop, _ := res["scope"].(string); util.StringSetFromSlice(strings.Split(scop, " "))["unknown_scope"] {
+	} else if scop, _ := res["scope"].(string); strset.FromSlice(strings.Split(scop, " "))["unknown_scope"] {
 		t.Fatal(scop)
 	}
 }

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/realglobe-Inc/edo/util"
+	"github.com/realglobe-Inc/edo/util/strset"
 	"time"
 )
 
@@ -15,9 +15,9 @@ type consent struct {
 	// 更新日時。
 	Upd time.Time `json:"update_at" bson:"update_at"`
 	// 提供許可されている scope。
-	Scops util.StringSet `json:"scope,omitempty" bson:"scope,omitempty"`
+	Scops strset.StringSet `json:"scope,omitempty" bson:"scope,omitempty"`
 	// 提供許可されているクレーム。
-	Clms util.StringSet `json:"claims,omitempty" bson:"claims,omitempty"`
+	Clms strset.StringSet `json:"claims,omitempty" bson:"claims,omitempty"`
 }
 
 func newConsent(accId, taId string, scops, clms map[string]bool) *consent {
@@ -36,14 +36,14 @@ func (this *consent) updateDate() time.Time {
 
 func (this *consent) scopes() map[string]bool {
 	if this.Scops == nil {
-		this.Scops = util.StringSet{}
+		this.Scops = strset.StringSet{}
 	}
 	return this.Scops
 }
 
 func (this *consent) claims() map[string]bool {
 	if this.Clms == nil {
-		this.Clms = util.StringSet{}
+		this.Clms = strset.StringSet{}
 	}
 	return this.Clms
 }

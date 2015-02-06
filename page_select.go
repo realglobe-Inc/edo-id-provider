@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/realglobe-Inc/edo/util"
+	"github.com/realglobe-Inc/edo/util/strset"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"net/http"
 	"net/url"
@@ -15,7 +15,7 @@ func redirectSelectUi(w http.ResponseWriter, r *http.Request, sys *system, sess 
 
 	v := url.Values{}
 	if accs := sess.accountNames(); len(accs) > 0 {
-		buff, err := json.Marshal(util.StringSet(accs))
+		buff, err := json.Marshal(strset.StringSet(accs))
 		if err != nil {
 			return redirectError(w, r, sys, sess, sess.request(), erro.Wrap(err))
 		}

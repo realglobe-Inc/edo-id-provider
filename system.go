@@ -2,7 +2,7 @@ package main
 
 import (
 	"crypto"
-	"github.com/realglobe-Inc/edo/util"
+	"github.com/realglobe-Inc/edo/util/secrand"
 	"time"
 )
 
@@ -37,5 +37,5 @@ type system struct {
 
 func (this *system) newTicket() (string, error) {
 	log.Warn("Incomplete implementation")
-	return util.SecureRandomString(10)
+	return secrand.String(10)
 }

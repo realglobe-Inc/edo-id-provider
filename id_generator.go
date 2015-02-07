@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/base64"
-	"github.com/realglobe-Inc/edo/util"
+	"github.com/realglobe-Inc/edo/util/secrand"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"math/big"
 	"math/rand"
@@ -34,7 +34,7 @@ func (this *idGenerator) newId() (id string, err error) {
 // 乱数部分の長さを指定して ID を発行させる。
 // randLen が 0 なら err は必ず nil。
 func (this *idGenerator) id(randLen int) (id string, err error) {
-	id, err = util.SecureRandomString(randLen)
+	id, err = secrand.String(randLen)
 	if err != nil {
 		return "", erro.Wrap(err)
 	}

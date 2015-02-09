@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/realglobe-Inc/edo/util"
+	"github.com/realglobe-Inc/edo/util/duration"
 	"github.com/realglobe-Inc/edo/util/strset"
 	"time"
 )
@@ -21,7 +21,7 @@ type code struct {
 	ExpiDate time.Time `json:"expires"`
 
 	// 発行するアクセストークンの有効期間。
-	ExpiDur util.Duration `json:"expires_in"`
+	ExpiDur duration.Duration `json:"expires_in"`
 	// 許可された scope。
 	Scops strset.StringSet `json:"scope,omitempty"`
 	// 許可されたクレーム。
@@ -80,7 +80,7 @@ func newCode(codId,
 		TaId:     taId,
 		RediUri:  rediUri,
 		ExpiDate: expiDate,
-		ExpiDur:  util.Duration(expiDur),
+		ExpiDur:  duration.Duration(expiDur),
 		Scops:    s,
 		Clms:     c,
 		Nonc:     nonc,

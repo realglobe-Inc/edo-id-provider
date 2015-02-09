@@ -4,6 +4,7 @@ import (
 	"github.com/garyburd/redigo/redis"
 	"github.com/realglobe-Inc/edo/driver"
 	"github.com/realglobe-Inc/edo/util"
+	"github.com/realglobe-Inc/edo/util/crypto"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"github.com/realglobe-Inc/go-lib-rg/rglog"
 	"net/http"
@@ -54,6 +55,11 @@ func main() {
 
 // system を準備する。
 func mainCore(param *parameters) error {
+	key, err := crypto.ReadPrivateKey(param.keyPath)
+	if err != nil {
+		return erro.Wrap(err)
+	}
+
 	const (
 		connNum = 5
 		idlDur  = 10 * time.Minute
@@ -130,11 +136,6 @@ func mainCore(param *parameters) error {
 		log.Info("Use redis code container " + param.codContUrl)
 	default:
 		return erro.New("invalid code container type " + param.codContType)
-	}
-
-	key, err := util.ReadPrivateKey(param.keyPath)
-	if err != nil {
-		return erro.Wrap(err)
 	}
 
 	var tokCont tokenContainer

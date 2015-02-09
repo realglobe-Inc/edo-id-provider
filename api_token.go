@@ -3,7 +3,7 @@ package main
 import (
 	"crypto"
 	"encoding/json"
-	"github.com/realglobe-Inc/edo/util"
+	"github.com/realglobe-Inc/edo/util/jwt"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"net/http"
 	"time"
@@ -75,7 +75,7 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 	}
 
 	var codId string
-	if codJws, err := util.ParseJws(rawCod); err != nil {
+	if codJws, err := jwt.ParseJws(rawCod); err != nil {
 		// JWS から抜き出した ID だけ送られてきた。
 		codId = rawCod
 		rawCod = ""
@@ -143,7 +143,7 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 	}
 
 	// クライアント認証する。
-	assJws, err := util.ParseJws(taAss)
+	assJws, err := jwt.ParseJws(taAss)
 	if err != nil {
 		err = erro.Wrap(err)
 		log.Err(erro.Unwrap(err))
@@ -189,7 +189,7 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 	// クライアント認証できた。
 	log.Debug(taId + " is authenticated")
 
-	idTokJws := util.NewJws()
+	idTokJws := jwt.NewJws()
 	idTokJws.SetHeader(jwtAlg, sys.sigAlg)
 	if sys.sigKid != "" {
 		idTokJws.SetHeader(jwtKid, sys.sigKid)

@@ -6,6 +6,7 @@ import (
 	"crypto"
 	"encoding/json"
 	"github.com/realglobe-Inc/edo/util"
+	"github.com/realglobe-Inc/edo/util/jwt"
 	"github.com/realglobe-Inc/go-lib-rg/rglog/level"
 	"io/ioutil"
 	"net/http"
@@ -268,7 +269,7 @@ func TestDenyNonPostTokenRequest(t *testing.T) {
 
 		// 認可コードを取得できた。
 
-		assJws := util.NewJws()
+		assJws := jwt.NewJws()
 		assJws.SetHeader("alg", "RS256")
 		assJws.SetHeader("kid", kid)
 		assJws.SetClaim("iss", testTa2.id())
@@ -438,7 +439,7 @@ func TestDenyOverlapParameterInTokenRequest(t *testing.T) {
 
 	// 認可コードを取得できた。
 
-	assJws := util.NewJws()
+	assJws := jwt.NewJws()
 	assJws.SetHeader("alg", "RS256")
 	assJws.SetHeader("kid", kid)
 	assJws.SetClaim("iss", testTa2.id())
@@ -1611,7 +1612,7 @@ func TestIdToken(t *testing.T) {
 		t.Fatal(err)
 	} else if idTok, _ := res["id_token"].(string); idTok == "" {
 		t.Fatal("no id token")
-	} else if jws, err := util.ParseJws(idTok); err != nil {
+	} else if jws, err := jwt.ParseJws(idTok); err != nil {
 		t.Fatal(err)
 	} else if iss, _ := jws.Claim("iss").(string); iss != idpSys.selfId {
 		t.Fatal(iss, idpSys.selfId)
@@ -1683,7 +1684,7 @@ func TestAuthTimeOfIdToken(t *testing.T) {
 		t.Fatal(err)
 	} else if idTok, _ := res["id_token"].(string); idTok == "" {
 		t.Fatal("no id token")
-	} else if jws, err := util.ParseJws(idTok); err != nil {
+	} else if jws, err := jwt.ParseJws(idTok); err != nil {
 		t.Fatal(err)
 	} else if at, _ := jws.Claim("auth_time").(float64); at > float64(time.Now().Unix()) {
 		t.Fatal(at, time.Now().Unix())
@@ -1747,7 +1748,7 @@ func TestNonceOfIdToken(t *testing.T) {
 		t.Fatal(err)
 	} else if idTok, _ := res["id_token"].(string); idTok == "" {
 		t.Fatal("no id token")
-	} else if jws, err := util.ParseJws(idTok); err != nil {
+	} else if jws, err := jwt.ParseJws(idTok); err != nil {
 		t.Fatal(err)
 	} else if nonc, _ := jws.Claim("nonce").(string); nonc != "nonce nansu" {
 		t.Fatal(nonc, "nonce nansu")
@@ -1810,7 +1811,7 @@ func TestIdTokenSign(t *testing.T) {
 		t.Fatal(err)
 	} else if idTok, _ := res["id_token"].(string); idTok == "" {
 		t.Fatal("no id token")
-	} else if jws, err := util.ParseJws(idTok); err != nil {
+	} else if jws, err := jwt.ParseJws(idTok); err != nil {
 		t.Fatal(err)
 	} else if alg, _ := jws.Claim("alg").(string); alg == "none" {
 		t.Fatal("none sign algorithm")

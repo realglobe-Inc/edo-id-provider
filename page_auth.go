@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/realglobe-Inc/edo/util"
+	"github.com/realglobe-Inc/edo/util/jwt"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"net/http"
 	"net/url"
@@ -64,7 +64,7 @@ func publishCode(w http.ResponseWriter, r *http.Request, sys *system, sess *sess
 	}
 
 	// 認可コードを IdP の ID を含んだ JWS にする。
-	jws := util.NewJws()
+	jws := jwt.NewJws()
 	jws.SetHeader(jwtAlg, algNone)
 	jws.SetClaim(clmJti, cod.id())
 	jws.SetClaim(clmIss, sys.selfId)

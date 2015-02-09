@@ -3,7 +3,7 @@ package main
 import (
 	"crypto"
 	"encoding/json"
-	"github.com/realglobe-Inc/edo/util"
+	"github.com/realglobe-Inc/edo/util/jwt"
 	"github.com/realglobe-Inc/edo/util/strset"
 	"gopkg.in/mgo.v2/bson"
 	"time"
@@ -55,7 +55,7 @@ type publicKeyMap map[string]crypto.PublicKey
 func (this publicKeyMap) MarshalJSON() ([]byte, error) {
 	a := []map[string]interface{}{}
 	for kid, key := range this {
-		m := util.EncodePublicKeyToJwkMap(kid, key)
+		m := jwt.PublicKeyToJwkMap(kid, key)
 		a = append(a, m)
 	}
 	return json.Marshal(a)
@@ -68,7 +68,7 @@ func (this *publicKeyMap) UnmarshalJSON(data []byte) error {
 	}
 	keys := map[string]crypto.PublicKey{}
 	for _, m := range a {
-		kid, key, err := util.ParsePublicKeyFromJwkMap(m)
+		kid, key, err := jwt.PublicKeyFromJwkMap(m)
 		if err != nil {
 			return err
 		}
@@ -81,7 +81,7 @@ func (this *publicKeyMap) UnmarshalJSON(data []byte) error {
 func (this publicKeyMap) GetBSON() (interface{}, error) {
 	a := []map[string]interface{}{}
 	for kid, key := range this {
-		m := util.EncodePublicKeyToJwkMap(kid, key)
+		m := jwt.PublicKeyToJwkMap(kid, key)
 		a = append(a, m)
 	}
 	return a, nil
@@ -94,7 +94,7 @@ func (this *publicKeyMap) SetBSON(raw bson.Raw) error {
 	}
 	keys := map[string]crypto.PublicKey{}
 	for _, m := range a {
-		kid, key, err := util.ParsePublicKeyFromJwkMap(m)
+		kid, key, err := jwt.PublicKeyFromJwkMap(m)
 		if err != nil {
 			return err
 		}

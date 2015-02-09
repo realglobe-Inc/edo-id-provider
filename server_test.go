@@ -4,6 +4,7 @@ import (
 	"crypto"
 	"encoding/json"
 	"github.com/realglobe-Inc/edo/util"
+	"github.com/realglobe-Inc/edo/util/jwt"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"github.com/realglobe-Inc/go-lib-rg/rglog/level"
 	"io/ioutil"
@@ -371,7 +372,7 @@ func testGetTokenWithoutCheck(idpSys *system, consResp *http.Response, assHeads,
 
 	// クライアント認証用データを準備。
 
-	assJws := util.NewJws()
+	assJws := jwt.NewJws()
 	for k, v := range assHeads {
 		assJws.SetHeader(k, v)
 	}

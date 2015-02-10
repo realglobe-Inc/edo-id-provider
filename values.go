@@ -25,6 +25,7 @@ const (
 	formErr       = "error"
 	formErrDesc   = "error_description"
 	formClm       = "claim"
+	formDisp      = "display"
 
 	// 独自。
 	formAccName   = "username"

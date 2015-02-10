@@ -76,6 +76,7 @@ username と passwd フォームパラメータでアカウント名とパスワ
 
 |パラメータ|値|
 |:--|:--|
+|display|画面表示形式|
 |usernames|候補となるアカウント名の JSON 配列|
 
 
@@ -94,6 +95,7 @@ username と passwd フォームパラメータでアカウント名とパスワ
 
 |パラメータ|値|
 |:--|:--|
+|display|画面表示形式|
 |usernames|候補となるアカウント名の JSON 配列|
 
 
@@ -117,6 +119,7 @@ username と passwd フォームパラメータでアカウント名とパスワ
 |claim|同意が必要なクレームの空白区切りリスト|
 |client_id|情報提供先 TA の ID|
 |client_name|情報提供先 TA の名前|
+|display|画面表示形式|
 |expires_in|発行されるアクセストークンの有効期間 (秒)|
 |scope|同意が必要な scope の空白区切りリスト|
 |username|アカウント名|

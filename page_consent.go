@@ -27,6 +27,9 @@ func redirectConsentUi(w http.ResponseWriter, r *http.Request, sys *system, sess
 		buff := valueSetToForm(clms)
 		v.Set(formClm, buff)
 	}
+	if disp := sess.request().display(); disp != "" {
+		v.Set(formDisp, disp)
+	}
 	if hint != "" {
 		v.Set(formHint, hint)
 	}

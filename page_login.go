@@ -23,6 +23,9 @@ func redirectLoginUi(w http.ResponseWriter, r *http.Request, sys *system, sess *
 
 		v.Set(formAccNames, string(buff))
 	}
+	if disp := sess.request().display(); disp != "" {
+		v.Set(formDisp, disp)
+	}
 	if hint != "" {
 		v.Set(formHint, hint)
 	}

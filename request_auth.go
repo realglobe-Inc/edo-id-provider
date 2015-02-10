@@ -22,6 +22,7 @@ type authRequest struct {
 	Prmpts strset.StringSet         `json:"prompt,omitempty"`
 	Scops  strset.StringSet         `json:"scope,omitempty"`
 	Clms   map[string]*claimRequest `json:"claims,omitempty"`
+	Disp   string                   `json:"display,omitempty"`
 }
 
 type claimRequest struct {
@@ -45,6 +46,7 @@ func newAuthRequest(r *http.Request) (*authRequest, error) {
 		Prmpts:     formValueSet(r, formPrmpt),
 		Scops:      stripUnknownScopes(formValueSet(r, formScop)),
 		Clms:       map[string]*claimRequest{},
+		Disp:       r.FormValue(formDisp),
 	}, nil
 }
 
@@ -116,4 +118,9 @@ func (this *authRequest) claimNames() map[string]bool {
 		m[clm] = true
 	}
 	return m
+}
+
+// 要求されている表示形式を返す。
+func (this *authRequest) display() string {
+	return this.Disp
 }

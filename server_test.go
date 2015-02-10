@@ -3,10 +3,10 @@ package main
 import (
 	"crypto"
 	"encoding/json"
-	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/edo/util/jwt"
 	logutil "github.com/realglobe-Inc/edo/util/log"
 	"github.com/realglobe-Inc/edo/util/server"
+	"github.com/realglobe-Inc/edo/util/test"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"github.com/realglobe-Inc/go-lib-rg/rglog/level"
 	"io/ioutil"
@@ -68,7 +68,7 @@ func newTestSystem(selfId string) *system {
 // edo-id-provider を立てる。
 // 使い終わったら shutCh で終了させ、idpSys.uiPath を消すこと
 func setupTestIdp(testAccs []*account, testTas []*ta) (idpSys *system, shutCh chan struct{}, err error) {
-	port, err := util.FreePort()
+	port, err := test.FreePort()
 	if err != nil {
 		return nil, nil, erro.Wrap(err)
 	}
@@ -104,17 +104,13 @@ func TestBoot(t *testing.T) {
 
 // testTa を基に TA 偽装用テストサーバーを立てる。
 // 使い終わったら Close すること。
-func setupTestTa(rediUriPaths []string) (ta_ *ta, rediUri, taKid string, taPriKey crypto.PrivateKey, taServ *util.TestHttpServer, err error) {
-	taPort, err := util.FreePort()
-	if err != nil {
-		return nil, "", "", nil, nil, erro.Wrap(err)
-	}
-	taServer, err := util.NewTestHttpServer(taPort)
+func setupTestTa(rediUriPaths []string) (ta_ *ta, rediUri, taKid string, taPriKey crypto.PrivateKey, taServ *test.HttpServer, err error) {
+	taServer, err := test.NewHttpServer(0)
 	if err != nil {
 		return nil, "", "", nil, nil, erro.Wrap(err)
 	}
 	taBuff := *testTa
-	taBuff.Id = "http://localhost:" + strconv.Itoa(taPort)
+	taBuff.Id = "http://" + taServer.Address()
 	if len(rediUriPaths) == 0 {
 		rediUri = taBuff.Id + "/redirect_endpoint"
 		taBuff.RediUris = map[string]bool{rediUri: true}
@@ -130,7 +126,7 @@ func setupTestTa(rediUriPaths []string) (ta_ *ta, rediUri, taKid string, taPriKe
 
 // TA 偽装サーバーと edo-id-provider を立てる。
 func setupTestTaAndIdp(rediUriPaths []string, testAccs []*account, testTas []*ta) (ta_ *ta, rediUri,
-	taKid string, taPriKey crypto.PrivateKey, taServ *util.TestHttpServer,
+	taKid string, taPriKey crypto.PrivateKey, taServ *test.HttpServer,
 	idpSys *system, shutCh chan struct{}, err error) {
 
 	// TA 偽装サーバー。

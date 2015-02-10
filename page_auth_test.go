@@ -5,6 +5,7 @@ package main
 import (
 	"encoding/json"
 	"github.com/realglobe-Inc/edo/util"
+	"github.com/realglobe-Inc/edo/util/server"
 	"github.com/realglobe-Inc/edo/util/strset"
 	"github.com/realglobe-Inc/go-lib-rg/rglog/level"
 	"io/ioutil"
@@ -122,8 +123,8 @@ func TestDenyOverlapParameterInAuthRequest(t *testing.T) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		util.LogRequest(level.ERR, req, true)
-		util.LogResponse(level.ERR, resp, true)
+		server.LogRequest(level.ERR, req, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(resp.StatusCode, http.StatusOK)
 	} else if resp.Request.FormValue(formErr) != errInvReq {
 		t.Fatal("no error")
@@ -271,16 +272,16 @@ func TestDenyNoClientIdInAuthRequest(t *testing.T) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusBadRequest {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(resp.StatusCode, http.StatusBadRequest)
 	}
 
 	var res struct{ Error string }
 	if data, err := ioutil.ReadAll(resp.Body); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if err := json.Unmarshal(data, &res); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if res.Error != errInvReq {
 		t.Fatal(res.Error, errInvReq)
@@ -552,16 +553,16 @@ func TestDirectErrorResponseInInvalidRedirectUri(t *testing.T) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusBadRequest {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(resp.StatusCode, http.StatusBadRequest)
 	}
 
 	var res struct{ Error string }
 	if data, err := ioutil.ReadAll(resp.Body); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if err := json.Unmarshal(data, &res); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if res.Error != errInvReq {
 		t.Fatal(res.Error, errInvReq)
@@ -605,16 +606,16 @@ func TestDirectErrorResponseInNoRedirectUri(t *testing.T) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusBadRequest {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(resp.StatusCode, http.StatusBadRequest)
 	}
 
 	var res struct{ Error string }
 	if data, err := ioutil.ReadAll(resp.Body); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if err := json.Unmarshal(data, &res); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if res.Error != errInvReq {
 		t.Fatal(res.Error, errInvReq)
@@ -765,7 +766,7 @@ func TestPostAuthRequest(t *testing.T) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(resp.StatusCode, http.StatusOK)
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"github.com/realglobe-Inc/edo/driver"
 	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/edo/util/crypto"
+	"github.com/realglobe-Inc/edo/util/server"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"github.com/realglobe-Inc/go-lib-rg/rglog"
 	"net/http"
@@ -182,7 +183,7 @@ func mainCore(param *parameters) error {
 
 // 振り分ける。
 func serve(sys *system, socType, socPath string, socPort int, protType string, shutCh chan struct{}) error {
-	routes := map[string]util.HandlerFunc{
+	routes := map[string]server.HandlerFunc{
 		authPath: func(w http.ResponseWriter, r *http.Request) error {
 			return authPage(w, r, sys)
 		},
@@ -217,5 +218,5 @@ func serve(sys *system, socType, socPath string, socPort int, protType string, s
 			}
 		}
 	}
-	return util.TerminableServe(socType, socPath, socPort, protType, routes, shutCh, panicErrorWrapper)
+	return server.TerminableServe(socType, socPath, socPort, protType, routes, shutCh, panicErrorWrapper)
 }

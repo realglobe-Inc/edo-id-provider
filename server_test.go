@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/edo/util/jwt"
+	"github.com/realglobe-Inc/edo/util/server"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"github.com/realglobe-Inc/go-lib-rg/rglog/level"
 	"io/ioutil"
@@ -180,7 +181,7 @@ func testRequestAuth(idpSys *system, cli *http.Client, authParams map[string]str
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		resp.Body.Close()
 		return nil, erro.New("invalid response ", resp.StatusCode, " "+http.StatusText(resp.StatusCode))
 	}
@@ -214,7 +215,7 @@ func testSelectAccountWithoutCheck(idpSys *system, cli *http.Client, authResp *h
 	if err != nil {
 		return nil, erro.Wrap(err)
 	}
-	req.Header.Set("Content-Type", util.ContentTypeForm)
+	req.Header.Set("Content-Type", server.ContentTypeForm)
 	req.Header.Set("Connection", "close")
 	resp, err := cli.Do(req)
 	if err != nil {
@@ -233,7 +234,7 @@ func testSelectAccount(idpSys *system, cli *http.Client, authResp *http.Response
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		resp.Body.Close()
 		return nil, erro.New("invalid response ", resp.StatusCode, " "+http.StatusText(resp.StatusCode))
 	}
@@ -267,7 +268,7 @@ func testLoginWithoutCheck(idpSys *system, cli *http.Client, selResp *http.Respo
 	if err != nil {
 		return nil, erro.Wrap(err)
 	}
-	req.Header.Set("Content-Type", util.ContentTypeForm)
+	req.Header.Set("Content-Type", server.ContentTypeForm)
 	req.Header.Set("Connection", "close")
 	resp, err := cli.Do(req)
 	if err != nil {
@@ -286,7 +287,7 @@ func testLogin(idpSys *system, cli *http.Client, selResp *http.Response, loginPa
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		resp.Body.Close()
 		return nil, erro.New("invalid response ", resp.StatusCode, " "+http.StatusText(resp.StatusCode))
 	}
@@ -321,7 +322,7 @@ func testConsentWithoutCheck(idpSys *system, cli *http.Client, loginResp *http.R
 	if err != nil {
 		return nil, erro.Wrap(err)
 	}
-	req.Header.Set("Content-Type", util.ContentTypeForm)
+	req.Header.Set("Content-Type", server.ContentTypeForm)
 	req.Header.Set("Connection", "close")
 	resp, err := cli.Do(req)
 	if err != nil {
@@ -340,7 +341,7 @@ func testConsent(idpSys *system, cli *http.Client, loginResp *http.Response, con
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		resp.Body.Close()
 		return nil, erro.New("invalid response ", resp.StatusCode, " "+http.StatusText(resp.StatusCode))
 	}
@@ -354,7 +355,7 @@ func testGetTokenWithoutCheck(idpSys *system, consResp *http.Response, assHeads,
 	reqParams map[string]string, kid string, sigKey crypto.PrivateKey) (*http.Response, error) {
 	cod := consResp.Request.FormValue("code")
 	if cod == "" {
-		util.LogRequest(level.ERR, consResp.Request, true)
+		server.LogRequest(level.ERR, consResp.Request, true)
 		return nil, erro.New("no code")
 	}
 
@@ -407,7 +408,7 @@ func testGetTokenWithoutCheck(idpSys *system, consResp *http.Response, assHeads,
 	if err != nil {
 		return nil, erro.Wrap(err)
 	}
-	req.Header.Set("Content-Type", util.ContentTypeForm)
+	req.Header.Set("Content-Type", server.ContentTypeForm)
 	req.Header.Set("Connection", "close")
 	resp, err := (&http.Client{}).Do(req)
 	if err != nil {
@@ -428,16 +429,16 @@ func testGetToken(idpSys *system, consResp *http.Response, assHeads, assClms map
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		return nil, erro.New("invalid response ", resp.StatusCode, " "+http.StatusText(resp.StatusCode))
 	}
 
 	var res map[string]interface{}
 	if data, err := ioutil.ReadAll(resp.Body); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		return nil, erro.Wrap(err)
 	} else if err := json.Unmarshal(data, &res); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		return nil, erro.Wrap(err)
 	}
 	return res, nil
@@ -485,7 +486,7 @@ func testGetAccountInfo(idpSys *system, tokRes map[string]interface{}, reqHeads 
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		resp.Body.Close()
 		return nil, erro.New("invalid response ", resp.StatusCode, " "+http.StatusText(resp.StatusCode))
 	}
@@ -717,16 +718,16 @@ func TestAbortSession(t *testing.T) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusBadRequest {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(resp.StatusCode, http.StatusBadRequest)
 	}
 
 	var res struct{ Error string }
 	if data, err := ioutil.ReadAll(resp.Body); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if err := json.Unmarshal(data, &res); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if res.Error != errInvReq {
 		t.Fatal(res.Error, errInvReq)

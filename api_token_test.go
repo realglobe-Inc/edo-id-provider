@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/edo/util/jwt"
+	"github.com/realglobe-Inc/edo/util/server"
 	"github.com/realglobe-Inc/go-lib-rg/rglog/level"
 	"io/ioutil"
 	"net/http"
@@ -204,7 +205,7 @@ func TestTokenResponseHeader(t *testing.T) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(resp.StatusCode, http.StatusOK)
 	}
 
@@ -263,7 +264,7 @@ func TestDenyNonPostTokenRequest(t *testing.T) {
 
 		cod := consResp.Request.FormValue("code")
 		if cod == "" {
-			util.LogRequest(level.ERR, consResp.Request, true)
+			server.LogRequest(level.ERR, consResp.Request, true)
 			t.Fatal("no code")
 		}
 
@@ -307,19 +308,19 @@ func TestDenyNonPostTokenRequest(t *testing.T) {
 		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusMethodNotAllowed {
-			util.LogRequest(level.ERR, req, true)
-			util.LogResponse(level.ERR, resp, true)
+			server.LogRequest(level.ERR, req, true)
+			server.LogResponse(level.ERR, resp, true)
 			t.Fatal(resp.StatusCode, http.StatusMethodNotAllowed)
 		}
 
 		var res struct{ Error string }
 		if data, err := ioutil.ReadAll(resp.Body); err != nil {
-			util.LogRequest(level.ERR, req, true)
-			util.LogResponse(level.ERR, resp, true)
+			server.LogRequest(level.ERR, req, true)
+			server.LogResponse(level.ERR, resp, true)
 			t.Fatal(err)
 		} else if err := json.Unmarshal(data, &res); err != nil {
-			util.LogRequest(level.ERR, req, true)
-			util.LogResponse(level.ERR, resp, true)
+			server.LogRequest(level.ERR, req, true)
+			server.LogResponse(level.ERR, resp, true)
 			t.Fatal(err)
 		} else if res.Error != errInvReq {
 			t.Fatal(res.Error, errInvReq)
@@ -433,7 +434,7 @@ func TestDenyOverlapParameterInTokenRequest(t *testing.T) {
 
 	cod := consResp.Request.FormValue("code")
 	if cod == "" {
-		util.LogRequest(level.ERR, consResp.Request, true)
+		server.LogRequest(level.ERR, consResp.Request, true)
 		t.Fatal("no code")
 	}
 
@@ -477,19 +478,19 @@ func TestDenyOverlapParameterInTokenRequest(t *testing.T) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusBadRequest {
-		util.LogRequest(level.ERR, req, true)
-		util.LogResponse(level.ERR, resp, true)
+		server.LogRequest(level.ERR, req, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(resp.StatusCode, http.StatusBadRequest)
 	}
 
 	var res struct{ Error string }
 	if data, err := ioutil.ReadAll(resp.Body); err != nil {
-		util.LogRequest(level.ERR, req, true)
-		util.LogResponse(level.ERR, resp, true)
+		server.LogRequest(level.ERR, req, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if err := json.Unmarshal(data, &res); err != nil {
-		util.LogRequest(level.ERR, req, true)
-		util.LogResponse(level.ERR, resp, true)
+		server.LogRequest(level.ERR, req, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if res.Error != errInvReq {
 		t.Fatal(res.Error, errInvReq)
@@ -555,16 +556,16 @@ func TestDenyTokenRequestWithoutClientId(t *testing.T) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusBadRequest {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(resp.StatusCode, http.StatusBadRequest)
 	}
 
 	var res struct{ Error string }
 	if data, err := ioutil.ReadAll(resp.Body); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if err := json.Unmarshal(data, &res); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if res.Error != errInvReq {
 		t.Fatal(res.Error, errInvReq)
@@ -629,16 +630,16 @@ func TestDenyNoGrantTypeInTokenRequest(t *testing.T) {
 	}
 
 	if resp.StatusCode != http.StatusBadRequest {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(resp.StatusCode, http.StatusBadRequest)
 	}
 
 	var res struct{ Error string }
 	if data, err := ioutil.ReadAll(resp.Body); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if err := json.Unmarshal(data, &res); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if res.Error != errInvReq {
 		t.Fatal(res.Error, errInvReq)
@@ -704,16 +705,16 @@ func TestDenyNoCodeInTokenRequest(t *testing.T) {
 	}
 
 	if resp.StatusCode != http.StatusBadRequest {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(resp.StatusCode, http.StatusBadRequest)
 	}
 
 	var res struct{ Error string }
 	if data, err := ioutil.ReadAll(resp.Body); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if err := json.Unmarshal(data, &res); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if res.Error != errInvReq {
 		t.Fatal(res.Error, errInvReq)
@@ -778,16 +779,16 @@ func TestDenyNoRedirectUriInTokenRequest(t *testing.T) {
 	}
 
 	if resp.StatusCode != http.StatusBadRequest {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(resp.StatusCode, http.StatusBadRequest)
 	}
 
 	var res struct{ Error string }
 	if data, err := ioutil.ReadAll(resp.Body); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if err := json.Unmarshal(data, &res); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if res.Error != errInvReq {
 		t.Fatal(res.Error, errInvReq)
@@ -852,16 +853,16 @@ func TestDenyUnknownGrantTypeInTokenRequest(t *testing.T) {
 	}
 
 	if resp.StatusCode != http.StatusBadRequest {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(resp.StatusCode, http.StatusBadRequest)
 	}
 
 	var res struct{ Error string }
 	if data, err := ioutil.ReadAll(resp.Body); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if err := json.Unmarshal(data, &res); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if res.Error != errUnsuppGrntType {
 		t.Fatal(res.Error, errUnsuppGrntType)
@@ -931,16 +932,16 @@ func TestDenyNotCodeHolder(t *testing.T) {
 	}
 
 	if resp.StatusCode != http.StatusBadRequest {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(resp.StatusCode, http.StatusBadRequest)
 	}
 
 	var res struct{ Error, Error_description string }
 	if data, err := ioutil.ReadAll(resp.Body); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if err := json.Unmarshal(data, &res); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if res.Error != errInvGrnt {
 		t.Fatal(res.Error, res.Error_description, errInvGrnt)
@@ -1007,16 +1008,16 @@ func TestDenyInvalidCode(t *testing.T) {
 	}
 
 	if resp.StatusCode != http.StatusBadRequest {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(resp.StatusCode, http.StatusBadRequest)
 	}
 
 	var res struct{ Error, Error_description string }
 	if data, err := ioutil.ReadAll(resp.Body); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if err := json.Unmarshal(data, &res); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if res.Error != errInvGrnt {
 		t.Fatal(res.Error, res.Error_description, errInvGrnt)
@@ -1089,16 +1090,16 @@ func TestDenyInvalidRedirectUri(t *testing.T) {
 	}
 
 	if resp.StatusCode != http.StatusBadRequest {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(resp.StatusCode, http.StatusBadRequest)
 	}
 
 	var res struct{ Error, Error_description string }
 	if data, err := ioutil.ReadAll(resp.Body); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if err := json.Unmarshal(data, &res); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if res.Error != errInvGrnt {
 		t.Fatal(res.Error, res.Error_description, errInvGrnt)
@@ -1165,16 +1166,16 @@ func TestDenyManyClientAuthAlgorithms(t *testing.T) {
 	}
 
 	if resp.StatusCode != http.StatusBadRequest {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(resp.StatusCode, http.StatusBadRequest)
 	}
 
 	var res struct{ Error, Error_description string }
 	if data, err := ioutil.ReadAll(resp.Body); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if err := json.Unmarshal(data, &res); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if res.Error != errInvReq {
 		t.Fatal(res.Error, res.Error_description, errInvReq)
@@ -1241,16 +1242,16 @@ func TestDenyInvalidClient(t *testing.T) {
 	}
 
 	if resp.StatusCode != http.StatusBadRequest {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(resp.StatusCode, http.StatusBadRequest)
 	}
 
 	var res struct{ Error, Error_description string }
 	if data, err := ioutil.ReadAll(resp.Body); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if err := json.Unmarshal(data, &res); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if res.Error != errInvTa {
 		t.Fatal(res.Error, res.Error_description, errInvTa)
@@ -1321,16 +1322,16 @@ func TestDenyExpiredCode(t *testing.T) {
 	}, kid, sigKey)
 
 	if resp.StatusCode != http.StatusBadRequest {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(resp.StatusCode, http.StatusBadRequest)
 	}
 
 	var res struct{ Error, Error_description string }
 	if data, err := ioutil.ReadAll(resp.Body); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if err := json.Unmarshal(data, &res); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if res.Error != errInvGrnt {
 		t.Fatal(res.Error, res.Error_description, errInvGrnt)
@@ -1425,16 +1426,16 @@ func TestDenyUsedCode(t *testing.T) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusBadRequest {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(resp.StatusCode, http.StatusBadRequest)
 	}
 
 	var res struct{ Error string }
 	if data, err := ioutil.ReadAll(resp.Body); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if err := json.Unmarshal(data, &res); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if res.Error != errInvGrnt {
 		t.Fatal(res.Error, errInvGrnt)
@@ -1540,16 +1541,16 @@ func _TestDisableTokenOfUsedCode(t *testing.T) {
 	}
 
 	if resp.StatusCode != http.StatusBadRequest {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(resp.StatusCode, http.StatusBadRequest)
 	}
 
 	var res struct{ Error string }
 	if data, err := ioutil.ReadAll(resp.Body); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if err := json.Unmarshal(data, &res); err != nil {
-		util.LogResponse(level.ERR, resp, true)
+		server.LogResponse(level.ERR, resp, true)
 		t.Fatal(err)
 	} else if res.Error != errInvTok {
 		t.Fatal(res.Error, errInvTok)

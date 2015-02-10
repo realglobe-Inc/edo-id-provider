@@ -2,8 +2,8 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/realglobe-Inc/edo/util"
 	jsonutil "github.com/realglobe-Inc/edo/util/json"
+	"github.com/realglobe-Inc/edo/util/server"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"github.com/realglobe-Inc/go-lib-rg/rglog/level"
 	"net/http"
@@ -42,7 +42,7 @@ func responseError(w http.ResponseWriter, err error) {
 			`",` + formErrDesc + `="` + jsonutil.StringEscape(m[formErrDesc]) + `"}`)
 	}
 
-	w.Header().Set("Content-Type", util.ContentTypeJson)
+	w.Header().Set("Content-Type", server.ContentTypeJson)
 	w.Header().Set("Content-Length", strconv.Itoa(len(buff)))
 	w.Header().Add("Cache-Control", "no-store")
 	w.Header().Add("Pragma", "no-cache")
@@ -56,7 +56,7 @@ func responseError(w http.ResponseWriter, err error) {
 }
 
 // パニックとエラーの処理をまとめる。
-func panicErrorWrapper(handler util.HandlerFunc) http.HandlerFunc {
+func panicErrorWrapper(hndl server.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// panic時にプロセス終了しないようにrecoverする
 		defer func() {
@@ -67,10 +67,10 @@ func panicErrorWrapper(handler util.HandlerFunc) http.HandlerFunc {
 		}()
 
 		//////////////////////////////
-		util.LogRequest(level.DEBUG, r, true)
+		server.LogRequest(level.DEBUG, r, true)
 		//////////////////////////////
 
-		if err := handler(w, r); err != nil {
+		if err := hndl(w, r); err != nil {
 			responseError(w, erro.Wrap(err))
 			return
 		}

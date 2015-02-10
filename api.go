@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"github.com/realglobe-Inc/edo/util"
+	jsonutil "github.com/realglobe-Inc/edo/util/json"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"github.com/realglobe-Inc/go-lib-rg/rglog/level"
 	"net/http"
@@ -37,8 +38,8 @@ func responseError(w http.ResponseWriter, err error) {
 		log.Err(erro.Unwrap(err))
 		log.Debug(err)
 		// 最後の手段。たぶん正しい変換。
-		buff = []byte(`{` + formErr + `="` + util.JsonStringEscape(m[formErr]) +
-			`",` + formErrDesc + `="` + util.JsonStringEscape(m[formErrDesc]) + `"}`)
+		buff = []byte(`{` + formErr + `="` + jsonutil.StringEscape(m[formErr]) +
+			`",` + formErrDesc + `="` + jsonutil.StringEscape(m[formErrDesc]) + `"}`)
 	}
 
 	w.Header().Set("Content-Type", util.ContentTypeJson)

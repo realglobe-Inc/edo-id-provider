@@ -1,19 +1,19 @@
 package main
 
 import (
-	"github.com/realglobe-Inc/edo/util"
+	logutil "github.com/realglobe-Inc/edo/util/log"
 	"github.com/realglobe-Inc/go-lib-rg/rglog/level"
 	"testing"
 )
 
 func init() {
-	util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 }
 
 func TestMemorySessionContainer(t *testing.T) {
 	// ////////////////////////////////
-	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
-	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 	testSessionContainer(t, newMemorySessionContainer(10, "", testStaleDur, testCaExpiDur))
 }

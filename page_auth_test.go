@@ -4,7 +4,7 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/realglobe-Inc/edo/util"
+	logutil "github.com/realglobe-Inc/edo/util/log"
 	"github.com/realglobe-Inc/edo/util/server"
 	"github.com/realglobe-Inc/edo/util/strset"
 	"github.com/realglobe-Inc/go-lib-rg/rglog/level"
@@ -20,14 +20,14 @@ import (
 )
 
 func init() {
-	util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 }
 
 // 知らないパラメータを無視できるか。
 func TestIgnoreUnknownParameterInAuthRequest(t *testing.T) {
 	// ////////////////////////////////
-	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
-	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
 	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
@@ -89,8 +89,8 @@ func TestIgnoreUnknownParameterInAuthRequest(t *testing.T) {
 // エラーリダイレクトして error は invalid_request か。
 func TestDenyOverlapParameterInAuthRequest(t *testing.T) {
 	// ////////////////////////////////
-	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
-	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
 	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
@@ -135,8 +135,8 @@ func TestDenyOverlapParameterInAuthRequest(t *testing.T) {
 // 必須パラメータ無しでエラーリダイレクトして error は invalid_request か。
 func TestDenyNoScopeInAuthRequest(t *testing.T) {
 	// ////////////////////////////////
-	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
-	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
 	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
@@ -177,8 +177,8 @@ func TestDenyNoScopeInAuthRequest(t *testing.T) {
 // 知らない scope 値を無視できるか。
 func TestIgnoreUnknownScopes(t *testing.T) {
 	// ////////////////////////////////
-	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
-	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
 	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
@@ -237,8 +237,8 @@ func TestIgnoreUnknownScopes(t *testing.T) {
 // 必須パラメータ無しで error は invalid_request か。
 func TestDenyNoClientIdInAuthRequest(t *testing.T) {
 	// ////////////////////////////////
-	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
-	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
 	_, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
@@ -292,8 +292,8 @@ func TestDenyNoClientIdInAuthRequest(t *testing.T) {
 // 必須パラメータ無しで error は invalid_request か。
 func TestDenyNoResponseTypeInAuthRequest(t *testing.T) {
 	// ////////////////////////////////
-	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
-	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
 	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
@@ -335,8 +335,8 @@ func TestDenyNoResponseTypeInAuthRequest(t *testing.T) {
 // error は unsupported_response_type か。
 func TestDenyUnknownResponseTypeInAuthRequest(t *testing.T) {
 	// ////////////////////////////////
-	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
-	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
 	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
@@ -377,8 +377,8 @@ func TestDenyUnknownResponseTypeInAuthRequest(t *testing.T) {
 // リソースオーナーが拒否したら error は access_denied か。
 func TestErrorWhenOwnerDenied(t *testing.T) {
 	// ////////////////////////////////
-	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
-	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
 	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp([]string{"/redirect_endpoint?param_name=param_value"}, []*account{testAcc}, nil)
@@ -426,8 +426,8 @@ func TestErrorWhenOwnerDenied(t *testing.T) {
 // 結果をリダイレクトで返すときに redirect_uri のパラメータを維持できるか。
 func TestKeepRedirectUriParameter(t *testing.T) {
 	// ////////////////////////////////
-	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
-	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
 	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp([]string{"/redirect_endpoint?param_name=param_value"}, []*account{testAcc}, nil)
@@ -477,8 +477,8 @@ func TestKeepRedirectUriParameter(t *testing.T) {
 // エラーをリダイレクトで返すときに redirect_uri のパラメータを維持できるか。
 func TestKeepRedirectUriParameterInError(t *testing.T) {
 	// ////////////////////////////////
-	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
-	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
 	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp([]string{"/redirect_endpoint?param_name=param_value"}, []*account{testAcc}, nil)
@@ -521,8 +521,8 @@ func TestKeepRedirectUriParameterInError(t *testing.T) {
 // redirect_uri が登録値と異なるときにリダイレクトせずに拒否できるか。
 func TestDirectErrorResponseInInvalidRedirectUri(t *testing.T) {
 	// ////////////////////////////////
-	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
-	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
 	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
@@ -572,8 +572,8 @@ func TestDirectErrorResponseInInvalidRedirectUri(t *testing.T) {
 // redirect_uri が無いときにリダイレクトせずに拒否できるか。
 func TestDirectErrorResponseInNoRedirectUri(t *testing.T) {
 	// ////////////////////////////////
-	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
-	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
 	testTa2, _, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
@@ -625,8 +625,8 @@ func TestDirectErrorResponseInNoRedirectUri(t *testing.T) {
 // 結果をリダイレクトで返すときに state パラメータも返せるか。
 func TestReturnStateParameter(t *testing.T) {
 	// ////////////////////////////////
-	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
-	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
 	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
@@ -679,8 +679,8 @@ func TestReturnStateParameter(t *testing.T) {
 // エラーをリダイレクトで返すときに state パラメータも返せるか。
 func TestReturnStateAtError(t *testing.T) {
 	// ////////////////////////////////
-	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
-	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
 	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
@@ -724,8 +724,8 @@ func TestReturnStateAtError(t *testing.T) {
 // POST での認証リクエストにも対応するか。
 func TestPostAuthRequest(t *testing.T) {
 	// ////////////////////////////////
-	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
-	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
 	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)

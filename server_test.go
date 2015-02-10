@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/edo/util/jwt"
+	logutil "github.com/realglobe-Inc/edo/util/log"
 	"github.com/realglobe-Inc/edo/util/server"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"github.com/realglobe-Inc/go-lib-rg/rglog/level"
@@ -21,7 +22,7 @@ import (
 )
 
 func init() {
-	util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 }
 
 func newTestSystem(selfId string) *system {
@@ -86,8 +87,8 @@ func setupTestIdp(testAccs []*account, testTas []*ta) (idpSys *system, shutCh ch
 // 起動しただけでパニックを起こさないこと。
 func TestBoot(t *testing.T) {
 	// ////////////////////////////////
-	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
-	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
 	idpSys, shutCh, err := setupTestIdp(nil, nil)
@@ -596,8 +597,8 @@ func testFromRequestAuthToGetAccountInfo(idpSys *system, cli *http.Client,
 // 認証してアカウント情報を取得できるか。
 func TestSuccess(t *testing.T) {
 	// ////////////////////////////////
-	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
-	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
 	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
@@ -656,8 +657,8 @@ func TestSuccess(t *testing.T) {
 // 認証中にエラーが起きたら認証経過を破棄できるか。
 func TestAbortSession(t *testing.T) {
 	// ////////////////////////////////
-	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
-	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
 	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)

@@ -86,6 +86,7 @@ func accountInfoApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 		}
 		info[clmName] = clm
 	}
+	info[clmSub] = acc.id()
 
 	return responseAccountInfo(w, info)
 }

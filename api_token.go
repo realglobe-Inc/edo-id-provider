@@ -102,7 +102,7 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 	// 認可コードを使用済みにする。
 	cod.disable()
 
-	log.Debug("Code " + mosaic(codId) + " is disabled")
+	log.Debug("Code " + mosaic(codId) + " was disabled")
 
 	taId := req.taId()
 	if taId == "" {

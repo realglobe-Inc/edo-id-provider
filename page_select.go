@@ -153,7 +153,7 @@ func afterSelect(w http.ResponseWriter, r *http.Request, sys *system, sess *sess
 
 	prmpts := sess.request().prompts()
 	if prmpts[prmptLogin] && prmpts[prmptNone] {
-		return redirectError(w, r, sys, sess, sess.request(), newIdpError(errConsReq, "cannot login without UI", 0, nil))
+		return redirectError(w, r, sys, sess, sess.request(), newIdpError(errLoginReq, "cannot login without UI", 0, nil))
 	}
 
 	if prmpts[prmptLogin] {
@@ -170,7 +170,7 @@ func afterSelect(w http.ResponseWriter, r *http.Request, sys *system, sess *sess
 	log.Debug("Logged is required")
 
 	if prmpts[prmptNone] {
-		return redirectError(w, r, sys, sess, sess.request(), newIdpError(errConsReq, "cannot login without UI", 0, nil))
+		return redirectError(w, r, sys, sess, sess.request(), newIdpError(errLoginReq, "cannot login without UI", 0, nil))
 	}
 
 	return redirectLoginUi(w, r, sys, sess, "")

@@ -2,8 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/realglobe-Inc/edo/util/server"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"net/http"
+	"strconv"
 )
 
 func responseAccountInfo(w http.ResponseWriter, info map[string]interface{}) error {
@@ -12,6 +14,8 @@ func responseAccountInfo(w http.ResponseWriter, info map[string]interface{}) err
 		return newIdpError(errServErr, erro.Unwrap(err).Error(), http.StatusBadRequest, erro.Wrap(err))
 	}
 
+	w.Header().Add("Content-Type", server.ContentTypeJson)
+	w.Header().Add("Content-Length", strconv.Itoa(len(buff)))
 	w.Header().Add("Cache-Control", "no-store")
 	w.Header().Add("Pragma", "no-cache")
 	if _, err := w.Write(buff); err != nil {

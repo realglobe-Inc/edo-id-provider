@@ -4,8 +4,10 @@ import (
 	"crypto"
 	"encoding/json"
 	"github.com/realglobe-Inc/edo/util/jwt"
+	"github.com/realglobe-Inc/edo/util/server"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -38,6 +40,8 @@ func responseToken(w http.ResponseWriter, tok *token) error {
 		return erro.Wrap(err)
 	}
 
+	w.Header().Add("Content-Type", server.ContentTypeJson)
+	w.Header().Add("Content-Length", strconv.Itoa(len(buff)))
 	w.Header().Add("Cache-Control", "no-store")
 	w.Header().Add("Pragma", "no-cache")
 	if _, err := w.Write(buff); err != nil {

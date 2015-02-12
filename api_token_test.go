@@ -1443,7 +1443,7 @@ func TestDenyUsedCode(t *testing.T) {
 }
 
 // 2 回使われた認可コードで発行したアクセストークンを無効にできるか。
-func _TestDisableTokenOfUsedCode(t *testing.T) {
+func TestDisableTokenOfUsedCode(t *testing.T) {
 	// ////////////////////////////////
 	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
 	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)

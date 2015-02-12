@@ -770,3 +770,75 @@ func TestPostAuthRequest(t *testing.T) {
 		t.Fatal(resp.StatusCode, http.StatusOK)
 	}
 }
+
+// prompt が login を含むなら認証させるか。
+func TestForceLogin(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	// サーバ起動待ち。
+	time.Sleep(10 * time.Millisecond)
+
+	cookJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Jar: cookJar}
+
+	// 一旦認証を通す。
+	consResp, err := testFromRequestAuthToConsent(idpSys, cli, map[string]string{
+		"scope":         "openid email",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+		"redirect_uri":  rediUri,
+		"prompt":        "login",
+	}, map[string]string{
+		"username": testAcc.name(),
+	}, map[string]string{
+		"username": testAcc.name(),
+		"password": testAcc.password(),
+	}, map[string]string{
+		"consented_scope": "openid email",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	consResp.Body.Close()
+	if q := consResp.Request.URL.Query(); q.Get("code") == "" {
+		t.Fatal("no code")
+	}
+
+	// 認証 UI に飛ばされる。
+	resp, err := testRequestAuthWithoutCheck(idpSys, cli, map[string]string{
+		"scope":         "openid email",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+		"redirect_uri":  rediUri,
+		"prompt":        "login",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(resp.StatusCode, http.StatusOK)
+	} else if resp.Request.URL.Path != idpSys.uiUri+"/login.html" {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(resp.Request.URL.Path, idpSys.uiUri+"/login.html")
+	}
+}

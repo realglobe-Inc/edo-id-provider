@@ -1051,3 +1051,52 @@ func TestForceConsentError(t *testing.T) {
 		t.Fatal(q.Get("error"), errConsReq)
 	}
 }
+
+// prompt が select_account を含むならアカウント選択させるか。
+func TestForceSelect(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer idpSys.close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	// サーバ起動待ち。
+	time.Sleep(10 * time.Millisecond)
+
+	cookJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Jar: cookJar}
+
+	// アカウント選択 UI に飛ばされる。
+	resp, err := testRequestAuthWithoutCheck(idpSys, cli, map[string]string{
+		"scope":         "openid email",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+		"redirect_uri":  rediUri,
+		"prompt":        "select_account",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(resp.StatusCode, http.StatusOK)
+	} else if resp.Request.URL.Path != idpSys.uiUri+"/select.html" {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(resp.Request.URL.Path, idpSys.uiUri+"/select.html")
+	}
+}

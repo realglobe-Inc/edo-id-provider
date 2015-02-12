@@ -21,7 +21,10 @@ func init() {
 }
 
 // GET と POST でのアカウント情報リクエストに対応するか。
-func TestPostAccountInfoRequest(t *testing.T) {
+// Bearer 認証に対応するか。
+// JSON を application/json で返すか。
+// sub クレームを含むか。
+func TestAccountInfo(t *testing.T) {
 	// ////////////////////////////////
 	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
 	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
@@ -100,9 +103,11 @@ func TestPostAccountInfoRequest(t *testing.T) {
 			server.LogRequest(level.ERR, req, true)
 			server.LogResponse(level.ERR, resp, true)
 			t.Fatal(resp.StatusCode, http.StatusOK)
+		} else if resp.Header.Get("Content-Type") != "application/json" {
+			t.Error(resp.Header.Get("Content-Type"), "application/json")
 		}
 
-		var res struct{ Email string }
+		var res struct{ Sub, Email string }
 		if data, err := ioutil.ReadAll(resp.Body); err != nil {
 			server.LogRequest(level.ERR, req, true)
 			server.LogResponse(level.ERR, resp, true)
@@ -111,6 +116,8 @@ func TestPostAccountInfoRequest(t *testing.T) {
 			server.LogRequest(level.ERR, req, true)
 			server.LogResponse(level.ERR, resp, true)
 			t.Fatal(err)
+		} else if res.Sub != testAcc.id() {
+			t.Fatal(res.Sub, testAcc.id())
 		} else if em, _ := testAcc.attribute("email").(string); res.Email != em {
 			t.Fatal(res.Email, em)
 		}

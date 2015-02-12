@@ -397,7 +397,7 @@ OpenID Connect
 
 + Client Credential を発行していたり、何らかの Client Authentication 方式を用いる場合、Client を認証しなければならない。
 + Authorization Code がその Client 向けに発行されたものか確認しなければならない。
-+ Authorization Code が有効が検証しなければならない。
++ Authorization Code が有効か検証しなければならない。
 + Authorization Code が以前に使用されていないことを検証すべき。
 + redirect_uri が Authorization Request の時の redirect_uri と同じことを確認しなければならない。
 + redirect_uri が無いが、登録されている redirect_uri が一つだけの場合、エラーを返さなくても良い。
@@ -502,8 +502,8 @@ OpenID Connect
 + Authentication Request で claims パラメータを受け付けても良い。
 + claims の値は JSON。
 + Request Object に入れることもできる。
-+ claims に uderinfo があるのに response_type が Access Token を発行するタイプでなかった場合、拒否すべき。
-+ claims の uderinfo で要求されたクレームを返却する場合は UserInfo Endpoint から返却する。
++ claims に userinfo があるのに response_type が Access Token を発行するタイプでなかった場合、拒否すべき。
++ claims の userinfo で要求されたクレームを返却する場合は UserInfo Endpoint から返却する。
 + claims の id_token で要求されたクレームを返却する場合は id_token で返却する。
 + claims の認識できないメンバーは無視しなければならない。
 

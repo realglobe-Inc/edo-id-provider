@@ -604,7 +604,7 @@ func TestSuccess(t *testing.T) {
 	defer taServ.Close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
-	// TA にリダイレクトできたときのレスポンスを設定しておく。
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
 	// サーバ起動待ち。
@@ -664,7 +664,7 @@ func TestAbortSession(t *testing.T) {
 	defer taServ.Close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
-	// TA にリダイレクトできたときのレスポンスを設定しておく。
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 

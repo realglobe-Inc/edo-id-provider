@@ -38,7 +38,7 @@ func TestTokenResponse(t *testing.T) {
 	defer taServ.Close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
-	// TA にリダイレクトできたときのレスポンスを設定しておく。
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
 	// サーバ起動待ち。
@@ -101,7 +101,7 @@ func TestTokenResponseWithScope(t *testing.T) {
 	defer taServ.Close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
-	// TA にリダイレクトできたときのレスポンスを設定しておく。
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
 	// サーバ起動待ち。
@@ -160,7 +160,7 @@ func TestTokenResponseHeader(t *testing.T) {
 	defer taServ.Close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
-	// TA にリダイレクトできたときのレスポンスを設定しておく。
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
 	// サーバ起動待ち。
@@ -235,7 +235,7 @@ func TestDenyNonPostTokenRequest(t *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 
 	for _, meth := range []string{"GET", "PUT"} {
-		// TA にリダイレクトできたときのレスポンスを設定しておく。
+		// TA にリダイレクトしたときのレスポンスを設定しておく。
 		taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
 		cookJar, err := cookiejar.New(nil)
@@ -342,7 +342,7 @@ func TestIgnoreUnknownParameterInTokenRequest(t *testing.T) {
 	defer taServ.Close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
-	// TA にリダイレクトできたときのレスポンスを設定しておく。
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
 	// サーバ起動待ち。
@@ -402,7 +402,7 @@ func TestDenyOverlapParameterInTokenRequest(t *testing.T) {
 	defer taServ.Close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
-	// TA にリダイレクトできたときのレスポンスを設定しておく。
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
 	// サーバ起動待ち。
@@ -511,7 +511,7 @@ func TestDenyTokenRequestWithoutClientId(t *testing.T) {
 	defer taServ.Close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
-	// TA にリダイレクトできたときのレスポンスを設定しておく。
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
 	// サーバ起動待ち。
@@ -586,7 +586,7 @@ func TestDenyNoGrantTypeInTokenRequest(t *testing.T) {
 	defer taServ.Close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
-	// TA にリダイレクトできたときのレスポンスを設定しておく。
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
 	// サーバ起動待ち。
@@ -660,7 +660,7 @@ func TestDenyNoCodeInTokenRequest(t *testing.T) {
 	defer taServ.Close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
-	// TA にリダイレクトできたときのレスポンスを設定しておく。
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
 	// サーバ起動待ち。
@@ -735,7 +735,7 @@ func TestDenyNoRedirectUriInTokenRequest(t *testing.T) {
 	defer taServ.Close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
-	// TA にリダイレクトできたときのレスポンスを設定しておく。
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
 	// サーバ起動待ち。
@@ -809,7 +809,7 @@ func TestDenyUnknownGrantTypeInTokenRequest(t *testing.T) {
 	defer taServ.Close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
-	// TA にリダイレクトできたときのレスポンスを設定しておく。
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
 	// サーバ起動待ち。
@@ -888,7 +888,7 @@ func TestDenyNotCodeHolder(t *testing.T) {
 	defer taServ.Close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
-	// TA にリダイレクトできたときのレスポンスを設定しておく。
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
 	// サーバ起動待ち。
@@ -963,7 +963,7 @@ func TestDenyInvalidCode(t *testing.T) {
 	defer taServ.Close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
-	// TA にリダイレクトできたときのレスポンスを設定しておく。
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
 	// サーバ起動待ち。
@@ -1039,7 +1039,7 @@ func TestDenyInvalidRedirectUri(t *testing.T) {
 	defer taServ.Close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
-	// TA にリダイレクトできたときのレスポンスを設定しておく。
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
 	var rediUri2 string
@@ -1121,7 +1121,7 @@ func TestDenyManyClientAuthAlgorithms(t *testing.T) {
 	defer taServ.Close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
-	// TA にリダイレクトできたときのレスポンスを設定しておく。
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
 	// サーバ起動待ち。
@@ -1197,7 +1197,7 @@ func TestDenyInvalidClient(t *testing.T) {
 	defer taServ.Close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
-	// TA にリダイレクトできたときのレスポンスを設定しておく。
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
 	// サーバ起動待ち。
@@ -1273,7 +1273,7 @@ func TestDenyExpiredCode(t *testing.T) {
 	defer taServ.Close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
-	// TA にリダイレクトできたときのレスポンスを設定しておく。
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
 	// サーバ起動待ち。
@@ -1352,7 +1352,7 @@ func TestDenyUsedCode(t *testing.T) {
 	defer taServ.Close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
-	// TA にリダイレクトできたときのレスポンスを設定しておく。
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
 	// サーバ起動待ち。
@@ -1456,7 +1456,7 @@ func _TestDisableTokenOfUsedCode(t *testing.T) {
 	defer taServ.Close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
-	// TA にリダイレクトできたときのレスポンスを設定しておく。
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
 	// サーバ起動待ち。
@@ -1571,7 +1571,7 @@ func TestIdToken(t *testing.T) {
 	defer taServ.Close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
-	// TA にリダイレクトできたときのレスポンスを設定しておく。
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
 	// サーバ起動待ち。
@@ -1642,7 +1642,7 @@ func TestAuthTimeOfIdToken(t *testing.T) {
 	defer taServ.Close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
-	// TA にリダイレクトできたときのレスポンスを設定しておく。
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
 	// サーバ起動待ち。
@@ -1706,7 +1706,7 @@ func TestNonceOfIdToken(t *testing.T) {
 	defer taServ.Close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
-	// TA にリダイレクトできたときのレスポンスを設定しておく。
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
 	// サーバ起動待ち。
@@ -1770,7 +1770,7 @@ func TestIdTokenSign(t *testing.T) {
 	defer taServ.Close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
-	// TA にリダイレクトできたときのレスポンスを設定しておく。
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
 	// サーバ起動待ち。

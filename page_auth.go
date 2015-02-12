@@ -182,9 +182,8 @@ func authPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 	}
 	sess.startRequest(req)
 
-	prmpts := req.prompts()
-	if prmpts[prmptSelAcc] {
-		if prmpts[prmptNone] {
+	if req.prompts()[prmptSelAcc] {
+		if req.prompts()[prmptNone] {
 			return redirectError(w, r, sys, nil, req, newIdpError(errAccSelReq, "cannot select account without UI", 0, nil))
 		}
 

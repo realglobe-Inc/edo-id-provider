@@ -157,11 +157,11 @@ func loginPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 func afterLogin(w http.ResponseWriter, r *http.Request, sys *system, sess *session) error {
 
 	prmpts := sess.request().prompts()
-	if prmpts[prmptCons] && prmpts[prmptNone] {
-		return redirectError(w, r, sys, sess, sess.request(), newIdpError(errConsReq, "cannot consent without UI", 0, nil))
-	}
-
 	if prmpts[prmptCons] {
+		if prmpts[prmptNone] {
+			return redirectError(w, r, sys, sess, sess.request(), newIdpError(errConsReq, "cannot consent without UI", 0, nil))
+		}
+
 		log.Debug("Consent is forced")
 		return redirectConsentUi(w, r, sys, sess, "")
 	}

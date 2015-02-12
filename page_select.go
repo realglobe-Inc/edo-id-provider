@@ -152,11 +152,11 @@ func selectPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 func afterSelect(w http.ResponseWriter, r *http.Request, sys *system, sess *session) error {
 
 	prmpts := sess.request().prompts()
-	if prmpts[prmptLogin] && prmpts[prmptNone] {
-		return redirectError(w, r, sys, sess, sess.request(), newIdpError(errLoginReq, "cannot login without UI", 0, nil))
-	}
-
 	if prmpts[prmptLogin] {
+		if prmpts[prmptNone] {
+			return redirectError(w, r, sys, sess, sess.request(), newIdpError(errLoginReq, "cannot login without UI", 0, nil))
+		}
+
 		log.Debug("Login is forced")
 		return redirectLoginUi(w, r, sys, sess, "")
 	}

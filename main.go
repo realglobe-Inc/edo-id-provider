@@ -112,6 +112,7 @@ func mainCore(param *parameters) error {
 	case "redis":
 		if redPools[param.sessContUrl] == nil {
 			redPools[param.sessContUrl] = driver.NewRedisPool(param.sessContUrl, connNum, idlDur)
+			defer redPools[param.sessContUrl].Close()
 		}
 		sessCont = newRedisSessionContainer(param.sessIdLen, param.procId, redPools[param.sessContUrl], param.sessContPrefix, param.caStaleDur, param.caExpiDur)
 		log.Info("Use redis session container " + param.sessContUrl)
@@ -130,6 +131,7 @@ func mainCore(param *parameters) error {
 	case "redis":
 		if redPools[param.codContUrl] == nil {
 			redPools[param.codContUrl] = driver.NewRedisPool(param.codContUrl, connNum, idlDur)
+			defer redPools[param.sessContUrl].Close()
 		}
 		codCont = newRedisCodeContainer(param.codIdLen, param.procId, param.codTicExpDur, param.codSavDur, redPools[param.codContUrl], param.codContPrefix, param.caStaleDur, param.caExpiDur)
 		log.Info("Use redis code container " + param.codContUrl)
@@ -148,6 +150,7 @@ func mainCore(param *parameters) error {
 	case "redis":
 		if redPools[param.tokContUrl] == nil {
 			redPools[param.tokContUrl] = driver.NewRedisPool(param.tokContUrl, connNum, idlDur)
+			defer redPools[param.sessContUrl].Close()
 		}
 		tokCont = newRedisTokenContainer(param.tokIdLen, param.procId, param.tokSavDur, redPools[param.tokContUrl], param.tokContPrefix, param.caStaleDur, param.caExpiDur)
 		log.Info("Use redis token container " + param.tokContUrl)

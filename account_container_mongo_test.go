@@ -18,6 +18,7 @@ func TestMongoAccountContainer(t *testing.T) {
 	if _, err := sess.DB(testLabel).C("edo-id-provider").Upsert(bson.M{"id": testAcc.id()}, testAcc); err != nil {
 		t.Fatal(err)
 	}
+	defer sess.Close()
 	defer sess.DB(testLabel).C("edo-id-provider").DropCollection()
 
 	testAccountContainer(t, newMongoAccountContainer(mongoAddr, testLabel, "edo-id-provider", testStaleDur, testCaExpiDur))

@@ -10,6 +10,8 @@ type consentContainer interface {
 	get(accId, taId string) (scops, clms map[string]bool, err error)
 	// 同意を設定する。
 	put(accId, taId string, consScops, consClms, denyScops, denyClms map[string]bool) error
+
+	close() error
 }
 
 type consentContainerImpl struct {
@@ -62,4 +64,8 @@ func (this *consentContainerImpl) put(accId, taId string, consScops, consClms, d
 		return erro.Wrap(err)
 	}
 	return nil
+}
+
+func (this *consentContainerImpl) close() error {
+	return this.base.Close()
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"crypto"
 	"github.com/realglobe-Inc/edo/util/secrand"
+	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"time"
 )
 
@@ -35,7 +36,24 @@ type system struct {
 	sigKey crypto.PrivateKey
 }
 
-func (this *system) newTicket() (string, error) {
+func (sys *system) newTicket() (string, error) {
 	log.Warn("Incomplete implementation")
 	return secrand.String(10)
+}
+
+func (sys *system) close() error {
+	if err := sys.taCont.close(); err != nil {
+		return erro.Wrap(err)
+	} else if err := sys.accCont.close(); err != nil {
+		return erro.Wrap(err)
+	} else if err := sys.consCont.close(); err != nil {
+		return erro.Wrap(err)
+	} else if err := sys.sessCont.close(); err != nil {
+		return erro.Wrap(err)
+	} else if err := sys.codCont.close(); err != nil {
+		return erro.Wrap(err)
+	} else if err := sys.tokCont.close(); err != nil {
+		return erro.Wrap(err)
+	}
+	return nil
 }

@@ -81,3 +81,7 @@ func (this *mongoConsentContainer) put(accId, taId string, consScops, consClms, 
 	}
 	return nil
 }
+
+func (this *mongoConsentContainer) close() error {
+	return this.base.Close()
+}

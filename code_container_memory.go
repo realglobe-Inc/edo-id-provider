@@ -45,3 +45,7 @@ func (this *memoryCodeContainer) getAndSetEntry(codId string) (cod *code, tic st
 func (this *memoryCodeContainer) putIfEntered(cod *code, tic string) (ok bool, err error) {
 	return ((*codeContainerImpl)(this)).putIfEntered(cod.copy(), tic)
 }
+
+func (this *memoryCodeContainer) close() error {
+	return ((*codeContainerImpl)(this)).close()
+}

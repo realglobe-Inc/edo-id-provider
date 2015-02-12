@@ -7,6 +7,8 @@ import (
 )
 
 func testTokenContainer(t *testing.T, tokCont tokenContainer) {
+	defer tokCont.close()
+
 	// 無い。
 	if tk, err := tokCont.get("ccccc"); err != nil {
 		t.Fatal(err)

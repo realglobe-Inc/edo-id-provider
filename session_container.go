@@ -9,6 +9,8 @@ type sessionContainer interface {
 	newId() (id string, err error)
 	put(sess *session) error
 	get(sessId string) (*session, error)
+
+	close() error
 }
 
 type sessionContainerImpl struct {
@@ -33,4 +35,8 @@ func (this *sessionContainerImpl) get(sessId string) (*session, error) {
 		return nil, nil
 	}
 	return val.(*session), nil
+}
+
+func (this *sessionContainerImpl) close() error {
+	return this.base.Close()
 }

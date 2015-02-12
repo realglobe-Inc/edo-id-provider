@@ -24,6 +24,7 @@ func TestMongoConsentContainer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer sess.Close()
 	defer sess.DB(testLabel).C("edo-id-provider").DropCollection()
 
 	testConsentContainer(t, newMongoConsentContainer(mongoAddr, testLabel, "edo-id-provider", testStaleDur, testCaExpiDur))

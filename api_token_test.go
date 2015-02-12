@@ -36,6 +36,7 @@ func TestTokenResponse(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -99,6 +100,7 @@ func TestTokenResponseWithScope(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -158,6 +160,7 @@ func TestTokenResponseHeader(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -228,6 +231,7 @@ func TestDenyNonPostTokenRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 
@@ -340,6 +344,7 @@ func TestIgnoreUnknownParameterInTokenRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -400,6 +405,7 @@ func TestDenyOverlapParameterInTokenRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -509,6 +515,7 @@ func TestDenyTokenRequestWithoutClientId(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -584,6 +591,7 @@ func TestDenyNoGrantTypeInTokenRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -658,6 +666,7 @@ func TestDenyNoCodeInTokenRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -733,6 +742,7 @@ func TestDenyNoRedirectUriInTokenRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -807,6 +817,7 @@ func TestDenyUnknownGrantTypeInTokenRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -886,6 +897,7 @@ func TestDenyNotCodeHolder(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -961,6 +973,7 @@ func TestDenyInvalidCode(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -1037,6 +1050,7 @@ func TestDenyInvalidRedirectUri(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -1119,6 +1133,7 @@ func TestDenyManyClientAuthAlgorithms(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -1195,6 +1210,7 @@ func TestDenyInvalidClient(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -1271,6 +1287,7 @@ func TestDenyExpiredCode(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -1350,6 +1367,7 @@ func TestDenyUsedCode(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -1454,6 +1472,7 @@ func TestDisableTokenOfUsedCode(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -1569,6 +1588,7 @@ func TestIdToken(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -1640,6 +1660,7 @@ func TestAuthTimeOfIdToken(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -1704,6 +1725,7 @@ func TestNonceOfIdToken(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -1768,6 +1790,7 @@ func TestIdTokenSign(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。

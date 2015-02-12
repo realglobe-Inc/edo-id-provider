@@ -16,6 +16,10 @@ func (this *memoryTaContainer) get(taId string) (*ta, error) {
 	return ((*taContainerImpl)(this)).get(taId)
 }
 
+func (this *memoryTaContainer) close() error {
+	return ((*taContainerImpl)(this)).close()
+}
+
 func (this *memoryTaContainer) add(ta *ta) {
 	((*taContainerImpl)(this)).base.(driver.KeyValueStore).Put(ta.id(), ta)
 }

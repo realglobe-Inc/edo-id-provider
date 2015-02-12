@@ -8,6 +8,8 @@ import (
 type accountContainer interface {
 	get(accId string) (*account, error)
 	getByName(accName string) (*account, error)
+
+	close() error
 }
 
 type accountContainerImpl struct {
@@ -33,4 +35,13 @@ func (this *accountContainerImpl) getByName(accName string) (*account, error) {
 		return nil, nil
 	}
 	return val.(*account), nil
+}
+
+func (this *accountContainerImpl) close() error {
+	if err := this.idToAcc.Close(); err != nil {
+		return erro.Wrap(err)
+	} else if err := this.nameToAcc.Close(); err != nil {
+		return erro.Wrap(err)
+	}
+	return nil
 }

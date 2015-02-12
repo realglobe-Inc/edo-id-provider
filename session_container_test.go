@@ -8,6 +8,7 @@ import (
 )
 
 func testSessionContainer(t *testing.T, sessCont sessionContainer) {
+	defer sessCont.close()
 
 	// 無い。
 	if se, err := sessCont.get("ccccc"); err != nil {

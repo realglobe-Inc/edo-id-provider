@@ -6,6 +6,8 @@ import (
 )
 
 func testConsentContainer(t *testing.T, consCont consentContainer) {
+	defer consCont.close()
+
 	// まだ無い。
 	if scops, clms, err := consCont.get(testAcc.id(), testTa.id()); err != nil {
 		t.Fatal(err)

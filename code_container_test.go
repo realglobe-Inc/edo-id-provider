@@ -8,6 +8,8 @@ import (
 )
 
 func testCodeContainer(t *testing.T, codCont codeContainer) {
+	defer codCont.close()
+
 	var savDur time.Duration
 	switch c := codCont.(type) {
 	case *codeContainerImpl:

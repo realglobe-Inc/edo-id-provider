@@ -7,6 +7,8 @@ import (
 
 type taContainer interface {
 	get(taId string) (*ta, error)
+
+	close() error
 }
 
 type taContainerImpl struct {
@@ -21,4 +23,8 @@ func (this *taContainerImpl) get(taId string) (*ta, error) {
 		return nil, nil
 	}
 	return val.(*ta), nil
+}
+
+func (this *taContainerImpl) close() error {
+	return this.base.Close()
 }

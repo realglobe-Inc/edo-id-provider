@@ -58,3 +58,12 @@ func (this *mongoAccountContainer) getByName(accName string) (*account, error) {
 	}
 	return val.(*account), nil
 }
+
+func (this *mongoAccountContainer) close() error {
+	if err := this.idToAcc.Close(); err != nil {
+		return erro.Wrap(err)
+	} else if err := this.nameToAcc.Close(); err != nil {
+		return erro.Wrap(err)
+	}
+	return nil
+}

@@ -10,6 +10,8 @@ type tokenContainer interface {
 	newId() (id string, err error)
 	get(tokId string) (*token, error)
 	put(tok *token) error
+
+	close() error
 }
 
 type tokenContainerImpl struct {
@@ -35,4 +37,8 @@ func (this *tokenContainerImpl) put(tok *token) error {
 		return erro.Wrap(err)
 	}
 	return nil
+}
+
+func (this *tokenContainerImpl) close() error {
+	return this.base.Close()
 }

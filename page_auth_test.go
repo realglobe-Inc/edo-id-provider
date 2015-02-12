@@ -35,6 +35,7 @@ func TestIgnoreUnknownParameterInAuthRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -98,6 +99,7 @@ func TestDenyOverlapParameterInAuthRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -144,6 +146,7 @@ func TestDenyNoScopeInAuthRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -186,6 +189,7 @@ func TestIgnoreUnknownScopes(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -246,6 +250,7 @@ func TestDenyNoClientIdInAuthRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -301,6 +306,7 @@ func TestDenyNoResponseTypeInAuthRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -344,6 +350,7 @@ func TestDenyUnknownResponseTypeInAuthRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -386,6 +393,7 @@ func TestErrorWhenOwnerDenied(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -435,6 +443,7 @@ func TestKeepRedirectUriParameter(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -486,6 +495,7 @@ func TestKeepRedirectUriParameterInError(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -530,6 +540,7 @@ func TestDirectErrorResponseInInvalidRedirectUri(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -581,6 +592,7 @@ func TestDirectErrorResponseInNoRedirectUri(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -634,6 +646,7 @@ func TestReturnStateParameter(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -688,6 +701,7 @@ func TestReturnStateAtError(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -733,6 +747,7 @@ func TestPostAuthRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -783,6 +798,7 @@ func TestForceLogin(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -855,6 +871,7 @@ func TestForceLoginError(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -902,6 +919,7 @@ func TestForceConsent(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -974,6 +992,7 @@ func TestForceConsentError(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。

@@ -6,6 +6,8 @@ import (
 )
 
 func testTaContainer(t *testing.T, taCont taContainer) {
+	defer taCont.close()
+
 	if ta_, err := taCont.get(testTa.id()); err != nil {
 		t.Fatal(err)
 	} else if !reflect.DeepEqual(ta_, testTa) {

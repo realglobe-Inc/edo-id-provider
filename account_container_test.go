@@ -15,6 +15,8 @@ var testAcc = newAccount(map[string]interface{}{
 })
 
 func testAccountContainer(t *testing.T, accCont accountContainer) {
+	defer accCont.close()
+
 	if acc, err := accCont.get(testAcc.id()); err != nil {
 		t.Fatal(err)
 	} else if acc.id() != testAcc.id() {

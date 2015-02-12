@@ -95,6 +95,7 @@ func TestBoot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 
@@ -602,6 +603,7 @@ func TestSuccess(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
@@ -662,6 +664,7 @@ func TestAbortSession(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer taServ.Close()
+	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。

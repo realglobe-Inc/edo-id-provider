@@ -29,3 +29,7 @@ func (this *memorySessionContainer) get(sessId string) (*session, error) {
 	}
 	return sess.copy(), nil
 }
+
+func (this *memorySessionContainer) close() error {
+	return ((*sessionContainerImpl)(this)).close()
+}

@@ -18,6 +18,7 @@ func TestMongoTaContainer(t *testing.T) {
 	if _, err := sess.DB(testLabel).C("edo-id-provider").Upsert(bson.M{"id": testTa.id()}, testTa); err != nil {
 		t.Fatal(err)
 	}
+	defer sess.Close()
 	defer sess.DB(testLabel).C("edo-id-provider").DropCollection()
 
 	testTaContainer(t, newMongoTaContainer(mongoAddr, testLabel, "edo-id-provider", testStaleDur, testCaExpiDur))

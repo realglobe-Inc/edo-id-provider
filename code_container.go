@@ -14,6 +14,8 @@ type codeContainer interface {
 	getAndSetEntry(codId string) (cod *code, tic string, err error)
 	// tic が最後に発行された書き込み券だった場合のみ書き込まれ、ok が true になる。
 	putIfEntered(cod *code, tic string) (ok bool, err error)
+
+	close() error
 }
 
 type codeContainerImpl struct {
@@ -60,4 +62,8 @@ func (this *codeContainerImpl) putIfEntered(cod *code, tic string) (ok bool, err
 		return false, erro.Wrap(err)
 	}
 	return ok, nil
+}
+
+func (this *codeContainerImpl) close() error {
+	return this.base.Close()
 }

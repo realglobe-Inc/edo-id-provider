@@ -32,18 +32,17 @@ func (this *browserRequest) session() string {
 
 // スペース区切りのフォーム値を集合にして返す。
 func formValueSet(r *http.Request, key string) map[string]bool {
-	set := map[string]bool{}
 	s := r.FormValue(key)
 	if s == "" {
-		return set
+		return map[string]bool{}
 	}
 	return strset.FromSlice(strings.Split(s, " "))
 }
 
 // フォーム値用にスペース区切りにして返す。
-func valueSetToForm(v map[string]bool) string {
+func valueSetToForm(m map[string]bool) string {
 	buff := ""
-	for v, ok := range v {
+	for v, ok := range m {
 		if !ok || v == "" {
 			continue
 		}

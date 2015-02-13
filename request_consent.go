@@ -7,10 +7,7 @@ import (
 type consentRequest struct {
 	*browserRequest
 
-	tic     string
-	accName string
-	passwd  string
-
+	tic       string
 	scops     map[string]bool
 	clms      map[string]bool
 	denyScops map[string]bool

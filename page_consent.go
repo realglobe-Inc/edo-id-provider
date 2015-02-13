@@ -17,15 +17,11 @@ func redirectConsentUi(w http.ResponseWriter, r *http.Request, sys *system, sess
 	v.Set(formTaId, sess.request().ta())
 	v.Set(formTaNam, sess.request().taName())
 	v.Set(formExpi, strconv.FormatInt(int64(sys.tokExpiDur/time.Second), 10))
-	scops := sess.request().scopes()
-	if len(scops) > 0 {
-		buff := valueSetToForm(scops)
-		v.Set(formScop, buff)
+	if scops := sess.request().scopes(); len(scops) > 0 {
+		v.Set(formScop, valueSetToForm(scops))
 	}
-	clms := sess.request().claimNames()
-	if len(clms) > 0 {
-		buff := valueSetToForm(clms)
-		v.Set(formClm, buff)
+	if clms := sess.request().claimNames(); len(clms) > 0 {
+		v.Set(formClm, valueSetToForm(clms))
 	}
 	if disp := sess.request().display(); disp != "" {
 		v.Set(formDisp, disp)

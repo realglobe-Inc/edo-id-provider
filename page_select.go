@@ -161,7 +161,9 @@ func afterSelect(w http.ResponseWriter, r *http.Request, sys *system, sess *sess
 		return redirectLoginUi(w, r, sys, sess, "")
 	}
 
-	if sess.currentAccountAuthenticated() {
+	if sess.currentAccountAuthenticated() &&
+		(sess.request().maxAge() == 0 ||
+			int(time.Now().Sub(sess.currentAccountDate())/time.Second) <= sess.request().maxAge()) {
 		// ログイン済み。
 		log.Debug("Logged in")
 		return afterLogin(w, r, sys, sess)

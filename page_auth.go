@@ -154,6 +154,14 @@ func authPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 	// response_type には問題無い。
 	log.Debug("Response type is " + respTypeCod)
 
+	if req.rawMaxAge() != "" {
+		if err := req.parseMaxAge(); err != nil {
+			return redirectError(w, r, sys, nil, req, newIdpError(errInvReq, erro.Unwrap(err).Error(), 0, erro.Wrap(err)))
+		}
+		// max_age には問題無い。
+		log.Debug("Max authentication age is OK")
+	}
+
 	var sess *session
 	if sessId := newBrowserRequest(r).session(); sessId != "" {
 		// セッションが通知された。

@@ -3,6 +3,7 @@ package main
 // トークンリクエスト・レスポンス周りのテスト。
 
 import (
+	"bytes"
 	"crypto"
 	"encoding/json"
 	"github.com/realglobe-Inc/edo/util/jwt"
@@ -1779,6 +1780,7 @@ func TestNonceOfIdToken(t *testing.T) {
 }
 
 // ID トークンが署名されているか。
+// ついでに at_hash クレームを含むか。
 func TestIdTokenSign(t *testing.T) {
 	// ////////////////////////////////
 	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
@@ -1805,7 +1807,7 @@ func TestIdTokenSign(t *testing.T) {
 	}
 	cli := &http.Client{Jar: cookJar}
 
-	if res, err := testFromRequestAuthToGetToken(idpSys, cli, map[string]string{
+	res, err := testFromRequestAuthToGetToken(idpSys, cli, map[string]string{
 		"scope":         "openid email",
 		"response_type": "code",
 		"client_id":     testTa2.id(),
@@ -1831,15 +1833,35 @@ func TestIdTokenSign(t *testing.T) {
 		"redirect_uri":          rediUri,
 		"client_id":             testTa2.id(),
 		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
-	}, kid, sigKey); err != nil {
+	}, kid, sigKey)
+	if err != nil {
 		t.Fatal(err)
+	} else if tok, _ := res["access_token"].(string); tok == "" {
+		t.Fatal("no access token")
 	} else if idTok, _ := res["id_token"].(string); idTok == "" {
 		t.Fatal("no id token")
-	} else if jws, err := jwt.ParseJws(idTok); err != nil {
+	}
+	jws, err := jwt.ParseJws(res["id_token"].(string))
+	if err != nil {
 		t.Fatal(err)
-	} else if alg, _ := jws.Claim("alg").(string); alg == "none" {
-		t.Fatal("none sign algorithm")
+	} else if alg, _ := jws.Header("alg").(string); alg == "" || alg == "none" {
+		t.Fatal("none sign algorithm " + alg)
 	} else if err := jws.Verify(map[string]crypto.PublicKey{"": testIdpPubKey}); err != nil {
 		t.Fatal(err)
+	}
+	h, err := jwt.HashFunction(jws.Header("alg").(string))
+	if err != nil {
+		t.Fatal(err)
+	}
+	h.Write([]byte(res["access_token"].(string)))
+	sum := h.Sum(nil)
+	ah, _ := jws.Claim("at_hash").(string)
+	if ah == "" {
+		t.Fatal("no at_hash")
+	} else if buff, err := jwt.Base64UrlDecodeString(ah); err != nil {
+		t.Fatal(err)
+	} else if !bytes.Equal(buff, sum[:len(sum)/2]) {
+		t.Error(buff)
+		t.Error(sum[:len(sum)/2])
 	}
 }

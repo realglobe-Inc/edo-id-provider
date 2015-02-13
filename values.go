@@ -26,6 +26,7 @@ const (
 	formErrDesc   = "error_description"
 	formClm       = "claim"
 	formDisp      = "display"
+	formMaxAge    = "max_age"
 
 	// 独自。
 	formAccName   = "username"

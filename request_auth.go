@@ -5,6 +5,7 @@ import (
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"net/http"
 	"net/url"
+	"strconv"
 )
 
 type authRequest struct {
@@ -24,6 +25,9 @@ type authRequest struct {
 	Scops  strset.StringSet         `json:"scope,omitempty"`
 	Clms   map[string]*claimRequest `json:"claims,omitempty"`
 	Disp   string                   `json:"display,omitempty"`
+
+	rawMaxAge_ string
+	MaxAge     int `json:"max_age,omitempty"`
 }
 
 type claimRequest struct {
@@ -48,6 +52,7 @@ func newAuthRequest(r *http.Request) (*authRequest, error) {
 		Scops:      stripUnknownScopes(formValueSet(r, formScop)),
 		Clms:       map[string]*claimRequest{},
 		Disp:       r.FormValue(formDisp),
+		rawMaxAge_: r.FormValue(formMaxAge),
 	}, nil
 }
 
@@ -129,4 +134,25 @@ func (this *authRequest) claimNames() map[string]bool {
 // 要求されている表示形式を返す。
 func (this *authRequest) display() string {
 	return this.Disp
+}
+
+// 過去の認証の有効期間を返す。
+func (this *authRequest) rawMaxAge() string {
+	return this.rawMaxAge_
+}
+
+func (this *authRequest) parseMaxAge() error {
+	var err error
+	this.MaxAge, err = strconv.Atoi(this.rawMaxAge_)
+	if err != nil {
+		return erro.Wrap(err)
+	}
+	return nil
+}
+
+func (this *authRequest) maxAge() int {
+	if this.MaxAge == 0 {
+		this.parseMaxAge()
+	}
+	return this.MaxAge
 }

@@ -25,6 +25,9 @@ func redirectSelectUi(w http.ResponseWriter, r *http.Request, sys *system, sess 
 	if disp := sess.request().display(); disp != "" {
 		v.Set(formDisp, disp)
 	}
+	if locs := sess.request().uiLocales(); len(locs) > 0 {
+		v.Set(formLocs, valuesToForm(locs))
+	}
 	if hint != "" {
 		v.Set(formHint, hint)
 	}

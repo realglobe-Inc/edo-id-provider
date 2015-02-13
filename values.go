@@ -27,6 +27,7 @@ const (
 	formClm       = "claim"
 	formDisp      = "display"
 	formMaxAge    = "max_age"
+	formUiLocs    = "ui_locales"
 
 	// 独自。
 	formAccName   = "username"
@@ -41,6 +42,7 @@ const (
 	formDenyScops = "denied_scope"
 	formDenyClms  = "denied_claim"
 	formSelTic    = "ticket"
+	formLocs      = "locales"
 )
 
 // Cookie 中にセッション識別子。

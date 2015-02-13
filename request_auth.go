@@ -25,6 +25,7 @@ type authRequest struct {
 	Scops  strset.StringSet         `json:"scope,omitempty"`
 	Clms   map[string]*claimRequest `json:"claims,omitempty"`
 	Disp   string                   `json:"display,omitempty"`
+	UiLocs []string                 `json:"ui_localse,omitempty"`
 
 	rawMaxAge_ string
 	MaxAge     int `json:"max_age,omitempty"`
@@ -52,6 +53,7 @@ func newAuthRequest(r *http.Request) (*authRequest, error) {
 		Scops:      stripUnknownScopes(formValueSet(r, formScop)),
 		Clms:       map[string]*claimRequest{},
 		Disp:       r.FormValue(formDisp),
+		UiLocs:     formValues(r, formUiLocs),
 		rawMaxAge_: r.FormValue(formMaxAge),
 	}, nil
 }
@@ -134,6 +136,11 @@ func (this *authRequest) claimNames() map[string]bool {
 // 要求されている表示形式を返す。
 func (this *authRequest) display() string {
 	return this.Disp
+}
+
+// 要求されている表示言語を優先する順に返す。
+func (this *authRequest) uiLocales() []string {
+	return this.UiLocs
 }
 
 // 過去の認証の有効期間を返す。

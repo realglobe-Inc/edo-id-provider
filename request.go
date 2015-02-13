@@ -55,3 +55,28 @@ func valueSetToForm(v map[string]bool) string {
 	}
 	return buff
 }
+
+// スペース区切りのフォーム値を配列にして返す。
+func formValues(r *http.Request, key string) []string {
+	s := r.FormValue(key)
+	if s == "" {
+		return []string{}
+	}
+	return strings.Split(s, " ")
+}
+
+// フォーム値用にスペース区切りにして返す。
+func valuesToForm(s []string) string {
+	buff := ""
+	for _, v := range s {
+		if v == "" {
+			continue
+		}
+
+		if len(buff) > 0 {
+			buff += " "
+		}
+		buff += v
+	}
+	return buff
+}

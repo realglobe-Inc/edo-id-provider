@@ -1224,3 +1224,58 @@ func TestLoginTimeout(t *testing.T) {
 		t.Fatal(resp.Request.URL.Path, idpSys.uiUri+"/login.html")
 	}
 }
+
+// UI にパラメータが渡せてるか。
+func TestUiParameter(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer idpSys.close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	// サーバ起動待ち。
+	time.Sleep(10 * time.Millisecond)
+
+	cookJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Jar: cookJar}
+
+	// 認証 UI に飛ばされる。
+	resp, err := testRequestAuthWithoutCheck(idpSys, cli, map[string]string{
+		"scope":         "openid email",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+		"redirect_uri":  rediUri,
+		"prompt":        "login",
+		"display":       "page",
+		"ui_locales":    "ja",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(resp.StatusCode, http.StatusOK)
+	} else if resp.Request.URL.Path != idpSys.uiUri+"/login.html" {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(resp.Request.URL.Path, idpSys.uiUri+"/login.html")
+	} else if q := resp.Request.URL.Query(); q.Get("display") != "page" {
+		t.Fatal(q.Get("display"), "page")
+	} else if q.Get("locales") != "ja" {
+		t.Fatal(q.Get("locales"), "ja")
+	}
+}

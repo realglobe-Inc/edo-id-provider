@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/realglobe-Inc/edo/util/strset"
+	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"net/http"
 	"net/url"
 )
@@ -69,16 +70,21 @@ func (this *authRequest) setTaName(taName string) {
 func (this *authRequest) rawRedirectUri() string {
 	return this.RawRediUri
 }
-func (this *authRequest) redirectUri() *url.URL {
-	if this.rediUri == nil {
-		this.rediUri, _ = url.Parse(this.RawRediUri)
+
+func (this *authRequest) parseRedirectUri() error {
+	var err error
+	this.rediUri, err = url.Parse(this.RawRediUri)
+	if err != nil {
+		return erro.Wrap(err)
 	}
-	return this.rediUri
+	return nil
 }
 
-// 結果を通知するリダイレクト先を設定する。
-func (this *authRequest) setRedirectUri(rediUri *url.URL) {
-	this.rediUri = rediUri
+func (this *authRequest) redirectUri() *url.URL {
+	if this.rediUri == nil {
+		this.parseRedirectUri()
+	}
+	return this.rediUri
 }
 
 // 結果の形式を返す。

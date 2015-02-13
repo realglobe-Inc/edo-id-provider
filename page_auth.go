@@ -4,7 +4,6 @@ import (
 	"github.com/realglobe-Inc/edo/util/jwt"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"net/http"
-	"net/url"
 	"time"
 )
 
@@ -125,15 +124,12 @@ func authPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 		return newIdpError(errInvReq, "no "+formRediUri, http.StatusBadRequest, nil)
 	} else if !t.redirectUris()[req.rawRedirectUri()] {
 		return newIdpError(errInvReq, formRediUri+" "+req.rawRedirectUri()+" is not registered", http.StatusBadRequest, nil)
-	}
-	rediUri, err := url.Parse(req.rawRedirectUri())
-	if err != nil {
+	} else if err := req.parseRedirectUri(); err != nil {
 		return newIdpError(errInvReq, erro.Unwrap(err).Error(), http.StatusBadRequest, erro.Wrap(err))
 	}
 
 	// リダイレクト先には問題無い。
 	log.Debug("Redirect URI " + req.rawRedirectUri() + " is OK")
-	req.setRedirectUri(rediUri)
 
 	if !req.scopes()[scopOpId] {
 		return redirectError(w, r, sys, nil, req, newIdpError(errInvReq, formScop+" has no "+scopOpId, 0, nil))

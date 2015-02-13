@@ -12,6 +12,7 @@ type consentRequest struct {
 	clms      map[string]bool
 	denyScops map[string]bool
 	denyClms  map[string]bool
+	loc       string
 }
 
 func newConsentRequest(r *http.Request) *consentRequest {
@@ -22,6 +23,7 @@ func newConsentRequest(r *http.Request) *consentRequest {
 		clms:           formValueSet(r, formConsClms),
 		denyScops:      stripUnknownScopes(formValueSet(r, formDenyScops)),
 		denyClms:       formValueSet(r, formDenyClms),
+		loc:            r.FormValue(formLoc),
 	}
 }
 
@@ -31,4 +33,8 @@ func (this *consentRequest) ticket() string {
 
 func (this *consentRequest) consentInfo() (scops, clms, denyScops, denyClms map[string]bool) {
 	return this.scops, this.clms, this.denyScops, this.denyClms
+}
+
+func (this *consentRequest) locale() string {
+	return this.loc
 }

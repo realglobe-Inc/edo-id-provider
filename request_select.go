@@ -9,6 +9,7 @@ type selectRequest struct {
 
 	tic     string
 	accName string
+	loc     string
 }
 
 func newSelectRequest(r *http.Request) *selectRequest {
@@ -16,6 +17,7 @@ func newSelectRequest(r *http.Request) *selectRequest {
 		browserRequest: newBrowserRequest(r),
 		tic:            r.FormValue(formSelTic),
 		accName:        r.FormValue(formAccName),
+		loc:            r.FormValue(formLoc),
 	}
 }
 
@@ -25,4 +27,8 @@ func (this *selectRequest) ticket() string {
 
 func (this *selectRequest) selectInfo() (accName string) {
 	return this.accName
+}
+
+func (this *selectRequest) locale() string {
+	return this.loc
 }

@@ -19,6 +19,8 @@ type session struct {
 	CurAcc string `json:"current_account,omitempty"`
 	// ログインしたことのあるアカウント。
 	Accs sessionAccountMap `json:"accounts,omitempty"`
+	// 最後に選択した言語。
+	Loc string `json:"locale,omitempty"`
 
 	// 進行中のユーザー認証・認可リクエスト。
 	Req *authRequest `json:"request,omitempty"`
@@ -326,4 +328,14 @@ func (this *session) unconsentedEssentials() (scops, clms map[string]bool) {
 		}
 	}
 	return nil, clms
+}
+
+// 直近に選択した言語を返す。
+func (this *session) locale() string {
+	return this.Loc
+}
+
+// 言語を選択する。
+func (this *session) setLocale(loc string) {
+	this.Loc = loc
 }

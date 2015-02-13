@@ -10,6 +10,7 @@ type loginRequest struct {
 	tic     string
 	accName string
 	passwd  string
+	loc     string
 }
 
 func newLoginRequest(r *http.Request) *loginRequest {
@@ -18,6 +19,7 @@ func newLoginRequest(r *http.Request) *loginRequest {
 		tic:            r.FormValue(formLoginTic),
 		accName:        r.FormValue(formAccName),
 		passwd:         r.FormValue(formPasswd),
+		loc:            r.FormValue(formLoc),
 	}
 }
 
@@ -27,4 +29,8 @@ func (this *loginRequest) ticket() string {
 
 func (this *loginRequest) loginInfo() (accName, passwd string) {
 	return this.accName, this.passwd
+}
+
+func (this *loginRequest) locale() string {
+	return this.loc
 }

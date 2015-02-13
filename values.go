@@ -43,6 +43,7 @@ const (
 	formDenyClms  = "denied_claim"
 	formSelTic    = "ticket"
 	formLocs      = "locales"
+	formLoc       = "locale"
 )
 
 // Cookie 中にセッション識別子。

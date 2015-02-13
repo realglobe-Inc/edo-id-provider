@@ -26,8 +26,8 @@ func redirectLoginUi(w http.ResponseWriter, r *http.Request, sys *system, sess *
 	if disp := sess.request().display(); disp != "" {
 		v.Set(formDisp, disp)
 	}
-	if locs := sess.request().uiLocales(); len(locs) > 0 {
-		v.Set(formLocs, valuesToForm(locs))
+	if loc, locs := sess.locale(), sess.request().uiLocales(); loc != "" || len(locs) > 0 {
+		v.Set(formLocs, valuesToForm(append([]string{loc}, locs...)))
 	}
 	if hint != "" {
 		v.Set(formHint, hint)
@@ -152,6 +152,13 @@ func loginPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 	log.Debug("Account " + accName + " (" + acc.id() + ") was authenticated")
 
 	sess.loginAccount(acc)
+
+	if loc := req.locale(); loc != "" {
+		sess.setLocale(loc)
+
+		// 言語を選択してた。
+		log.Debug("Locale " + loc + " was selected")
+	}
 
 	return afterLogin(w, r, sys, sess)
 }

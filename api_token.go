@@ -193,6 +193,14 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 	// クライアント認証できた。
 	log.Debug(taId + " is authenticated")
 
+	tokId, err := sys.tokCont.newId()
+	if err != nil {
+		return erro.Wrap(err)
+	}
+
+	// アクセストークンが決まった。
+	log.Debug("Token " + mosaic(tokId) + " was generated")
+
 	idTokJws := jwt.NewJws()
 	idTokJws.SetHeader(jwtAlg, sys.sigAlg)
 	if sys.sigKid != "" {
@@ -209,6 +217,13 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 	if cod.nonce() != "" {
 		idTokJws.SetClaim(clmNonc, cod.nonce())
 	}
+	if h, err := jwt.HashFunction(idTokJws.Header(jwtAlg).(string)); err != nil {
+		return erro.Wrap(err)
+	} else if h != nil {
+		h.Write([]byte(tokId))
+		sum := h.Sum(nil)
+		idTokJws.SetClaim(clmAtHash, jwt.Base64UrlEncodeToString(sum[:len(sum)/2]))
+	}
 	if err := idTokJws.Sign(map[string]crypto.PrivateKey{sys.sigKid: sys.sigKey}); err != nil {
 		return erro.Wrap(err)
 	}
@@ -221,10 +236,6 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 	// ID トークンができた。
 	log.Debug("ID token was generated")
 
-	tokId, err := sys.tokCont.newId()
-	if err != nil {
-		return erro.Wrap(err)
-	}
 	tok := newToken(
 		tokId,
 		cod.accountId(),
@@ -236,9 +247,6 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 		cod.claims(),
 		idTok,
 	)
-
-	// アクセストークンが決まった。
-	log.Debug("Token " + mosaic(tok.id()) + " was generated")
 
 	// アクセストークンを認可コードに結びつける。
 	cod.addToken(tokId)

@@ -79,6 +79,7 @@ const (
 	clmIat     = "iat"
 	clmAuthTim = "auth_time"
 	clmNonc    = "nonce"
+	clmAtHash  = "at_hash"
 
 	// プライベートクレーム。
 	clmCod = "code"

@@ -69,6 +69,7 @@ username と passwd フォームパラメータでアカウント名とパスワ
 
 |パラメータ|値|
 |:--|:--|
+|locale|ユーザーが選択した表示言語。必須ではない。|
 |username|アカウント名|
 |ticket|/auth 等からリダイレクトしたときにフラグメントで与えられる文字列|
 
@@ -76,8 +77,9 @@ username と passwd フォームパラメータでアカウント名とパスワ
 
 |パラメータ|値|
 |:--|:--|
-|display|画面表示形式|
-|usernames|候補となるアカウント名の JSON 配列|
+|display|画面表示形式。page/popup/touch/wap|
+|locales|優先表示言語。空白区切り|
+|usernames|候補となるアカウント名。JSON 配列|
 
 
 ### GET /html/login.html#{ticket}
@@ -87,6 +89,7 @@ username と passwd フォームパラメータでアカウント名とパスワ
 
 |パラメータ|値|
 |:--|:--|
+|locale|ユーザーが選択した表示言語。必須ではない。|
 |username|アカウント名|
 |password|アカウントのパスワード|
 |ticket|/auth 等からリダイレクトしたときにフラグメントで与えられる文字列|
@@ -95,8 +98,9 @@ username と passwd フォームパラメータでアカウント名とパスワ
 
 |パラメータ|値|
 |:--|:--|
-|display|画面表示形式|
-|usernames|候補となるアカウント名の JSON 配列|
+|display|画面表示形式。page/popup/touch/wap|
+|locales|優先表示言語。空白区切り|
+|usernames|候補となるアカウント名。JSON 配列|
 
 
 ### GET /html/consent.html#{ticket}
@@ -106,22 +110,24 @@ username と passwd フォームパラメータでアカウント名とパスワ
 
 |パラメータ|値|
 |:--|:--|
-|consented_scope|同意された scope の空白区切りリスト|
-|consented_claim|同意されたクレームの空白区切りリスト|
-|denied_scope|拒否された scope の空白区切りリスト|
-|denied_claim|拒否されたクレームの空白区切りリスト|
+|consented_claim|同意されたクレーム。空白区切り|
+|consented_scope|同意された scope。空白区切り|
+|denied_claim|拒否されたクレーム。空白区切り|
+|denied_scope|拒否された scope。空白区切り|
+|locale|ユーザーが選択した表示言語。必須ではない。|
 |ticket|/auth 等からリダイレクトしたときにフラグメントで与えられる文字列|
 
 /auth 等からリダイレクトしたときに以下のパラメータが付加される。
 
 |パラメータ|値|
 |:--|:--|
-|claim|同意が必要なクレームの空白区切りリスト|
+|claim|同意が求められるクレームの空白区切りリスト|
 |client_id|情報提供先 TA の ID|
 |client_name|情報提供先 TA の名前|
-|display|画面表示形式|
+|display|画面表示形式。page/popup/touch/wap|
 |expires_in|発行されるアクセストークンの有効期間 (秒)|
-|scope|同意が必要な scope の空白区切りリスト|
+|locales|優先表示言語。空白区切り|
+|scope|同意が求められる scope。空白区切り|
 |username|アカウント名|
 
 

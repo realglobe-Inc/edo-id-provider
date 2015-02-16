@@ -73,6 +73,10 @@ func (this *authRequest) rawRedirectUri() string {
 }
 
 func (this *authRequest) parseRedirectUri() error {
+	if this.rediUri != nil || this.RawRediUri == "" {
+		return nil
+	}
+
 	var err error
 	this.rediUri, err = url.Parse(this.RawRediUri)
 	if err != nil {
@@ -119,6 +123,10 @@ func (this *authRequest) rawClaims() string {
 }
 
 func (this *authRequest) parseClaims() error {
+	if this.Clms.accInf != nil || this.Clms.idTok != nil || this.rawClms == "" {
+		return nil
+	}
+
 	if err := json.Unmarshal([]byte(this.rawClms), &this.Clms); err != nil {
 		return erro.Wrap(err)
 	}
@@ -159,6 +167,10 @@ func (this *authRequest) rawMaxAge() string {
 }
 
 func (this *authRequest) parseMaxAge() error {
+	if this.MaxAge != 0 || this.rawMaxAge_ == "" {
+		return nil
+	}
+
 	var err error
 	this.MaxAge, err = strconv.Atoi(this.rawMaxAge_)
 	if err != nil {
@@ -172,4 +184,16 @@ func (this *authRequest) maxAge() int {
 		this.parseMaxAge()
 	}
 	return this.MaxAge
+}
+
+// まとめて解析。
+func (this *authRequest) parse() error {
+	if err := this.parseRedirectUri(); err != nil {
+		return erro.Wrap(err)
+	} else if err := this.parseClaims(); err != nil {
+		return erro.Wrap(err)
+	} else if err := this.parseMaxAge(); err != nil {
+		return erro.Wrap(err)
+	}
+	return nil
 }

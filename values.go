@@ -123,7 +123,7 @@ const (
 // error の値。
 const (
 	errInvReq         = "invalid_request"
-	errAccDeny        = "access_dnied"
+	errAccDeny        = "access_denied"
 	errUnsuppRespType = "unsupported_response_type"
 	errInvScop        = "invalid_scope"
 	errServErr        = "server_error"

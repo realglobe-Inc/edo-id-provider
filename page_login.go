@@ -2,10 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/realglobe-Inc/edo/util/strset"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"net/http"
 	"net/url"
+	"reflect"
 	"time"
 )
 
@@ -176,8 +178,29 @@ func afterLogin(w http.ResponseWriter, r *http.Request, sys *system, sess *sessi
 		return redirectConsentUi(w, r, sys, sess, "")
 	}
 
-	// TODO essential クレームの有無。
-	// TODO value, values 指定クレームの検査。
+	// クレーム指定の検査。
+	acc, err := sys.accCont.get(sess.currentAccount())
+	if err != nil {
+		return redirectError(w, r, sys, sess, sess.request(), erro.Wrap(err))
+	} else if acc == nil {
+		// アカウントが無い。
+		return redirectLoginUi(w, r, sys, sess, "accout "+sess.currentAccount()+" was not found")
+	}
+	accInfClms, idTokClms := sess.request().claims()
+	for _, clms := range []map[string]*claimUnit{accInfClms, idTokClms} {
+		for clmName, req := range clms {
+			if req == nil {
+				continue
+			}
+			atr := acc.attribute(clmName)
+			if req.Ess && (atr == nil || atr == "") {
+				return redirectError(w, r, sys, sess, sess.request(), newIdpError(errAccDeny, "essential claim "+clmName+" is not exist", 0, nil))
+			} else if (req.Val != nil || req.Val != "") && !reflect.DeepEqual(atr, req.Val) {
+				return redirectError(w, r, sys, sess, sess.request(), newIdpError(errAccDeny, fmt.Sprint("claim "+clmName+" is not ", req.Val), 0, nil))
+			}
+			// TODO values クレーム指定の検査。
+		}
+	}
 
 	// 事前同意を調べる。
 	scops, clms, err := sys.consCont.get(sess.currentAccount(), sess.request().ta())

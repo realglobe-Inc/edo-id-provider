@@ -1397,3 +1397,59 @@ func TestDenyDeniedEssentialClaim(t *testing.T) {
 		t.Fatal(q.Get("error"), errAccDeny)
 	}
 }
+
+// 値の違う sub クレームを要求されたら拒否できるか。
+func TestDenyInvalidSubClaim(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer idpSys.close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	// サーバ起動待ち。
+	time.Sleep(10 * time.Millisecond)
+
+	cookJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Jar: cookJar}
+
+	resp, err := testFromRequestAuthToConsent(idpSys, cli, map[string]string{
+		"scope":         "openid",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+		"redirect_uri":  rediUri,
+		"claims":        `{"userinfo":{"sub":{"value":"` + testAcc.id() + `a"}}}`,
+	}, map[string]string{
+		"username": testAcc.name(),
+	}, map[string]string{
+		"username": testAcc.name(),
+		"password": testAcc.password(),
+	}, map[string]string{
+		"consented_scope": "openid",
+		"denied_claim":    "email",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(resp.StatusCode, http.StatusOK)
+	} else if q := resp.Request.URL.Query(); q.Get("error") != errAccDeny {
+		server.LogRequest(level.ERR, resp.Request, true)
+		t.Fatal(q.Get("error"), errAccDeny)
+	}
+}

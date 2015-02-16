@@ -28,6 +28,7 @@ const (
 	formDisp      = "display"
 	formMaxAge    = "max_age"
 	formUiLocs    = "ui_locales"
+	formClms      = "claims"
 
 	// 独自。
 	formAccName   = "username"

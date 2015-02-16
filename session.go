@@ -317,17 +317,19 @@ func (this *session) setConsentTicket(tic string) {
 
 // 必要な同意の中で拒否されたものを返す。
 func (this *session) unconsentedEssentials() (scops, clms map[string]bool) {
-	clms = map[string]bool{}
+	uncons := map[string]bool{}
 
-	reqClms := this.Req.claims()
-	for clm, req := range reqClms {
-		if req.Ess {
-			if !this.ConsClms[clm] {
-				clms[clm] = true
+	accInfClms, idTokClms := this.Req.claims()
+	for _, clms := range []map[string]*claimUnit{accInfClms, idTokClms} {
+		for clmName, req := range clms {
+			if req != nil && req.Ess {
+				if !this.ConsClms[clmName] {
+					uncons[clmName] = true
+				}
 			}
 		}
 	}
-	return nil, clms
+	return nil, uncons
 }
 
 // 直近に選択した言語を返す。

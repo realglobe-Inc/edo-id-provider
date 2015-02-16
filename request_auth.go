@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"github.com/realglobe-Inc/edo/util/strset"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"net/http"
@@ -19,24 +20,17 @@ type authRequest struct {
 	// 結果の形式。
 	RespType strset.StringSet `json:"response_type"`
 
-	Stat   string                   `json:"state,omitempty"`
-	Nonc   string                   `json:"nonce,omitempty"`
-	Prmpts strset.StringSet         `json:"prompt,omitempty"`
-	Scops  strset.StringSet         `json:"scope,omitempty"`
-	Clms   map[string]*claimRequest `json:"claims,omitempty"`
-	Disp   string                   `json:"display,omitempty"`
-	UiLocs []string                 `json:"ui_localse,omitempty"`
+	Stat    string           `json:"state,omitempty"`
+	Nonc    string           `json:"nonce,omitempty"`
+	Prmpts  strset.StringSet `json:"prompt,omitempty"`
+	Scops   strset.StringSet `json:"scope,omitempty"`
+	rawClms string
+	Clms    claimRequest `json:"claims,omitempty"`
+	Disp    string       `json:"display,omitempty"`
+	UiLocs  []string     `json:"ui_localse,omitempty"`
 
 	rawMaxAge_ string
 	MaxAge     int `json:"max_age,omitempty"`
-}
-
-type claimRequest struct {
-	Ess  bool          `json:"essential,omitempty"`
-	Val  interface{}   `json:"value,omitempty"`
-	Vals []interface{} `json:"values,omitempty"`
-
-	Loc string `json:"locale,omitempty"`
 }
 
 // エラーは idpError。
@@ -51,7 +45,7 @@ func newAuthRequest(r *http.Request) (*authRequest, error) {
 		Nonc:       r.FormValue(formNonc),
 		Prmpts:     formValueSet(r, formPrmpt),
 		Scops:      stripUnknownScopes(formValueSet(r, formScop)),
-		Clms:       map[string]*claimRequest{},
+		rawClms:    r.FormValue(formClms),
 		Disp:       r.FormValue(formDisp),
 		UiLocs:     formValues(r, formUiLocs),
 		rawMaxAge_: r.FormValue(formMaxAge),
@@ -120,15 +114,31 @@ func (this *authRequest) scopes() map[string]bool {
 }
 
 // 要求されているクレームを返す。
-func (this *authRequest) claims() map[string]*claimRequest {
-	return this.Clms
+func (this *authRequest) rawClaims() string {
+	return this.rawClms
+}
+
+func (this *authRequest) parseClaims() error {
+	if err := json.Unmarshal([]byte(this.rawClms), &this.Clms); err != nil {
+		return erro.Wrap(err)
+	}
+	return nil
+}
+
+func (this *authRequest) claims() (accInfClms, idTokClms map[string]*claimUnit) {
+	if this.Clms.accInf != nil || this.Clms.idTok != nil {
+		this.parseClaims()
+	}
+	return this.Clms.accInf, this.Clms.idTok
 }
 
 // 要求されているクレームを名前だけ返す。
 func (this *authRequest) claimNames() map[string]bool {
 	m := map[string]bool{}
-	for clm := range this.Clms {
-		m[clm] = true
+	for _, clms := range []map[string]*claimUnit{this.Clms.accInf, this.Clms.idTok} {
+		for clmName := range clms {
+			m[clmName] = true
+		}
 	}
 	return m
 }

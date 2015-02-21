@@ -66,7 +66,7 @@ func init() {
 			"https://testta.example.org/":             true,
 			"https://testta.example.org/redirect/uri": true,
 		},
-		map[string]crypto.PublicKey{
+		map[string]interface{}{
 			testTaKid: testTaPubKey,
 		})
 	testTa.Upd = testTa.Upd.Add(-(time.Duration(testTa.Upd.Nanosecond()) % time.Millisecond)) // mongodb の粒度がミリ秒のため。

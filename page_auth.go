@@ -63,14 +63,11 @@ func publishCode(w http.ResponseWriter, r *http.Request, sys *system, sess *sess
 	}
 
 	// 認可コードを IdP の ID を含んだ JWS にする。
-	jws := jwt.NewJws()
-	jws.SetHeader(jwtAlg, algNone)
-	jws.SetClaim(clmJti, cod.id())
-	jws.SetClaim(clmIss, sys.selfId)
-	if err := jws.Sign(nil); err != nil {
-		return redirectError(w, r, sys, sess, authReq, erro.Wrap(err))
-	}
-	buff, err := jws.Encode()
+	jt := jwt.New()
+	jt.SetHeader(jwtAlg, algNone)
+	jt.SetClaim(clmJti, cod.id())
+	jt.SetClaim(clmIss, sys.selfId)
+	buff, err := jt.Encode(nil, nil)
 	if err != nil {
 		return redirectError(w, r, sys, sess, authReq, erro.Wrap(err))
 	}

@@ -2,6 +2,8 @@ package main
 
 import (
 	"crypto"
+	"crypto/ecdsa"
+	"crypto/rsa"
 	"github.com/realglobe-Inc/edo/util/secrand"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"time"
@@ -56,4 +58,15 @@ func (sys *system) close() error {
 		return erro.Wrap(err)
 	}
 	return nil
+}
+
+func (sys *system) verifyKey() crypto.PublicKey {
+	switch key := sys.sigKey.(type) {
+	case *rsa.PrivateKey:
+		return &key.PublicKey
+	case *ecdsa.PrivateKey:
+		return &key.PublicKey
+	default:
+		return nil
+	}
 }

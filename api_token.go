@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto"
 	"encoding/json"
 	"github.com/realglobe-Inc/edo/util/jwt"
 	"github.com/realglobe-Inc/edo/util/server"
@@ -79,14 +78,14 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 	}
 
 	var codId string
-	if codJws, err := jwt.ParseJws(rawCod); err != nil {
+	if codJt, err := jwt.Parse(rawCod, nil, nil); err != nil {
 		// JWS から抜き出した ID だけ送られてきた。
 		codId = rawCod
 		rawCod = ""
 	} else {
 		// JWS のまま送られてきた。
 		log.Debug("Raw code " + mosaic(rawCod) + " is declared")
-		codId, _ = codJws.Claim(clmJti).(string)
+		codId, _ = codJt.Claim(clmJti).(string)
 	}
 
 	log.Debug("Code " + mosaic(codId) + " is declared")
@@ -147,47 +146,38 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 	}
 
 	// クライアント認証する。
-	assJws, err := jwt.ParseJws(taAss)
-	if err != nil {
-		err = erro.Wrap(err)
-		log.Err(erro.Unwrap(err))
-		log.Debug(err)
-		return newIdpError(errInvTa, erro.Unwrap(err).Error(), http.StatusBadRequest, nil)
-	}
-
-	now := time.Now()
-	if assJws.Claim(clmIss) != taId {
-		return newIdpError(errInvTa, "assertion "+clmIss+" is not "+taId, http.StatusBadRequest, nil)
-	} else if assJws.Claim(clmSub) != taId {
-		return newIdpError(errInvTa, "assertion "+clmSub+" is not "+taId, http.StatusBadRequest, nil)
-	} else if jti := assJws.Claim(clmJti); jti == nil || jti == "" {
-		return newIdpError(errInvTa, "no assertion "+clmJti, http.StatusBadRequest, nil)
-	} else if exp, _ := assJws.Claim(clmExp).(float64); exp == 0 {
-		return newIdpError(errInvTa, "no assertion "+clmExp, http.StatusBadRequest, nil)
-	} else if intExp := int64(exp); exp != float64(intExp) {
-		return newIdpError(errInvTa, "assertion "+clmExp+" is not integer", http.StatusBadRequest, nil)
-	} else if intExp < now.Unix() {
-		return newIdpError(errInvTa, "assertion expired", http.StatusBadRequest, nil)
-	} else if aud := assJws.Claim(clmAud); aud == nil {
-		return newIdpError(errInvTa, "no assertion "+clmAud, http.StatusBadRequest, nil)
-	} else if !audienceHas(aud, sys.selfId+tokPath) {
-		return newIdpError(errInvTa, "assertion "+clmAud+" does not contain "+sys.selfId+tokPath, http.StatusBadRequest, nil)
-	} else if c := assJws.Claim(clmCod); !((rawCod != "" || c == rawCod) || c == codId) {
-		return newIdpError(errInvTa, "invalid assertion "+clmCod, http.StatusBadRequest, nil)
-	}
-
-	// クライアント認証情報は揃ってた。
-	log.Debug("Assertion claims are OK")
-
 	ta, err := sys.taCont.get(taId)
 	if err != nil {
 		return erro.Wrap(err)
 	}
 
-	if assJws.Header(jwtAlg) == algNone {
+	assJt, err := jwt.Parse(taAss, ta.keys(), nil)
+	if err != nil {
+		err = erro.Wrap(err)
+		return newIdpError(errInvTa, erro.Unwrap(err).Error(), http.StatusBadRequest, err)
+	} else if assJt.Header(jwtAlg) == algNone {
 		return newIdpError(errInvTa, "asserion "+jwtAlg+" must not be "+algNone, http.StatusBadRequest, nil)
-	} else if err := assJws.Verify(ta.keys()); err != nil {
-		return newIdpError(errInvTa, erro.Unwrap(err).Error(), http.StatusBadRequest, erro.Wrap(err))
+	}
+
+	now := time.Now()
+	if assJt.Claim(clmIss) != taId {
+		return newIdpError(errInvTa, "assertion "+clmIss+" is not "+taId, http.StatusBadRequest, nil)
+	} else if assJt.Claim(clmSub) != taId {
+		return newIdpError(errInvTa, "assertion "+clmSub+" is not "+taId, http.StatusBadRequest, nil)
+	} else if jti := assJt.Claim(clmJti); jti == nil || jti == "" {
+		return newIdpError(errInvTa, "no assertion "+clmJti, http.StatusBadRequest, nil)
+	} else if exp, _ := assJt.Claim(clmExp).(float64); exp == 0 {
+		return newIdpError(errInvTa, "no assertion "+clmExp, http.StatusBadRequest, nil)
+	} else if intExp := int64(exp); exp != float64(intExp) {
+		return newIdpError(errInvTa, "assertion "+clmExp+" is not integer", http.StatusBadRequest, nil)
+	} else if intExp < now.Unix() {
+		return newIdpError(errInvTa, "assertion expired", http.StatusBadRequest, nil)
+	} else if aud := assJt.Claim(clmAud); aud == nil {
+		return newIdpError(errInvTa, "no assertion "+clmAud, http.StatusBadRequest, nil)
+	} else if !audienceHas(aud, sys.selfId+tokPath) {
+		return newIdpError(errInvTa, "assertion "+clmAud+" does not contain "+sys.selfId+tokPath, http.StatusBadRequest, nil)
+	} else if c := assJt.Claim(clmCod); !((rawCod != "" || c == rawCod) || c == codId) {
+		return newIdpError(errInvTa, "invalid assertion "+clmCod, http.StatusBadRequest, nil)
 	}
 
 	// クライアント認証できた。
@@ -201,33 +191,31 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 	// アクセストークンが決まった。
 	log.Debug("Token " + mosaic(tokId) + " was generated")
 
-	idTokJws := jwt.NewJws()
-	idTokJws.SetHeader(jwtAlg, sys.sigAlg)
+	idTokJt := jwt.New()
+	idTokJt.SetHeader(jwtAlg, sys.sigAlg)
 	if sys.sigKid != "" {
-		idTokJws.SetHeader(jwtKid, sys.sigKid)
+		idTokJt.SetHeader(jwtKid, sys.sigKid)
 	}
-	idTokJws.SetClaim(clmIss, sys.selfId)
-	idTokJws.SetClaim(clmSub, cod.accountId())
-	idTokJws.SetClaim(clmAud, cod.taId())
-	idTokJws.SetClaim(clmExp, now.Add(sys.idTokExpiDur).Unix())
-	idTokJws.SetClaim(clmIat, now.Unix())
+	idTokJt.SetClaim(clmIss, sys.selfId)
+	idTokJt.SetClaim(clmSub, cod.accountId())
+	idTokJt.SetClaim(clmAud, cod.taId())
+	idTokJt.SetClaim(clmExp, now.Add(sys.idTokExpiDur).Unix())
+	idTokJt.SetClaim(clmIat, now.Unix())
 	if !cod.authenticationDate().IsZero() {
-		idTokJws.SetClaim(clmAuthTim, cod.authenticationDate().Unix())
+		idTokJt.SetClaim(clmAuthTim, cod.authenticationDate().Unix())
 	}
 	if cod.nonce() != "" {
-		idTokJws.SetClaim(clmNonc, cod.nonce())
+		idTokJt.SetClaim(clmNonc, cod.nonce())
 	}
-	if h, err := jwt.HashFunction(idTokJws.Header(jwtAlg).(string)); err != nil {
+	if hGen, err := jwt.HashFunction(sys.sigAlg); err != nil {
 		return erro.Wrap(err)
-	} else if h != nil {
+	} else if hGen > 0 {
+		h := hGen.New()
 		h.Write([]byte(tokId))
 		sum := h.Sum(nil)
-		idTokJws.SetClaim(clmAtHash, jwt.Base64UrlEncodeToString(sum[:len(sum)/2]))
+		idTokJt.SetClaim(clmAtHash, jwt.Base64UrlEncodeToString(sum[:len(sum)/2]))
 	}
-	if err := idTokJws.Sign(map[string]crypto.PrivateKey{sys.sigKid: sys.sigKey}); err != nil {
-		return erro.Wrap(err)
-	}
-	buff, err := idTokJws.Encode()
+	buff, err := idTokJt.Encode(map[string]interface{}{sys.sigKid: sys.sigKey}, nil)
 	if err != nil {
 		return erro.Wrap(err)
 	}

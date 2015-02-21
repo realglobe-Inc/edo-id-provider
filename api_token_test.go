@@ -4,7 +4,6 @@ package main
 
 import (
 	"bytes"
-	"crypto"
 	"encoding/json"
 	"github.com/realglobe-Inc/edo/util/jwt"
 	logutil "github.com/realglobe-Inc/edo/util/log"
@@ -275,19 +274,16 @@ func TestDenyNonPostTokenRequest(t *testing.T) {
 
 		// 認可コードを取得できた。
 
-		assJws := jwt.NewJws()
-		assJws.SetHeader("alg", "RS256")
-		assJws.SetHeader("kid", kid)
-		assJws.SetClaim("iss", testTa2.id())
-		assJws.SetClaim("sub", testTa2.id())
-		assJws.SetClaim("aud", idpSys.selfId+"/token")
-		assJws.SetClaim("jti", strconv.FormatInt(time.Now().UnixNano(), 16))
-		assJws.SetClaim("exp", time.Now().Add(idpSys.idTokExpiDur).Unix())
-		assJws.SetClaim("code", cod)
-		if err := assJws.Sign(map[string]crypto.PrivateKey{kid: sigKey}); err != nil {
-			t.Fatal(err)
-		}
-		assBuff, err := assJws.Encode()
+		assJt := jwt.New()
+		assJt.SetHeader("alg", "RS256")
+		assJt.SetHeader("kid", kid)
+		assJt.SetClaim("iss", testTa2.id())
+		assJt.SetClaim("sub", testTa2.id())
+		assJt.SetClaim("aud", idpSys.selfId+"/token")
+		assJt.SetClaim("jti", strconv.FormatInt(time.Now().UnixNano(), 16))
+		assJt.SetClaim("exp", time.Now().Add(idpSys.idTokExpiDur).Unix())
+		assJt.SetClaim("code", cod)
+		assBuff, err := assJt.Encode(map[string]interface{}{kid: sigKey}, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -447,19 +443,16 @@ func TestDenyOverlapParameterInTokenRequest(t *testing.T) {
 
 	// 認可コードを取得できた。
 
-	assJws := jwt.NewJws()
-	assJws.SetHeader("alg", "RS256")
-	assJws.SetHeader("kid", kid)
-	assJws.SetClaim("iss", testTa2.id())
-	assJws.SetClaim("sub", testTa2.id())
-	assJws.SetClaim("aud", idpSys.selfId+"/token")
-	assJws.SetClaim("jti", strconv.FormatInt(time.Now().UnixNano(), 16))
-	assJws.SetClaim("exp", time.Now().Add(idpSys.idTokExpiDur).Unix())
-	assJws.SetClaim("code", cod)
-	if err := assJws.Sign(map[string]crypto.PrivateKey{kid: sigKey}); err != nil {
-		t.Fatal(err)
-	}
-	assBuff, err := assJws.Encode()
+	assJt := jwt.New()
+	assJt.SetHeader("alg", "RS256")
+	assJt.SetHeader("kid", kid)
+	assJt.SetClaim("iss", testTa2.id())
+	assJt.SetClaim("sub", testTa2.id())
+	assJt.SetClaim("aud", idpSys.selfId+"/token")
+	assJt.SetClaim("jti", strconv.FormatInt(time.Now().UnixNano(), 16))
+	assJt.SetClaim("exp", time.Now().Add(idpSys.idTokExpiDur).Unix())
+	assJt.SetClaim("code", cod)
+	assBuff, err := assJt.Encode(map[string]interface{}{kid: sigKey}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1634,17 +1627,17 @@ func TestIdToken(t *testing.T) {
 		t.Fatal(err)
 	} else if idTok, _ := res["id_token"].(string); idTok == "" {
 		t.Fatal("no id token")
-	} else if jws, err := jwt.ParseJws(idTok); err != nil {
+	} else if jt, err := jwt.Parse(idTok, map[string]interface{}{idpSys.sigKid: idpSys.verifyKey()}, nil); err != nil {
 		t.Fatal(err)
-	} else if iss, _ := jws.Claim("iss").(string); iss != idpSys.selfId {
+	} else if iss, _ := jt.Claim("iss").(string); iss != idpSys.selfId {
 		t.Fatal(iss, idpSys.selfId)
-	} else if sub, _ := jws.Claim("sub").(string); sub != testAcc.id() {
+	} else if sub, _ := jt.Claim("sub").(string); sub != testAcc.id() {
 		t.Fatal(sub, testAcc.id())
-	} else if !audienceHas(jws.Claim("aud"), testTa2.id()) {
-		t.Fatal(jws.Claim("aud"), testTa2.id())
-	} else if exp, _ := jws.Claim("exp").(float64); exp < float64(time.Now().Unix()) {
+	} else if !audienceHas(jt.Claim("aud"), testTa2.id()) {
+		t.Fatal(jt.Claim("aud"), testTa2.id())
+	} else if exp, _ := jt.Claim("exp").(float64); exp < float64(time.Now().Unix()) {
 		t.Fatal(exp, time.Now().Unix())
-	} else if iat, _ := jws.Claim("iat").(float64); iat > float64(time.Now().Unix()) {
+	} else if iat, _ := jt.Claim("iat").(float64); iat > float64(time.Now().Unix()) {
 		t.Fatal(iat, time.Now().Unix())
 	}
 }
@@ -1707,9 +1700,9 @@ func TestAuthTimeOfIdToken(t *testing.T) {
 		t.Fatal(err)
 	} else if idTok, _ := res["id_token"].(string); idTok == "" {
 		t.Fatal("no id token")
-	} else if jws, err := jwt.ParseJws(idTok); err != nil {
+	} else if jt, err := jwt.Parse(idTok, map[string]interface{}{idpSys.sigKid: idpSys.verifyKey()}, nil); err != nil {
 		t.Fatal(err)
-	} else if at, _ := jws.Claim("auth_time").(float64); at > float64(time.Now().Unix()) {
+	} else if at, _ := jt.Claim("auth_time").(float64); at > float64(time.Now().Unix()) {
 		t.Fatal(at, time.Now().Unix())
 	}
 }
@@ -1772,9 +1765,9 @@ func TestNonceOfIdToken(t *testing.T) {
 		t.Fatal(err)
 	} else if idTok, _ := res["id_token"].(string); idTok == "" {
 		t.Fatal("no id token")
-	} else if jws, err := jwt.ParseJws(idTok); err != nil {
+	} else if jt, err := jwt.Parse(idTok, map[string]interface{}{idpSys.sigKid: idpSys.verifyKey()}, nil); err != nil {
 		t.Fatal(err)
-	} else if nonc, _ := jws.Claim("nonce").(string); nonc != "nonce nansu" {
+	} else if nonc, _ := jt.Claim("nonce").(string); nonc != "nonce nansu" {
 		t.Fatal(nonc, "nonce nansu")
 	}
 }
@@ -1841,21 +1834,20 @@ func TestIdTokenSign(t *testing.T) {
 	} else if idTok, _ := res["id_token"].(string); idTok == "" {
 		t.Fatal("no id token")
 	}
-	jws, err := jwt.ParseJws(res["id_token"].(string))
+	jt, err := jwt.Parse(res["id_token"].(string), map[string]interface{}{idpSys.sigKid: idpSys.verifyKey()}, nil)
 	if err != nil {
 		t.Fatal(err)
-	} else if alg, _ := jws.Header("alg").(string); alg == "" || alg == "none" {
+	} else if alg, _ := jt.Header("alg").(string); alg == "" || alg == "none" {
 		t.Fatal("none sign algorithm " + alg)
-	} else if err := jws.Verify(map[string]crypto.PublicKey{"": testIdpPubKey}); err != nil {
-		t.Fatal(err)
 	}
-	h, err := jwt.HashFunction(jws.Header("alg").(string))
+	hGen, err := jwt.HashFunction(jt.Header("alg").(string))
 	if err != nil {
 		t.Fatal(err)
 	}
+	h := hGen.New()
 	h.Write([]byte(res["access_token"].(string)))
 	sum := h.Sum(nil)
-	ah, _ := jws.Claim("at_hash").(string)
+	ah, _ := jt.Claim("at_hash").(string)
 	if ah == "" {
 		t.Fatal("no at_hash")
 	} else if buff, err := jwt.Base64UrlDecodeString(ah); err != nil {

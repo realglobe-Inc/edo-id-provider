@@ -371,20 +371,17 @@ func testGetTokenWithoutCheck(idpSys *system, consResp *http.Response, assHeads,
 
 	// クライアント認証用データを準備。
 
-	assJws := jwt.NewJws()
+	assJt := jwt.New()
 	for k, v := range assHeads {
-		assJws.SetHeader(k, v)
+		assJt.SetHeader(k, v)
 	}
 	for k, v := range assClms {
-		assJws.SetClaim(k, v)
+		assJt.SetClaim(k, v)
 	}
 	if _, ok := assClms["code"]; !ok {
-		assJws.SetClaim("code", cod)
+		assJt.SetClaim("code", cod)
 	}
-	if err := assJws.Sign(map[string]crypto.PrivateKey{kid: sigKey}); err != nil {
-		return nil, erro.Wrap(err)
-	}
-	assBuff, err := assJws.Encode()
+	assBuff, err := assJt.Encode(map[string]interface{}{kid: sigKey}, nil)
 	if err != nil {
 		return nil, erro.Wrap(err)
 	}

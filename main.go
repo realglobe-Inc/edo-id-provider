@@ -54,7 +54,7 @@ func main() {
 
 // system を準備する。
 func mainCore(param *parameters) error {
-	key, err := crypto.ReadPrivateKey(param.keyPath)
+	key, err := crypto.ReadPem(param.keyPath)
 	if err != nil {
 		return erro.Wrap(err)
 	}

@@ -35,7 +35,7 @@ type system struct {
 
 	sigAlg string
 	sigKid string
-	sigKey crypto.PrivateKey
+	sigKey interface{}
 }
 
 func (sys *system) newTicket() (string, error) {

@@ -80,8 +80,33 @@ func setupTestIdp(testAccs []*account, testTas []*ta) (idpSys *system, shutCh ch
 		idpSys.taCont.(*memoryTaContainer).add(ta_)
 	}
 	shutCh = make(chan struct{}, 10)
+
 	go serve(idpSys, "tcp", "", port, "http", shutCh)
-	return idpSys, shutCh, nil
+	// 起動待ち。
+	for i := time.Nanosecond; i < time.Second; i *= 2 {
+		req, err := http.NewRequest("GET", idpSys.selfId+okPath, nil)
+		if err != nil {
+			os.RemoveAll(idpSys.uiPath)
+			idpSys.close()
+			shutCh <- struct{}{}
+			return nil, nil, erro.Wrap(err)
+		}
+		req.Header.Set("Connection", "close")
+		resp, err := (&http.Client{}).Do(req)
+		if err != nil {
+			// ちょっと待って再挑戦。
+			time.Sleep(i)
+			continue
+		}
+		// ちゃんとつながったので終わり。
+		resp.Body.Close()
+		return idpSys, shutCh, nil
+	}
+	// 時間切れ。
+	os.RemoveAll(idpSys.uiPath)
+	idpSys.close()
+	shutCh <- struct{}{}
+	return nil, nil, erro.New("time out")
 }
 
 // 起動しただけでパニックを起こさないこと。
@@ -98,9 +123,6 @@ func TestBoot(t *testing.T) {
 	defer idpSys.close()
 	defer os.RemoveAll(idpSys.uiPath)
 	defer func() { shutCh <- struct{}{} }()
-
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
 }
 
 // testTa を基に TA 偽装用テストサーバーを立てる。
@@ -606,9 +628,6 @@ func TestSuccess(t *testing.T) {
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
-
 	cookJar, err := cookiejar.New(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -667,9 +686,6 @@ func TestAbortSession(t *testing.T) {
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
-
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
 
 	cookJar, err := cookiejar.New(nil)
 	if err != nil {

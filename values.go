@@ -150,6 +150,7 @@ const (
 	consPath   = "/auth/consent"
 	tokPath    = "/token"
 	accInfPath = "/userinfo"
+	okPath     = "/ok"
 )
 
 // HTML ファイル名。

@@ -203,6 +203,9 @@ func serve(sys *system, socType, socPath string, socPort int, protType string, s
 		accInfPath: func(w http.ResponseWriter, r *http.Request) error {
 			return accountInfoApi(w, r, sys)
 		},
+		okPath: func(w http.ResponseWriter, r *http.Request) error {
+			return nil
+		},
 	}
 	if routes["/"] == nil {
 		routes["/"] = func(w http.ResponseWriter, r *http.Request) error {

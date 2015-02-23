@@ -41,9 +41,6 @@ func TestIgnoreUnknownParameterInAuthRequest(t *testing.T) {
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
-
 	cookJar, err := cookiejar.New(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -105,9 +102,6 @@ func TestDenyOverlapParameterInAuthRequest(t *testing.T) {
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
-
 	req, err := http.NewRequest("GET", idpSys.selfId+"/auth?"+url.Values{
 		"scope":         {"openid email"},
 		"response_type": {"code"},
@@ -152,9 +146,6 @@ func TestDenyNoScopeInAuthRequest(t *testing.T) {
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
-
 	cookJar, err := cookiejar.New(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -194,9 +185,6 @@ func TestIgnoreUnknownScopes(t *testing.T) {
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
-
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
 
 	cookJar, err := cookiejar.New(nil)
 	if err != nil {
@@ -256,9 +244,6 @@ func TestDenyNoClientIdInAuthRequest(t *testing.T) {
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
-
 	cookJar, err := cookiejar.New(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -312,9 +297,6 @@ func TestDenyNoResponseTypeInAuthRequest(t *testing.T) {
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
-
 	cookJar, err := cookiejar.New(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -356,9 +338,6 @@ func TestDenyUnknownResponseTypeInAuthRequest(t *testing.T) {
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
-
 	cookJar, err := cookiejar.New(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -398,9 +377,6 @@ func TestErrorWhenOwnerDenied(t *testing.T) {
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
-
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
 
 	cookJar, err := cookiejar.New(nil)
 	if err != nil {
@@ -448,9 +424,6 @@ func TestKeepRedirectUriParameter(t *testing.T) {
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
-
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
 
 	cookJar, err := cookiejar.New(nil)
 	if err != nil {
@@ -501,9 +474,6 @@ func TestKeepRedirectUriParameterInError(t *testing.T) {
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
-
 	cookJar, err := cookiejar.New(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -545,9 +515,6 @@ func TestDirectErrorResponseInInvalidRedirectUri(t *testing.T) {
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
-
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
 
 	cookJar, err := cookiejar.New(nil)
 	if err != nil {
@@ -597,9 +564,6 @@ func TestDirectErrorResponseInNoRedirectUri(t *testing.T) {
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
-
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
 
 	cookJar, err := cookiejar.New(nil)
 	if err != nil {
@@ -651,9 +615,6 @@ func TestReturnStateParameter(t *testing.T) {
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
-
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
 
 	cookJar, err := cookiejar.New(nil)
 	if err != nil {
@@ -707,9 +668,6 @@ func TestReturnStateAtError(t *testing.T) {
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
-
 	cookJar, err := cookiejar.New(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -752,9 +710,6 @@ func TestPostAuthRequest(t *testing.T) {
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
-
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
 
 	cookJar, err := cookiejar.New(nil)
 	if err != nil {
@@ -804,9 +759,6 @@ func TestForceLogin(t *testing.T) {
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
-
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
 
 	cookJar, err := cookiejar.New(nil)
 	if err != nil {
@@ -877,9 +829,6 @@ func TestForceLoginError(t *testing.T) {
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
-
 	cookJar, err := cookiejar.New(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -925,9 +874,6 @@ func TestForceConsent(t *testing.T) {
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
-
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
 
 	cookJar, err := cookiejar.New(nil)
 	if err != nil {
@@ -999,9 +945,6 @@ func TestForceConsentError(t *testing.T) {
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
-
 	cookJar, err := cookiejar.New(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -1070,9 +1013,6 @@ func TestForceSelect(t *testing.T) {
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
-
 	cookJar, err := cookiejar.New(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -1119,9 +1059,6 @@ func TestForceSelectError(t *testing.T) {
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
-
 	cookJar, err := cookiejar.New(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -1167,9 +1104,6 @@ func TestLoginTimeout(t *testing.T) {
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
-
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
 
 	cookJar, err := cookiejar.New(nil)
 	if err != nil {
@@ -1243,9 +1177,6 @@ func TestUiParameter(t *testing.T) {
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
-
 	cookJar, err := cookiejar.New(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -1297,9 +1228,6 @@ func TestClaimsParameter(t *testing.T) {
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
-
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
 
 	cookJar, err := cookiejar.New(nil)
 	if err != nil {
@@ -1360,9 +1288,6 @@ func TestDenyDeniedEssentialClaim(t *testing.T) {
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
-
 	cookJar, err := cookiejar.New(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -1415,9 +1340,6 @@ func TestDenyInvalidSubClaim(t *testing.T) {
 	defer func() { shutCh <- struct{}{} }()
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
-
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
 
 	cookJar, err := cookiejar.New(nil)
 	if err != nil {

@@ -41,9 +41,6 @@ func TestAccountInfo(t *testing.T) {
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
 
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
-
 	cookJar, err := cookiejar.New(nil)
 	if err != nil {
 		t.Fatal(err)

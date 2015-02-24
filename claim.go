@@ -8,69 +8,65 @@ import (
 
 // claims パラメータや request オブジェクトの中身の claims 用。
 
-// 言語タグはマップのキーに入らない。
-// でも、JSON にしたときは claims パラメータのときと同じになる。
-type claimRequest struct {
-	accInf map[string]*claimUnit
-	idTok  map[string]*claimUnit
-}
+// クレーム名のマップの下に言語タグのマップを持たせる。
+// でも、JSON にしたときは claims パラメータのときと同じ、クレーム名#言語タグ のマップになる。
+// *claimUnit は非 nil になるようにする。
+type claimRequest map[string]map[string]*claimUnit
 
 type claimUnit struct {
 	Ess  bool          `json:"essential,omitempty"`
 	Val  interface{}   `json:"value,omitempty"`
 	Vals []interface{} `json:"values,omitempty"`
-
-	loc string
 }
 
-type claimRequestIntermediate struct {
-	AccInf map[string]*claimUnit `json:"userinfo,omitempty"`
-	IdTok  map[string]*claimUnit `json:"id_token,omitempty"`
+func (this *claimUnit) isNull() bool {
+	return !this.Ess && this.Val == nil && len(this.Vals) == 0
 }
 
-func (this *claimRequest) toIntermediate() *claimRequestIntermediate {
-	accInf := map[string]*claimUnit{}
-	idTok := map[string]*claimUnit{}
-	for clmName, clm := range this.accInf {
-		if clm.loc != "" {
-			clmName += "#" + clm.loc
+// *claimUnit は nil を許す。
+type claimRequestIntermediate map[string]*claimUnit
+
+func (this claimRequest) toIntermediate() claimRequestIntermediate {
+	buff := map[string]*claimUnit{}
+	for clmName, clms := range this {
+		for loc, clm := range clms {
+			name := clmName
+			if loc != "" {
+				name += "#" + loc
+			}
+			if clm.isNull() {
+				clm = nil
+			}
+			buff[name] = clm
 		}
-		accInf[clmName] = clm
 	}
-	for clmName, clm := range this.idTok {
-		if clm.loc != "" {
-			clmName += "#" + clm.loc
-		}
-		idTok[clmName] = clm
-	}
-	return &claimRequestIntermediate{accInf, idTok}
+	return claimRequestIntermediate(buff)
 }
 
-func (this *claimRequest) fromIntermediate(clms *claimRequestIntermediate) {
-	accInf := map[string]*claimUnit{}
-	idTok := map[string]*claimUnit{}
-	for clmName, clm := range clms.AccInf {
+func (this *claimRequest) fromIntermediate(clms claimRequestIntermediate) {
+	buff := claimRequest{}
+	for clmName, clm := range clms {
+		if clm == nil {
+			clm = &claimUnit{}
+		}
+		var loc string
 		pos := strings.Index(clmName, "#")
 		if pos > 0 {
-			clm.loc = clmName[pos+1:]
+			loc = clmName[pos+1:]
 			clmName = clmName[:pos]
 		}
-		accInf[clmName] = clm
-	}
-	for clmName, clm := range clms.IdTok {
-		pos := strings.Index(clmName, "#")
-		if pos > 0 {
-			clm.loc = clmName[pos+1:]
-			clmName = clmName[:pos]
+		m := buff[clmName]
+		if m == nil {
+			m = map[string]*claimUnit{}
+			buff[clmName] = m
 		}
-		idTok[clmName] = clm
+		m[loc] = clm
 	}
-	this.accInf = accInf
-	this.idTok = idTok
+	*this = buff
 	return
 }
 
-func (this *claimRequest) MarshalJSON() ([]byte, error) {
+func (this claimRequest) MarshalJSON() ([]byte, error) {
 	return json.Marshal(this.toIntermediate())
 }
 
@@ -79,11 +75,11 @@ func (this *claimRequest) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &clms); err != nil {
 		return err
 	}
-	this.fromIntermediate(&clms)
+	this.fromIntermediate(clms)
 	return nil
 }
 
-func (this *claimRequest) GetBSON() (interface{}, error) {
+func (this claimRequest) GetBSON() (interface{}, error) {
 	return this.toIntermediate(), nil
 }
 
@@ -92,6 +88,6 @@ func (this *claimRequest) SetBSON(raw bson.Raw) error {
 	if err := raw.Unmarshal(&clms); err != nil {
 		return err
 	}
-	this.fromIntermediate(&clms)
+	this.fromIntermediate(clms)
 	return nil
 }

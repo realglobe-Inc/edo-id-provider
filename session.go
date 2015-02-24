@@ -320,11 +320,13 @@ func (this *session) unconsentedEssentials() (scops, clms map[string]bool) {
 	uncons := map[string]bool{}
 
 	accInfClms, idTokClms := this.Req.claims()
-	for _, clms := range []map[string]*claimUnit{accInfClms, idTokClms} {
-		for clmName, req := range clms {
-			if req != nil && req.Ess {
-				if !this.ConsClms[clmName] {
-					uncons[clmName] = true
+	for _, clms := range []claimRequest{accInfClms, idTokClms} {
+		for clmName, reqs := range clms {
+			for _, req := range reqs {
+				if req != nil && req.Ess {
+					if !this.ConsClms[clmName] {
+						uncons[clmName] = true
+					}
 				}
 			}
 		}

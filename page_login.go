@@ -187,18 +187,17 @@ func afterLogin(w http.ResponseWriter, r *http.Request, sys *system, sess *sessi
 		return redirectLoginUi(w, r, sys, sess, "accout "+sess.currentAccount()+" was not found")
 	}
 	accInfClms, idTokClms := sess.request().claims()
-	for _, clms := range []map[string]*claimUnit{accInfClms, idTokClms} {
-		for clmName, req := range clms {
-			if req == nil {
-				continue
+	for _, clms := range []claimRequest{accInfClms, idTokClms} {
+		for clmName, reqs := range clms {
+			for _, req := range reqs {
+				atr := acc.attribute(clmName)
+				if req.Ess && (atr == nil || atr == "") {
+					return redirectError(w, r, sys, sess, sess.request(), newIdpError(errAccDeny, "essential claim "+clmName+" is not exist", 0, nil))
+				} else if !(req.Val == nil || req.Val == "") && !reflect.DeepEqual(atr, req.Val) {
+					return redirectError(w, r, sys, sess, sess.request(), newIdpError(errAccDeny, fmt.Sprint("claim "+clmName+" is not ", req.Val), 0, nil))
+				}
+				// TODO values クレーム指定の検査。
 			}
-			atr := acc.attribute(clmName)
-			if req.Ess && (atr == nil || atr == "") {
-				return redirectError(w, r, sys, sess, sess.request(), newIdpError(errAccDeny, "essential claim "+clmName+" is not exist", 0, nil))
-			} else if (req.Val != nil || req.Val != "") && !reflect.DeepEqual(atr, req.Val) {
-				return redirectError(w, r, sys, sess, sess.request(), newIdpError(errAccDeny, fmt.Sprint("claim "+clmName+" is not ", req.Val), 0, nil))
-			}
-			// TODO values クレーム指定の検査。
 		}
 	}
 

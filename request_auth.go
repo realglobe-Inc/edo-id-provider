@@ -25,12 +25,17 @@ type authRequest struct {
 	Prmpts  strset.StringSet `json:"prompt,omitempty"`
 	Scops   strset.StringSet `json:"scope,omitempty"`
 	rawClms string
-	Clms    claimRequest `json:"claims,omitempty"`
-	Disp    string       `json:"display,omitempty"`
-	UiLocs  []string     `json:"ui_localse,omitempty"`
+	Clms    claimRequestPair `json:"claims,omitempty"`
+	Disp    string           `json:"display,omitempty"`
+	UiLocs  []string         `json:"ui_localse,omitempty"`
 
 	rawMaxAge_ string
 	MaxAge     int `json:"max_age,omitempty"`
+}
+
+type claimRequestPair struct {
+	AccInf claimRequest `json:"userinfo,omitempty"`
+	IdTok  claimRequest `json:"id_token,omitempty"`
 }
 
 // エラーは idpError。
@@ -123,7 +128,7 @@ func (this *authRequest) rawClaims() string {
 }
 
 func (this *authRequest) parseClaims() error {
-	if this.Clms.accInf != nil || this.Clms.idTok != nil || this.rawClms == "" {
+	if this.Clms.AccInf != nil || this.Clms.IdTok != nil || this.rawClms == "" {
 		return nil
 	}
 
@@ -133,17 +138,17 @@ func (this *authRequest) parseClaims() error {
 	return nil
 }
 
-func (this *authRequest) claims() (accInfClms, idTokClms map[string]*claimUnit) {
-	if this.Clms.accInf != nil || this.Clms.idTok != nil {
+func (this *authRequest) claims() (accInfClms, idTokClms claimRequest) {
+	if this.Clms.AccInf != nil || this.Clms.IdTok != nil {
 		this.parseClaims()
 	}
-	return this.Clms.accInf, this.Clms.idTok
+	return this.Clms.AccInf, this.Clms.IdTok
 }
 
 // 要求されているクレームを名前だけ返す。
 func (this *authRequest) claimNames() map[string]bool {
 	m := map[string]bool{}
-	for _, clms := range []map[string]*claimUnit{this.Clms.accInf, this.Clms.idTok} {
+	for _, clms := range []claimRequest{this.Clms.AccInf, this.Clms.IdTok} {
 		for clmName := range clms {
 			m[clmName] = true
 		}

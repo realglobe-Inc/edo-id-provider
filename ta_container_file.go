@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/realglobe-Inc/edo/driver"
+	"github.com/realglobe-Inc/edo-toolkit/driver"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"net/url"
 	"strings"

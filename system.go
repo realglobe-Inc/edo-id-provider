@@ -4,7 +4,7 @@ import (
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/rsa"
-	"github.com/realglobe-Inc/edo/util/secrand"
+	"github.com/realglobe-Inc/edo-toolkit/util/secrand"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"time"
 )

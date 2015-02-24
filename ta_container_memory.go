@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/realglobe-Inc/edo/driver"
+	"github.com/realglobe-Inc/edo-toolkit/driver"
 	"time"
 )
 

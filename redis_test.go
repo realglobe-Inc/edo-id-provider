@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/garyburd/redigo/redis"
-	"github.com/realglobe-Inc/edo/driver"
+	"github.com/realglobe-Inc/edo-toolkit/driver"
 	"time"
 )
 

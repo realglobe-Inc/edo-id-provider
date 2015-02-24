@@ -2,8 +2,8 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/realglobe-Inc/edo/util/jwt"
-	"github.com/realglobe-Inc/edo/util/strset"
+	"github.com/realglobe-Inc/edo-toolkit/util/jwt"
+	"github.com/realglobe-Inc/edo-toolkit/util/strset"
 	"gopkg.in/mgo.v2/bson"
 	"time"
 )

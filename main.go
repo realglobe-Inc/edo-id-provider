@@ -2,10 +2,10 @@ package main
 
 import (
 	"github.com/garyburd/redigo/redis"
-	"github.com/realglobe-Inc/edo/driver"
-	"github.com/realglobe-Inc/edo/util/crypto"
-	logutil "github.com/realglobe-Inc/edo/util/log"
-	"github.com/realglobe-Inc/edo/util/server"
+	"github.com/realglobe-Inc/edo-toolkit/driver"
+	"github.com/realglobe-Inc/edo-toolkit/util/crypto"
+	logutil "github.com/realglobe-Inc/edo-toolkit/util/log"
+	"github.com/realglobe-Inc/edo-toolkit/util/server"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"github.com/realglobe-Inc/go-lib/rglog"
 	"net/http"

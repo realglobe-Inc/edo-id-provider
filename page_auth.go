@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/realglobe-Inc/edo/util/jwt"
+	"github.com/realglobe-Inc/edo-toolkit/util/jwt"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"net/http"
 	"time"

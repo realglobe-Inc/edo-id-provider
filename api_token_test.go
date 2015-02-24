@@ -1280,6 +1280,9 @@ func TestDenyExpiredCode(t *testing.T) {
 		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
 		"client_assertion":      "ore dayo ore ore",
 	}, kid, sigKey)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if resp.StatusCode != http.StatusBadRequest {
 		server.LogResponse(level.ERR, resp, true)

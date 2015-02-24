@@ -1213,10 +1213,10 @@ func TestUiParameter(t *testing.T) {
 
 // claims パラメータを処理できるか。
 func TestClaimsParameter(t *testing.T) {
-	////////////////////////////////
-	logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
-	////////////////////////////////
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
 
 	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
 	if err != nil {

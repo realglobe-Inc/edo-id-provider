@@ -1360,7 +1360,6 @@ func TestDenyInvalidSubClaim(t *testing.T) {
 		"password": testAcc.password(),
 	}, map[string]string{
 		"consented_scope": "openid",
-		"denied_claim":    "email",
 	})
 	if err != nil {
 		t.Fatal(err)

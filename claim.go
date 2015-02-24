@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/realglobe-Inc/go-lib/erro"
 	"gopkg.in/mgo.v2/bson"
 	"strings"
 )
@@ -90,4 +91,72 @@ func (this *claimRequest) SetBSON(raw bson.Raw) error {
 	}
 	this.fromIntermediate(clms)
 	return nil
+}
+
+// json.Unmarshal したものから読み取る。
+func claimRequestFromMap(raw interface{}) (claimRequest, error) {
+	mClms, ok := raw.(map[string]interface{})
+	if !ok {
+		return nil, erro.New("not map")
+	}
+
+	clms := claimRequest{}
+	for clmName, rawClm := range mClms {
+		clm, err := claimUnitFromMap(rawClm)
+		if err != nil {
+			return nil, erro.Wrap(err)
+		}
+		if clm == nil {
+			clm = &claimUnit{}
+		}
+		var loc string
+		pos := strings.Index(clmName, "#")
+		if pos > 0 {
+			loc = clmName[pos+1:]
+			clmName = clmName[:pos]
+		}
+		m := clms[clmName]
+		if m == nil {
+			m = map[string]*claimUnit{}
+			clms[clmName] = m
+		}
+		m[loc] = clm
+	}
+
+	return clms, nil
+}
+
+// json.Unmarshal したものから読み取る。
+func claimUnitFromMap(raw interface{}) (*claimUnit, error) {
+	clm := &claimUnit{}
+
+	if raw == nil {
+		// null 指定。
+		return clm, nil
+	}
+
+	m, ok := raw.(map[string]interface{})
+	if !ok {
+		return nil, erro.New("not map")
+	}
+
+	if raw := m["essential"]; raw != nil {
+		b, ok := raw.(bool)
+		if !ok {
+			return nil, erro.New("essential is not boolean")
+		}
+		clm.Ess = b
+	}
+	if val := m["value"]; val != nil {
+		clm.Val = val
+	}
+	if raw := m["values"]; raw != nil {
+		vals, ok := raw.([]interface{})
+		if !ok {
+			return nil, erro.New("values is not array")
+		}
+		clm.Vals = vals
+	}
+
+	return clm, nil
 }

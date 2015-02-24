@@ -2,11 +2,14 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/realglobe-Inc/edo-toolkit/util/jwt"
 	"github.com/realglobe-Inc/edo-toolkit/util/strset"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strconv"
+	"strings"
 )
 
 type authRequest struct {
@@ -31,6 +34,9 @@ type authRequest struct {
 
 	rawMaxAge_ string
 	MaxAge     int `json:"max_age,omitempty"`
+
+	reqParsed bool
+	rawReq    string
 }
 
 type claimRequestPair struct {
@@ -40,7 +46,7 @@ type claimRequestPair struct {
 
 // エラーは idpError。
 func newAuthRequest(r *http.Request) (*authRequest, error) {
-	// TODO claims, request, request_uri パラメータのサポート。
+	// TODO request_uri パラメータのサポート。
 
 	return &authRequest{
 		Ta:         r.FormValue(formTaId),
@@ -54,6 +60,7 @@ func newAuthRequest(r *http.Request) (*authRequest, error) {
 		Disp:       r.FormValue(formDisp),
 		UiLocs:     formValues(r, formUiLocs),
 		rawMaxAge_: r.FormValue(formMaxAge),
+		rawReq:     r.FormValue(formReq),
 	}, nil
 }
 
@@ -216,4 +223,161 @@ func (this *authRequest) parse() error {
 		return erro.Wrap(err)
 	}
 	return nil
+}
+
+// request パラメータを返す。
+func (this *authRequest) rawRequest() string {
+	return this.rawReq
+}
+
+func (this *authRequest) parseRequest(veriKeys map[string]interface{}, decKeys map[string]interface{}) error {
+	if this.reqParsed || this.rawReq == "" {
+		return nil
+	}
+
+	jt, err := jwt.Parse(this.rawReq, veriKeys, decKeys)
+	if err != nil {
+		return erro.Wrap(err)
+	}
+
+	authReq, err := authRequestFromJwt(jt)
+	if err != nil {
+		return erro.Wrap(err)
+	}
+
+	if authReq.Ta != "" && authReq.Ta != this.Ta {
+		return erro.New(formTaId + " differs")
+	} else if authReq.RespType != nil && !reflect.DeepEqual(authReq.RespType, this.RespType) {
+		return erro.New(formRespType + " differs")
+	}
+
+	if authReq.RawRediUri != "" {
+		this.RawRediUri = authReq.RawRediUri
+	}
+	if authReq.Stat != "" {
+		this.Stat = authReq.Stat
+	}
+	if authReq.Nonc != "" {
+		this.Nonc = authReq.Nonc
+	}
+	if authReq.Prmpts != nil {
+		this.Prmpts = authReq.Prmpts
+	}
+	if authReq.Scops != nil {
+		this.Scops = authReq.Scops
+	}
+	if authReq.Clms.AccInf != nil {
+		this.Clms.AccInf = authReq.Clms.AccInf
+	}
+	if authReq.Clms.IdTok != nil {
+		this.Clms.IdTok = authReq.Clms.IdTok
+	}
+	if authReq.Disp != "" {
+		this.Disp = authReq.Disp
+	}
+	if authReq.UiLocs != nil {
+		this.UiLocs = authReq.UiLocs
+	}
+	if authReq.rawMaxAge_ != "" {
+		this.rawMaxAge_ = authReq.rawMaxAge_
+	}
+
+	this.reqParsed = true
+	return nil
+}
+
+func authRequestFromJwt(jt *jwt.Jwt) (authReq *authRequest, err error) {
+	for ; jt.Nesting(); jt = jt.Nested() {
+	}
+
+	authReq = &authRequest{}
+
+	if raw := jt.Claim(formTaId); raw != nil {
+		str, ok := raw.(string)
+		if !ok {
+			return nil, erro.New(formTaId + " is not string")
+		}
+		authReq.Ta = str
+	}
+	if raw := jt.Claim(formRediUri); raw != nil {
+		str, ok := raw.(string)
+		if !ok {
+			return nil, erro.New(formRediUri + " is not string")
+		}
+		authReq.RawRediUri = str
+	}
+	if raw := jt.Claim(formRespType); raw != nil {
+		str, ok := raw.(string)
+		if !ok {
+			return nil, erro.New(formRespType + " is not string")
+		}
+		authReq.RespType = strset.FromSlice(strings.Split(str, " "))
+	}
+	if raw := jt.Claim(formStat); raw != nil {
+		str, ok := raw.(string)
+		if !ok {
+			return nil, erro.New(formStat + " is not string")
+		}
+		authReq.Stat = str
+	}
+	if raw := jt.Claim(formNonc); raw != nil {
+		str, ok := raw.(string)
+		if !ok {
+			return nil, erro.New(formNonc + " is not string")
+		}
+		authReq.Nonc = str
+	}
+	if raw := jt.Claim(formPrmpt); raw != nil {
+		str, ok := raw.(string)
+		if !ok {
+			return nil, erro.New(formPrmpt + " is not string")
+		}
+		authReq.Prmpts = strset.FromSlice(strings.Split(str, " "))
+	}
+	if raw := jt.Claim(formScop); raw != nil {
+		str, ok := raw.(string)
+		if !ok {
+			return nil, erro.New(formScop + " is not string")
+		}
+		authReq.Scops = strset.FromSlice(strings.Split(str, " "))
+	}
+	if raw := jt.Claim(formClms); raw != nil {
+		m, ok := raw.(map[string]interface{})
+		if !ok {
+			log.Err("AHO ", raw)
+			return nil, erro.New(formClms + " is not map")
+		}
+		if mAccInf := m["userinfo"]; mAccInf != nil {
+			if authReq.Clms.AccInf, err = claimRequestFromMap(mAccInf); err != nil {
+				return nil, erro.Wrap(err)
+			}
+		}
+		if mIdTok := m["id_token"]; mIdTok != nil {
+			if authReq.Clms.IdTok, err = claimRequestFromMap(mIdTok); err != nil {
+				return nil, erro.Wrap(err)
+			}
+		}
+	}
+	if raw := jt.Claim(formDisp); raw != nil {
+		str, ok := raw.(string)
+		if !ok {
+			return nil, erro.New(formDisp + " is not string")
+		}
+		authReq.Disp = str
+	}
+	if raw := jt.Claim(formUiLocs); raw != nil {
+		str, ok := raw.(string)
+		if !ok {
+			return nil, erro.New(formUiLocs + " is not string")
+		}
+		authReq.UiLocs = strings.Split(str, " ")
+	}
+	if raw := jt.Claim(formMaxAge); raw != nil {
+		val, ok := raw.(float64)
+		if !ok {
+			return nil, erro.New(formMaxAge + " is not number")
+		}
+		authReq.MaxAge = int(val)
+	}
+	return authReq, nil
 }

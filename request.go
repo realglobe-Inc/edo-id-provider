@@ -34,7 +34,7 @@ func (this *browserRequest) session() string {
 func formValueSet(r *http.Request, key string) map[string]bool {
 	s := r.FormValue(key)
 	if s == "" {
-		return map[string]bool{}
+		return nil
 	}
 	return strset.FromSlice(strings.Split(s, " "))
 }
@@ -59,7 +59,7 @@ func valueSetToForm(m map[string]bool) string {
 func formValues(r *http.Request, key string) []string {
 	s := r.FormValue(key)
 	if s == "" {
-		return []string{}
+		return nil
 	}
 	return strings.Split(s, " ")
 }

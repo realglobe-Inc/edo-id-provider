@@ -99,6 +99,9 @@ func (this *authRequest) redirectUri() *url.URL {
 
 // 結果の形式を返す。
 func (this *authRequest) responseType() map[string]bool {
+	if this.RespType == nil {
+		this.RespType = strset.New(nil)
+	}
 	return this.RespType
 }
 
@@ -114,11 +117,17 @@ func (this *authRequest) nonce() string {
 
 // 要求されている prompt を返す。
 func (this *authRequest) prompts() map[string]bool {
+	if this.Prmpts == nil {
+		this.Prmpts = strset.New(nil)
+	}
 	return this.Prmpts
 }
 
 // 要求されている scope を返す。
 func (this *authRequest) scopes() map[string]bool {
+	if this.Scops == nil {
+		this.Scops = strset.New(nil)
+	}
 	return this.Scops
 }
 
@@ -134,6 +143,12 @@ func (this *authRequest) parseClaims() error {
 
 	if err := json.Unmarshal([]byte(this.rawClms), &this.Clms); err != nil {
 		return erro.Wrap(err)
+	}
+	if this.Clms.AccInf == nil {
+		this.Clms.AccInf = claimRequest{}
+	}
+	if this.Clms.IdTok == nil {
+		this.Clms.IdTok = claimRequest{}
 	}
 	return nil
 }

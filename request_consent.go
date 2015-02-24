@@ -32,6 +32,18 @@ func (this *consentRequest) ticket() string {
 }
 
 func (this *consentRequest) consentInfo() (scops, clms, denyScops, denyClms map[string]bool) {
+	if this.scops == nil {
+		this.scops = map[string]bool{}
+	}
+	if this.clms == nil {
+		this.clms = map[string]bool{}
+	}
+	if this.denyScops == nil {
+		this.denyScops = map[string]bool{}
+	}
+	if this.denyClms == nil {
+		this.denyClms = map[string]bool{}
+	}
 	return this.scops, this.clms, this.denyScops, this.denyClms
 }
 

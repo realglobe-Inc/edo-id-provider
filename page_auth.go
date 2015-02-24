@@ -117,6 +117,12 @@ func authPage(w http.ResponseWriter, r *http.Request, sys *system) error {
 	log.Debug("TA " + t.id() + " is exist")
 	req.setTaName(t.name())
 
+	if req.rawRequest() != "" {
+		if err := req.parseRequest(t.keys(), map[string]interface{}{sys.sigKid: sys.sigKey}); err != nil {
+			return newIdpError(errInvReq, erro.Unwrap(err).Error(), http.StatusBadRequest, erro.Wrap(err))
+		}
+	}
+
 	if req.rawRedirectUri() == "" {
 		return newIdpError(errInvReq, "no "+formRediUri, http.StatusBadRequest, nil)
 	} else if !t.redirectUris()[req.rawRedirectUri()] {

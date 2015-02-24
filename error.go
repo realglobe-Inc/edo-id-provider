@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/realglobe-Inc/go-lib-rg/erro"
+	"github.com/realglobe-Inc/go-lib/erro"
 	"net/http"
 )
 

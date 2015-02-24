@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"github.com/realglobe-Inc/edo/util/jwt"
 	"github.com/realglobe-Inc/edo/util/server"
-	"github.com/realglobe-Inc/go-lib-rg/erro"
+	"github.com/realglobe-Inc/go-lib/erro"
 	"net/http"
 	"strconv"
 	"time"

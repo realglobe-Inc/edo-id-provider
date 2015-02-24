@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/realglobe-Inc/edo/driver"
-	"github.com/realglobe-Inc/go-lib-rg/erro"
+	"github.com/realglobe-Inc/go-lib/erro"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"strconv"

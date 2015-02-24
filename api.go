@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	jsonutil "github.com/realglobe-Inc/edo/util/json"
 	"github.com/realglobe-Inc/edo/util/server"
-	"github.com/realglobe-Inc/go-lib-rg/erro"
-	"github.com/realglobe-Inc/go-lib-rg/rglog/level"
+	"github.com/realglobe-Inc/go-lib/erro"
+	"github.com/realglobe-Inc/go-lib/rglog/level"
 	"net/http"
 	"strconv"
 )

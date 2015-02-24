@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/base64"
 	"github.com/realglobe-Inc/edo/util/secrand"
-	"github.com/realglobe-Inc/go-lib-rg/erro"
+	"github.com/realglobe-Inc/go-lib/erro"
 	"math/big"
 	"math/rand"
 	"sync/atomic"

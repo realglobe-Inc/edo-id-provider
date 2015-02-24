@@ -4,6 +4,7 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/realglobe-Inc/edo-toolkit/util/jwt"
 	logutil "github.com/realglobe-Inc/edo-toolkit/util/log"
 	"github.com/realglobe-Inc/edo-toolkit/util/server"
 	"github.com/realglobe-Inc/edo-toolkit/util/strset"
@@ -1372,5 +1373,73 @@ func TestDenyInvalidSubClaim(t *testing.T) {
 	} else if q := resp.Request.URL.Query(); q.Get("error") != errAccDeny {
 		server.LogRequest(level.ERR, resp.Request, true)
 		t.Fatal(q.Get("error"), errAccDeny)
+	}
+}
+
+// request パラメータを受け取れるか。
+func TestRequestParam(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer idpSys.close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	cookJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Jar: cookJar}
+
+	jt := jwt.New()
+	jt.SetHeader("alg", "none")
+	jt.SetClaim("scope", "openid")
+	jt.SetClaim("response_type", "code")
+	jt.SetClaim("redirect_uri", rediUri)
+	jt.SetClaim("claims", claimRequestPair{AccInf: claimRequest{"email": {"": &claimUnit{}}}})
+	buff, err := jt.Encode(nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if res, err := testFromRequestAuthToGetAccountInfo(idpSys, cli, map[string]string{
+		"scope":         "openid email",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+		"request":       string(buff),
+	}, map[string]string{
+		"username": testAcc.name(),
+	}, map[string]string{
+		"username": testAcc.name(),
+		"password": testAcc.password(),
+	}, map[string]string{
+		"consented_scope": "openid email",
+	}, map[string]interface{}{
+		"alg": "RS256",
+		"kid": kid,
+	}, map[string]interface{}{
+		"iss": testTa2.id(),
+		"sub": testTa2.id(),
+		"aud": idpSys.selfId + "/token",
+		"jti": strconv.FormatInt(time.Now().UnixNano(), 16),
+		"exp": time.Now().Add(idpSys.idTokExpiDur).Unix(),
+	}, map[string]string{
+		"grant_type":            "authorization_code",
+		"redirect_uri":          rediUri,
+		"client_id":             testTa2.id(),
+		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+	}, kid, sigKey, nil); err != nil {
+		t.Fatal(err)
+	} else if em, _ := res["email"].(string); em != testAcc.attribute("email") {
+		t.Fatal(em, testAcc.attribute("email"))
 	}
 }

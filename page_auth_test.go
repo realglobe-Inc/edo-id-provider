@@ -31,7 +31,7 @@ func TestIgnoreUnknownParameterInAuthRequest(t *testing.T) {
 	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +92,7 @@ func TestDenyOverlapParameterInAuthRequest(t *testing.T) {
 	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -136,7 +136,7 @@ func TestDenyNoScopeInAuthRequest(t *testing.T) {
 	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -176,7 +176,7 @@ func TestIgnoreUnknownScopes(t *testing.T) {
 	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -234,7 +234,7 @@ func TestDenyNoClientIdInAuthRequest(t *testing.T) {
 	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	_, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	_, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -287,7 +287,7 @@ func TestDenyNoResponseTypeInAuthRequest(t *testing.T) {
 	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -328,7 +328,7 @@ func TestDenyUnknownResponseTypeInAuthRequest(t *testing.T) {
 	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -368,7 +368,7 @@ func TestErrorWhenOwnerDenied(t *testing.T) {
 	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp([]string{"/redirect_endpoint?param_name=param_value"}, []*account{testAcc}, nil)
+	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []string{"/redirect_endpoint?param_name=param_value"}, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -415,7 +415,7 @@ func TestKeepRedirectUriParameter(t *testing.T) {
 	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp([]string{"/redirect_endpoint?param_name=param_value"}, []*account{testAcc}, nil)
+	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []string{"/redirect_endpoint?param_name=param_value"}, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -464,7 +464,7 @@ func TestKeepRedirectUriParameterInError(t *testing.T) {
 	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp([]string{"/redirect_endpoint?param_name=param_value"}, []*account{testAcc}, nil)
+	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []string{"/redirect_endpoint?param_name=param_value"}, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -506,7 +506,7 @@ func TestDirectErrorResponseInInvalidRedirectUri(t *testing.T) {
 	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -555,7 +555,7 @@ func TestDirectErrorResponseInNoRedirectUri(t *testing.T) {
 	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	testTa2, _, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	testTa2, _, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -606,7 +606,7 @@ func TestReturnStateParameter(t *testing.T) {
 	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -658,7 +658,7 @@ func TestReturnStateAtError(t *testing.T) {
 	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -701,7 +701,7 @@ func TestPostAuthRequest(t *testing.T) {
 	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -749,7 +749,7 @@ func TestForceLogin(t *testing.T) {
 	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -819,7 +819,7 @@ func TestForceLoginError(t *testing.T) {
 	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -864,7 +864,7 @@ func TestForceConsent(t *testing.T) {
 	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -934,7 +934,7 @@ func TestForceConsentError(t *testing.T) {
 	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1003,7 +1003,7 @@ func TestForceSelect(t *testing.T) {
 	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1049,7 +1049,7 @@ func TestForceSelectError(t *testing.T) {
 	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1094,7 +1094,7 @@ func TestLoginTimeout(t *testing.T) {
 	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1167,7 +1167,7 @@ func TestUiParameter(t *testing.T) {
 	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1219,7 +1219,7 @@ func TestClaimsParameter(t *testing.T) {
 	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1278,7 +1278,7 @@ func TestDenyDeniedEssentialClaim(t *testing.T) {
 	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1331,7 +1331,7 @@ func TestDenyInvalidSubClaim(t *testing.T) {
 	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1383,7 +1383,7 @@ func TestRequestParam(t *testing.T) {
 	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

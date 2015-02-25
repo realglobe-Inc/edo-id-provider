@@ -25,7 +25,7 @@ func init() {
 	logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 }
 
-func newTestSystem(selfId string) *system {
+func newTestSystem() *system {
 	uiPath, err := ioutil.TempDir("", testLabel)
 	if err != nil {
 		panic(err)
@@ -43,7 +43,7 @@ func newTestSystem(selfId string) *system {
 		panic(err)
 	}
 	return &system{
-		selfId,
+		"",
 		false,
 		testIdLen,
 		testIdLen,
@@ -67,12 +67,15 @@ func newTestSystem(selfId string) *system {
 
 // edo-id-provider を立てる。
 // 使い終わったら shutCh で終了させ、idpSys.uiPath を消すこと
-func setupTestIdp(testAccs []*account, testTas []*ta) (idpSys *system, shutCh chan struct{}, err error) {
+func setupTestIdp(idpSys *system, testAccs []*account, testTas []*ta) (idpSys_ *system, shutCh chan struct{}, err error) {
 	port, err := test.FreePort()
 	if err != nil {
 		return nil, nil, erro.Wrap(err)
 	}
-	idpSys = newTestSystem("http://localhost:" + strconv.Itoa(port))
+	if idpSys == nil {
+		idpSys = newTestSystem()
+	}
+	idpSys.selfId = "http://localhost:" + strconv.Itoa(port)
 	for _, acc := range testAccs {
 		idpSys.accCont.(*memoryAccountContainer).add(acc)
 	}
@@ -116,7 +119,7 @@ func TestBoot(t *testing.T) {
 	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	idpSys, shutCh, err := setupTestIdp(nil, nil)
+	idpSys, shutCh, err := setupTestIdp(nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -148,9 +151,9 @@ func setupTestTa(rediUriPaths []string) (ta_ *ta, rediUri, taKid string, taPriKe
 }
 
 // TA 偽装サーバーと edo-id-provider を立てる。
-func setupTestTaAndIdp(rediUriPaths []string, testAccs []*account, testTas []*ta) (ta_ *ta, rediUri,
+func setupTestTaAndIdp(idpSys *system, rediUriPaths []string, testAccs []*account, testTas []*ta) (ta_ *ta, rediUri,
 	taKid string, taPriKey crypto.PrivateKey, taServ *test.HttpServer,
-	idpSys *system, shutCh chan struct{}, err error) {
+	idpSys_ *system, shutCh chan struct{}, err error) {
 
 	// TA 偽装サーバー。
 	ta_, rediUri, taKid, taPriKey, taServ, err = setupTestTa(rediUriPaths)
@@ -164,8 +167,8 @@ func setupTestTaAndIdp(rediUriPaths []string, testAccs []*account, testTas []*ta
 	}()
 
 	// edo-id-provider を用意。
-	idpSys, shutCh, err = setupTestIdp([]*account{testAcc}, append([]*ta{ta_}, testTas...))
-	return
+	idpSys, shutCh, err = setupTestIdp(idpSys, []*account{testAcc}, append([]*ta{ta_}, testTas...))
+	return ta_, rediUri, taKid, taPriKey, taServ, idpSys, shutCh, nil
 }
 
 // 認証リクエストを出し結果を無検査で返す。
@@ -617,7 +620,7 @@ func TestSuccess(t *testing.T) {
 	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -675,7 +678,7 @@ func TestAbortSession(t *testing.T) {
 	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []*account{testAcc}, nil)
+	testTa2, rediUri, _, _, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

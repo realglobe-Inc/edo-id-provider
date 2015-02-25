@@ -1135,9 +1135,6 @@ func TestLoginTimeout(t *testing.T) {
 		t.Fatal("no code")
 	}
 
-	// max_age 経つのを待つ。
-	time.Sleep(time.Second)
-
 	// 認証 UI に飛ばされる。
 	resp, err := testRequestAuthWithoutCheck(idpSys, cli, map[string]string{
 		"scope":         "openid email",

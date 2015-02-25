@@ -31,7 +31,7 @@ func TestAuthRequest(t *testing.T) {
 		Scops:      strset.FromSlice([]string{"openid", "email"}),
 		Disp:       "page",
 		UiLocs:     []string{"ja"},
-		MaxAge:     3600,
+		RawMaxAge:  "3600",
 	}
 	req.Clms.AccInf = claimRequest{
 		"name":     {"ja": {true, nil, nil}},

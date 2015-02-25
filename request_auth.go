@@ -32,8 +32,10 @@ type authRequest struct {
 	Disp    string           `json:"display,omitempty"`
 	UiLocs  []string         `json:"ui_localse,omitempty"`
 
-	rawMaxAge_ string
-	MaxAge     int `json:"max_age,omitempty"`
+	// 0 指定を許すために文字列で保存する。
+	maxAgeParsed bool
+	RawMaxAge    string `json:"max_age,omitempty"`
+	maxAge_      int
 
 	reqParsed bool
 	rawReq    string
@@ -59,7 +61,7 @@ func newAuthRequest(r *http.Request) (*authRequest, error) {
 		rawClms:    r.FormValue(formClms),
 		Disp:       r.FormValue(formDisp),
 		UiLocs:     formValues(r, formUiLocs),
-		rawMaxAge_: r.FormValue(formMaxAge),
+		RawMaxAge:  r.FormValue(formMaxAge),
 		rawReq:     r.FormValue(formReq),
 	}, nil
 }
@@ -190,27 +192,34 @@ func (this *authRequest) uiLocales() []string {
 
 // 過去の認証の有効期間を返す。
 func (this *authRequest) rawMaxAge() string {
-	return this.rawMaxAge_
+	return this.RawMaxAge
 }
 
 func (this *authRequest) parseMaxAge() error {
-	if this.MaxAge != 0 || this.rawMaxAge_ == "" {
+	if this.maxAgeParsed {
+		return nil
+	}
+
+	if this.RawMaxAge == "" {
+		this.maxAge_ = -1
+		this.maxAgeParsed = true
 		return nil
 	}
 
 	var err error
-	this.MaxAge, err = strconv.Atoi(this.rawMaxAge_)
+	this.maxAge_, err = strconv.Atoi(this.RawMaxAge)
 	if err != nil {
 		return erro.Wrap(err)
 	}
+	this.maxAgeParsed = true
 	return nil
 }
 
 func (this *authRequest) maxAge() int {
-	if this.MaxAge == 0 {
+	if !this.maxAgeParsed {
 		this.parseMaxAge()
 	}
-	return this.MaxAge
+	return this.maxAge_
 }
 
 // まとめて解析。
@@ -278,8 +287,8 @@ func (this *authRequest) parseRequest(veriKeys map[string]interface{}, decKeys m
 	if authReq.UiLocs != nil {
 		this.UiLocs = authReq.UiLocs
 	}
-	if authReq.rawMaxAge_ != "" {
-		this.rawMaxAge_ = authReq.rawMaxAge_
+	if authReq.RawMaxAge != "" {
+		this.RawMaxAge = authReq.RawMaxAge
 	}
 
 	this.reqParsed = true
@@ -377,7 +386,7 @@ func authRequestFromJwt(jt *jwt.Jwt) (authReq *authRequest, err error) {
 		if !ok {
 			return nil, erro.New(formMaxAge + " is not number")
 		}
-		authReq.MaxAge = int(val)
+		authReq.RawMaxAge = strconv.Itoa(int(val))
 	}
 	return authReq, nil
 }

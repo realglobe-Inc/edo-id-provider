@@ -50,56 +50,67 @@ func testCodeContainer(t *testing.T, codCont codeContainer) {
 	}
 
 	// 入れる。
+	bef := time.Now()
 	if err := codCont.put(cod); err != nil {
 		t.Fatal(err)
 	}
+	diff := int64(time.Since(bef) / time.Nanosecond)
 
-	// 有効。
-	for cur := time.Now(); cur.Before(exp); cur = time.Now() {
-		if c, err := codCont.get(cod.id()); err != nil {
-			t.Fatal(err)
-		} else if c == nil {
-			t.Fatal(cur, exp)
-		} else if !reflect.DeepEqual(c, cod) {
-			t.Error(fmt.Sprintf("%#v", c))
-			t.Error(fmt.Sprintf("%#v", cod))
-		}
-
-		time.Sleep(testCodExpiDur / 4)
-	}
-
-	// 無効。
-	for end := cod.expirationDate().Add(savDur - time.Millisecond); ; // redis の粒度がミリ秒のため。
-	{
+	// 無効になって消えるかどうか。
+	disap := cod.expirationDate().Add(savDur)
+	for deadline := disap.Add(time.Second); ; {
+		bef := time.Now()
 		c, err := codCont.get(cod.id())
 		if err != nil {
 			t.Fatal(err)
 		}
-		cur := time.Now()
+		aft := time.Now()
 
-		// get と time.Now() の間に GC 等で時間が掛かることもあるため、
-		// cur > end でも nil が返っているとは限らない。
-		// cur <= end であれば非 nil が返らなければならない。
+		// GC 等で時間が掛かることもあるため、aft > disap でも nil が返るとは限らない。
+		// だが、aft <= disap であれば非 nil が返らなければならない。
+		// 同様に、bef > disap であれば nil が返らなければならない。
 
-		if c == nil {
-			if cur.After(end) {
-				break
-			} else {
-				t.Fatal(cur, end)
+		if aft.UnixNano() <= cutOff(disap.UnixNano(), 1e6)-diff { // redis の粒度がミリ秒のため。
+			if c == nil {
+				t.Error(aft)
+				t.Error(disap)
+				return
 			}
-		} else if c.id() != cod.id() || c.valid() {
-			t.Error(c, cur, end)
+		} else if bef.UnixNano() > cutOff(disap.UnixNano(), 1e6)+1e6+diff { // redis の粒度がミリ秒のため。
+			if c != nil {
+				t.Error(bef)
+				t.Error(disap)
+				return
+			}
+			// 消えた。
+			return
+		} else if c == nil { // bef <= disap < aft
+			// 消えた。
+			return
 		}
 
-		time.Sleep(savDur / 4)
-	}
+		bef = time.Now()
+		ok := c.valid()
+		aft = time.Now()
 
-	time.Sleep(time.Millisecond) // redis の粒度がミリ秒のため。
+		if !aft.After(exp) && !ok {
+			t.Error(aft)
+			t.Error(exp)
+			return
+		} else if bef.After(exp) && ok {
+			t.Error(bef)
+			t.Error(exp)
+			return
+		} else if !reflect.DeepEqual(c, cod) {
+			t.Error(fmt.Sprintf("%#v", c))
+			t.Error(fmt.Sprintf("%#v", cod))
+			return
+		}
 
-	// もう無い。
-	if c, err := codCont.get(cod.id()); err != nil {
-		t.Fatal(err)
-	} else if c != nil {
-		t.Error(c)
+		if aft.After(deadline) {
+			t.Error("too late")
+			return
+		}
+		time.Sleep(time.Millisecond)
 	}
 }

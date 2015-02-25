@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -8,6 +9,8 @@ import (
 
 func testTokenContainer(t *testing.T, tokCont tokenContainer) {
 	defer tokCont.close()
+
+	savDur := tokCont.(*tokenContainerImpl).savDur
 
 	// 無い。
 	if tk, err := tokCont.get("ccccc"); err != nil {
@@ -33,55 +36,65 @@ func testTokenContainer(t *testing.T, tokCont tokenContainer) {
 		"")
 
 	// 入れる。
+	bef := time.Now()
 	if err := tokCont.put(tok); err != nil {
 		t.Fatal(err)
 	}
+	diff := int64(time.Since(bef) / time.Nanosecond)
 
-	// 有効。
-	for cur := time.Now(); cur.Before(exp); cur = time.Now() {
-		if tk, err := tokCont.get(tok.id()); err != nil {
-			t.Fatal(err)
-		} else if tk == nil {
-			t.Fatal(cur, exp)
-		} else if !reflect.DeepEqual(tk, tok) {
-			t.Error(tk, cur, exp)
-		}
-
-		time.Sleep(testTokExpiDur / 4)
-	}
-
-	// 無効。
-	for end := tok.expirationDate().Add(tokCont.(*tokenContainerImpl).savDur - time.Millisecond); ; // redis の粒度がミリ秒のため。
-	{
+	// 無効になって消えるかどうか。
+	disap := tok.expirationDate().Add(savDur)
+	for deadline := disap.Add(time.Second); ; {
+		bef := time.Now()
 		tk, err := tokCont.get(tok.id())
 		if err != nil {
 			t.Fatal(err)
 		}
-		cur := time.Now()
+		aft := time.Now()
 
-		// get と time.Now() の間に GC 等で時間が掛かることもあるため、
-		// cur > end でも nil が返っているとは限らない。
-		// cur <= end であれば非 nil が返らなければならない。
+		// GC 等で時間が掛かることもあるため、aft > disap でも nil が返るとは限らない。
+		// だが、aft <= disap であれば非 nil が返らなければならない。
+		// 同様に、bef > disap であれば nil が返らなければならない。
 
-		if tk == nil {
-			if cur.After(end) {
-				break
-			} else {
-				t.Fatal(cur, end)
+		if aft.UnixNano() <= cutOff(disap.UnixNano(), 1e6)-diff { // redis の粒度がミリ秒のため。
+			if tk == nil {
+				t.Error(aft)
+				t.Error(disap)
+				return
 			}
-		} else if tk.id() != tok.id() || tk.valid() {
-			t.Error(tk, cur, end)
+		} else if bef.UnixNano() > cutOff(disap.UnixNano(), 1e6)+1e6+diff { // redis の粒度がミリ秒のため。
+			if tk != nil {
+				t.Error(bef)
+				t.Error(disap)
+				return
+			}
+			// 消えた。
+			return
+		} else if tk == nil { // bef <= disap < aft
+			// 消えた。
+			return
 		}
 
-		time.Sleep(tokCont.(*tokenContainerImpl).savDur / 4)
-	}
+		bef = time.Now()
+		ok := tk.valid()
+		aft = time.Now()
 
-	time.Sleep(time.Millisecond) // redis の粒度がミリ秒のため。
+		if !aft.After(exp) && !ok {
+			t.Error(aft, exp)
+			return
+		} else if bef.After(exp) && ok {
+			t.Error(bef, exp)
+			return
+		} else if !reflect.DeepEqual(tk, tok) {
+			t.Error(fmt.Sprintf("%#v", tk))
+			t.Error(fmt.Sprintf("%#v", tok))
+			return
+		}
 
-	// もう無い。
-	if tk, err := tokCont.get(tok.id()); err != nil {
-		t.Fatal(err)
-	} else if tk != nil {
-		t.Error(tk)
+		if aft.After(deadline) {
+			t.Error("too late")
+			return
+		}
+		time.Sleep(time.Millisecond)
 	}
 }

@@ -55,10 +55,10 @@ func newTestSystem() *system {
 		newMemorySessionContainer(testIdLen, "", testStaleDur, testCaExpiDur),
 		newMemoryCodeContainer(testIdLen, "", testSavDur, testTicDur, testStaleDur, testCaExpiDur),
 		newMemoryTokenContainer(testIdLen, "", testSavDur, testStaleDur, testCaExpiDur),
-		testCodExpiDur + time.Second, // 以下、プロトコルを通すと粒度が秒になるため。
-		testTokExpiDur + time.Second,
-		testIdTokExpiDur + time.Second,
-		testSessExpiDur + time.Second,
+		testCodExpiDur + 2*time.Second, // 以下、プロトコルを通すと粒度が秒になるため。
+		testTokExpiDur + 2*time.Second,
+		testIdTokExpiDur + 2*time.Second,
+		testSessExpiDur + 2*time.Second,
 		testSigAlg,
 		"",
 		testIdpPriKey,

@@ -49,13 +49,14 @@ func newTestSystem() *system {
 		testIdLen,
 		testUiUri,
 		uiPath,
+		// 以下、プロトコルを通すと粒度が秒になるため適宜 time.Second を足す。
 		newMemoryTaContainer(testStaleDur, testCaExpiDur),
 		newMemoryAccountContainer(testStaleDur, testCaExpiDur),
 		newMemoryConsentContainer(testStaleDur, testCaExpiDur),
 		newMemorySessionContainer(testIdLen, "", testStaleDur, testCaExpiDur),
-		newMemoryCodeContainer(testIdLen, "", testSavDur, testTicDur, testStaleDur, testCaExpiDur),
+		newMemoryCodeContainer(testIdLen, "", testSavDur, testTicDur+2*time.Second, testStaleDur, testCaExpiDur),
 		newMemoryTokenContainer(testIdLen, "", testSavDur, testStaleDur, testCaExpiDur),
-		testCodExpiDur + 2*time.Second, // 以下、プロトコルを通すと粒度が秒になるため。
+		testCodExpiDur + 2*time.Second,
 		testTokExpiDur + 2*time.Second,
 		testIdTokExpiDur + 2*time.Second,
 		testSessExpiDur + 2*time.Second,

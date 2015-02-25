@@ -1228,7 +1228,9 @@ func TestDenyExpiredCode(t *testing.T) {
 	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
-	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []string{"/a", "/b"}, []*account{testAcc}, nil)
+	idpSys := newTestSystem()
+	idpSys.codExpiDur = time.Millisecond
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(idpSys, []string{"/a", "/b"}, []*account{testAcc}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

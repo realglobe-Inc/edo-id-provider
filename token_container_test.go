@@ -43,8 +43,7 @@ func testTokenContainer(t *testing.T, tokCont tokenContainer) {
 	diff := int64(time.Since(bef) / time.Nanosecond)
 
 	// 無効になって消えるかどうか。
-	disap := tok.expirationDate().Add(savDur)
-	for deadline := disap.Add(time.Second); ; {
+	for disap := tok.expirationDate().Add(savDur); ; {
 		bef := time.Now()
 		tk, err := tokCont.get(tok.id())
 		if err != nil {
@@ -91,10 +90,6 @@ func testTokenContainer(t *testing.T, tokCont tokenContainer) {
 			return
 		}
 
-		if aft.After(deadline) {
-			t.Error("too late")
-			return
-		}
 		time.Sleep(time.Millisecond)
 	}
 }

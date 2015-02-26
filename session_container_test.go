@@ -90,7 +90,7 @@ func testSessionContainer(t *testing.T, sessCont sessionContainer) {
 	}
 
 	// 消えるかどうか。
-	for deadline := exp.Add(time.Second); ; {
+	for {
 		bef := time.Now()
 		se, err := sessCont.get(sess.id())
 		if err != nil {
@@ -117,10 +117,6 @@ func testSessionContainer(t *testing.T, sessCont sessionContainer) {
 			return
 		}
 
-		if aft.After(deadline) {
-			t.Error("too late")
-			return
-		}
 		time.Sleep(time.Millisecond)
 	}
 }

@@ -57,8 +57,7 @@ func testCodeContainer(t *testing.T, codCont codeContainer) {
 	diff := int64(time.Since(bef) / time.Nanosecond)
 
 	// 無効になって消えるかどうか。
-	disap := cod.expirationDate().Add(savDur)
-	for deadline := disap.Add(time.Second); ; {
+	for disap := cod.expirationDate().Add(savDur); ; {
 		bef := time.Now()
 		c, err := codCont.get(cod.id())
 		if err != nil {
@@ -107,10 +106,6 @@ func testCodeContainer(t *testing.T, codCont codeContainer) {
 			return
 		}
 
-		if aft.After(deadline) {
-			t.Error("too late")
-			return
-		}
 		time.Sleep(time.Millisecond)
 	}
 }

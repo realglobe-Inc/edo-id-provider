@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/realglobe-Inc/edo-toolkit/util/duration"
-	"github.com/realglobe-Inc/edo-toolkit/util/strset"
+	"github.com/realglobe-Inc/edo-lib/duration"
+	"github.com/realglobe-Inc/edo-lib/strset"
 	"time"
 )
 

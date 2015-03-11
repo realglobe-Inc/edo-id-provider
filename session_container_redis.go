@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"github.com/garyburd/redigo/redis"
-	"github.com/realglobe-Inc/edo-toolkit/driver"
+	"github.com/realglobe-Inc/edo-lib/driver"
 	"strconv"
 	"time"
 )

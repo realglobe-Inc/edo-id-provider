@@ -3,9 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/realglobe-Inc/edo-toolkit/util/jwt"
-	logutil "github.com/realglobe-Inc/edo-toolkit/util/log"
-	"github.com/realglobe-Inc/edo-toolkit/util/strset"
+	"github.com/realglobe-Inc/edo-lib/jwt"
+	logutil "github.com/realglobe-Inc/edo-lib/log"
+	"github.com/realglobe-Inc/edo-lib/strset"
 	"github.com/realglobe-Inc/go-lib/rglog/level"
 	"reflect"
 	"testing"

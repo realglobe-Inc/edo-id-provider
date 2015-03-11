@@ -2,8 +2,8 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/realglobe-Inc/edo-toolkit/util/jwt"
-	"github.com/realglobe-Inc/edo-toolkit/util/server"
+	"github.com/realglobe-Inc/edo-lib/jwt"
+	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"net/http"
 	"strconv"

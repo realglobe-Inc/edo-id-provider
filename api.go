@@ -2,8 +2,8 @@ package main
 
 import (
 	"encoding/json"
-	jsonutil "github.com/realglobe-Inc/edo-toolkit/util/json"
-	"github.com/realglobe-Inc/edo-toolkit/util/server"
+	jsonutil "github.com/realglobe-Inc/edo-lib/json"
+	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"github.com/realglobe-Inc/go-lib/rglog/level"
 	"net/http"

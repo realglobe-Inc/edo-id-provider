@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/realglobe-Inc/edo-toolkit/driver"
+	"github.com/realglobe-Inc/edo-lib/driver"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"

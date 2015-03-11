@@ -5,9 +5,9 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/realglobe-Inc/edo-toolkit/util/jwt"
-	logutil "github.com/realglobe-Inc/edo-toolkit/util/log"
-	"github.com/realglobe-Inc/edo-toolkit/util/server"
+	"github.com/realglobe-Inc/edo-lib/jwt"
+	logutil "github.com/realglobe-Inc/edo-lib/log"
+	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/go-lib/rglog/level"
 	"io/ioutil"
 	"net/http"

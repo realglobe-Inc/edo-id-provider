@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/realglobe-Inc/edo-toolkit/util/strset"
+	"github.com/realglobe-Inc/edo-lib/strset"
 	"time"
 )
 

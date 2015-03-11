@@ -4,7 +4,7 @@ import (
 	"github.com/realglobe-Inc/go-lib/rglog"
 )
 
-var log = rglog.Logger("github.com/realglobe-Inc/edo-toolkit/edo-id-provider")
+var log = rglog.Logger("github.com/realglobe-Inc/edo-id-provider")
 
 // ログにそのまま書くのが憚られるので隠す。
 func mosaic(str string) string {

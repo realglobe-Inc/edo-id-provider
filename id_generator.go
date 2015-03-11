@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/base64"
-	"github.com/realglobe-Inc/edo-toolkit/util/secrand"
+	"github.com/realglobe-Inc/edo-lib/secrand"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"math/big"
 	"math/rand"

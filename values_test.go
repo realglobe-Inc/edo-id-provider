@@ -3,7 +3,7 @@ package main
 import (
 	"crypto"
 	"crypto/rsa"
-	"github.com/realglobe-Inc/edo-toolkit/util/jwt"
+	"github.com/realglobe-Inc/edo-lib/jwt"
 	"time"
 )
 

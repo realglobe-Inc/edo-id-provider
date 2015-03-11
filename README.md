@@ -144,3 +144,8 @@ username と passwd フォームパラメータでアカウント名とパスワ
 ユーザー情報を提供する。
 
 動作は OpenID Provider とほぼ同じ。
+
+
+## ライセンス
+
+Apache License, Version 2.0

@@ -1,0 +1,237 @@
+// Copyright 2015 realglobe, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"github.com/realglobe-Inc/edo-lib/strset"
+	"github.com/realglobe-Inc/go-lib/erro"
+	"net/http"
+	"net/url"
+	"reflect"
+	"time"
+)
+
+// ログインページにリダイレクトする。
+func redirectLoginUi(w http.ResponseWriter, r *http.Request, sys *system, sess *session, hint string) error {
+
+	// TODO 試行回数でエラー。
+
+	v := url.Values{}
+	if accNames := sess.accountNames(); len(accNames) > 0 {
+		buff, err := json.Marshal(strset.StringSet(accNames))
+		if err != nil {
+			return redirectError(w, r, sys, sess, sess.request(), erro.Wrap(err))
+		}
+
+		v.Set(formAccNames, string(buff))
+	}
+	if disp := sess.request().display(); disp != "" {
+		v.Set(formDisp, disp)
+	}
+	if loc, locs := sess.locale(), sess.request().uiLocales(); loc != "" || len(locs) > 0 {
+		v.Set(formLocs, valuesToForm(append([]string{loc}, locs...)))
+	}
+	if hint != "" {
+		v.Set(formHint, hint)
+	}
+	var query string
+	if len(v) > 0 {
+		query = "?" + v.Encode()
+	}
+
+	// ログインページに渡すクエリパラメータを生成。
+
+	tic, err := sys.newTicket()
+	if err != nil {
+		return redirectError(w, r, sys, sess, sess.request(), erro.Wrap(err))
+	}
+	sess.setLoginTicket(tic)
+
+	// ログイン券を発行。
+	log.Debug("Login ticket " + mosaic(tic) + " was generated")
+
+	if sess.id() == "" {
+		id, err := sys.sessCont.newId()
+		if err != nil {
+			return redirectError(w, r, sys, sess, sess.request(), erro.Wrap(err))
+		}
+		sess.setId(id)
+	}
+	sess.setExpirationDate(time.Now().Add(sys.sessExpiDur))
+	if err := sys.sessCont.put(sess); err != nil {
+		return redirectError(w, r, sys, sess, sess.request(), erro.Wrap(err))
+	}
+
+	// セッションを保存した。
+	log.Debug("Session " + mosaic(sess.id()) + " was saved")
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     cookSess,
+		Value:    sess.id(),
+		Path:     "/",
+		Expires:  sess.expirationDate(),
+		Secure:   sys.secCook,
+		HttpOnly: true})
+	w.Header().Add("Cache-Control", "no-store")
+	w.Header().Add("Pragma", "no-cache")
+	http.Redirect(w, r, sys.uiUri+"/"+loginHtml+query+"#"+tic, http.StatusFound)
+	return nil
+}
+
+// ログインページからの入力を受け付けて続きをする。
+func loginPage(w http.ResponseWriter, r *http.Request, sys *system) error {
+	req := newLoginRequest(r)
+
+	sessId := req.session()
+	if sessId == "" {
+		// セッションが通知されてない。
+		return newIdpError(errInvReq, "no session", http.StatusBadRequest, nil)
+	}
+
+	// セッションが通知された。
+	log.Debug("session " + mosaic(sessId) + " is declared")
+
+	sess, err := sys.sessCont.get(sessId)
+	if err != nil {
+		return erro.Wrap(err)
+	} else if sess == nil {
+		// セッションなんて無かった。
+		return newIdpError(errInvReq, "no session "+mosaic(sessId), http.StatusBadRequest, nil)
+	} else if !sess.valid() {
+		// 無効なセッション。
+		return newIdpError(errInvReq, "invalid session "+mosaic(sessId), http.StatusBadRequest, nil)
+	}
+
+	// セッションが有効だった。
+	log.Debug("session " + mosaic(sessId) + " is exist")
+
+	authReq := sess.request()
+	if authReq == nil {
+		// ユーザー認証・認可処理が始まっていない。
+		return newIdpError(errInvReq, "session "+mosaic(sessId)+" is not in authentication process", http.StatusBadRequest, nil)
+	}
+
+	// ユーザー認証・認可処理中。
+	log.Debug("session " + mosaic(sessId) + " is in authentication process")
+
+	tic := sess.loginTicket()
+	if tic == "" {
+		// ログイン中でない。
+		return redirectError(w, r, sys, sess, authReq, newIdpError(errAccDeny, "not in login process", 0, nil))
+	} else if t := req.ticket(); t != tic {
+		// 無効なログイン券。
+		return redirectError(w, r, sys, sess, authReq, newIdpError(errAccDeny, "invalid login ticket "+mosaic(t), 0, nil))
+	}
+
+	// ログイン券が有効だった。
+	log.Debug("Login ticket " + mosaic(tic) + " is OK")
+
+	accName, passwd := req.loginInfo()
+	if accName == "" || passwd == "" {
+		// ログイン情報不備。
+		log.Debug("Login info was not found")
+		return redirectLoginUi(w, r, sys, sess, "login info was not found")
+	}
+
+	// ログイン情報があった。
+	log.Debug("Login info was found")
+
+	acc, err := sys.accCont.getByName(accName)
+	if err != nil {
+		return redirectError(w, r, sys, sess, authReq, erro.Wrap(err))
+	} else if acc == nil {
+		// アカウントが無い。
+		log.Debug("Accout " + accName + " was not found")
+		return redirectLoginUi(w, r, sys, sess, "accout "+accName+" was not found")
+	}
+	if passwd != acc.password() {
+		// パスワード間違い。
+		log.Debug("Password differs from " + accName + "'s password")
+		return redirectLoginUi(w, r, sys, sess, "password differs from "+accName+"'s password")
+	}
+
+	// ログインできた。
+	log.Debug("Account " + accName + " (" + acc.id() + ") was authenticated")
+
+	sess.loginAccount(acc)
+
+	if loc := req.locale(); loc != "" {
+		sess.setLocale(loc)
+
+		// 言語を選択してた。
+		log.Debug("Locale " + loc + " was selected")
+	}
+
+	return afterLogin(w, r, sys, sess)
+}
+
+// ログインが無事終わった後の処理。
+func afterLogin(w http.ResponseWriter, r *http.Request, sys *system, sess *session) error {
+
+	prmpts := sess.request().prompts()
+	if prmpts[prmptCons] {
+		if prmpts[prmptNone] {
+			return redirectError(w, r, sys, sess, sess.request(), newIdpError(errConsReq, "cannot consent without UI", 0, nil))
+		}
+
+		log.Debug("Consent is forced")
+		return redirectConsentUi(w, r, sys, sess, "")
+	}
+
+	// クレーム指定の検査。
+	acc, err := sys.accCont.get(sess.currentAccount())
+	if err != nil {
+		return redirectError(w, r, sys, sess, sess.request(), erro.Wrap(err))
+	} else if acc == nil {
+		// アカウントが無い。
+		return redirectLoginUi(w, r, sys, sess, "accout "+sess.currentAccount()+" was not found")
+	}
+	accInfClms, idTokClms := sess.request().claims()
+	for _, clms := range []claimRequest{accInfClms, idTokClms} {
+		for clmName, reqs := range clms {
+			for _, req := range reqs {
+				atr := acc.attribute(clmName)
+				if req.Ess && (atr == nil || atr == "") {
+					return redirectError(w, r, sys, sess, sess.request(), newIdpError(errAccDeny, "essential claim "+clmName+" is not exist", 0, nil))
+				} else if !(req.Val == nil || req.Val == "") && !reflect.DeepEqual(atr, req.Val) {
+					return redirectError(w, r, sys, sess, sess.request(), newIdpError(errAccDeny, fmt.Sprint("claim "+clmName+" is not ", req.Val), 0, nil))
+				}
+				// TODO values クレーム指定の検査。
+			}
+		}
+	}
+
+	// 事前同意を調べる。
+	scops, clms, err := sys.consCont.get(sess.currentAccount(), sess.request().ta())
+	if err != nil {
+		return redirectError(w, r, sys, sess, sess.request(), erro.Wrap(err))
+	}
+	if satisfiable(scops, clms, sess.request().scopes(), sess.request().claimNames()) {
+		// 事前同意で十分。
+		log.Debug("Preliminarily consented")
+		sess.consent(sess.request().scopes(), sess.request().claimNames(), nil, nil)
+		return afterConsent(w, r, sys, sess)
+	}
+
+	log.Debug("Consent is required")
+
+	if prmpts[prmptNone] {
+		return redirectError(w, r, sys, sess, sess.request(), newIdpError(errConsReq, "cannot consent without UI", 0, nil))
+	}
+
+	return redirectConsentUi(w, r, sys, sess, "")
+}

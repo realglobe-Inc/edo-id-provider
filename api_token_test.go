@@ -1,0 +1,1809 @@
+// Copyright 2015 realglobe, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package main
+
+// トークンリクエスト・レスポンス周りのテスト。
+
+import (
+	"bytes"
+	"encoding/json"
+	"github.com/realglobe-Inc/edo-lib/jwt"
+	logutil "github.com/realglobe-Inc/edo-lib/log"
+	"github.com/realglobe-Inc/edo-lib/server"
+	"github.com/realglobe-Inc/go-lib/rglog/level"
+	"io/ioutil"
+	"net/http"
+	"net/http/cookiejar"
+	"net/url"
+	"os"
+	"strconv"
+	"strings"
+	"testing"
+	"time"
+)
+
+func init() {
+	logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+}
+
+// トークンレスポンスが access_token, token_type, expires_in を含むか。
+func TestTokenResponse(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer idpSys.close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	cookJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Jar: cookJar}
+
+	if res, err := testFromRequestAuthToGetToken(idpSys, cli, map[string]string{
+		"scope":         "openid email",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+		"redirect_uri":  rediUri,
+	}, map[string]string{
+		"username": testAcc.name(),
+	}, map[string]string{
+		"username": testAcc.name(),
+		"password": testAcc.password(),
+	}, map[string]string{
+		"consented_scope": "openid email",
+	}, map[string]interface{}{
+		"alg": "RS256",
+		"kid": kid,
+	}, map[string]interface{}{
+		"iss": testTa2.id(),
+		"sub": testTa2.id(),
+		"aud": idpSys.selfId + "/token",
+		"jti": strconv.FormatInt(time.Now().UnixNano(), 16),
+		"exp": time.Now().Add(idpSys.idTokExpiDur).Unix(),
+	}, map[string]string{
+		"grant_type":            "authorization_code",
+		"redirect_uri":          rediUri,
+		"client_id":             testTa2.id(),
+		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+	}, kid, sigKey); err != nil {
+		t.Fatal(err)
+	} else if tok, _ := res["access_token"].(string); tok == "" {
+		t.Fatal("no token")
+	} else if respType, _ := res["token_type"].(string); respType == "" {
+		t.Fatal("no token type")
+	} else if _, ok := res["expires_in"].(float64); !ok {
+		t.Fatal("no expiration date")
+	}
+}
+
+// 要求された scope と異なるトークンを返すとき scope を含むか。
+func TestTokenResponseWithScope(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer idpSys.close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	cookJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Jar: cookJar}
+
+	if res, err := testFromRequestAuthToGetToken(idpSys, cli, map[string]string{
+		"scope":         "openid email",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+		"redirect_uri":  rediUri,
+	}, map[string]string{
+		"username": testAcc.name(),
+	}, map[string]string{
+		"username": testAcc.name(),
+		"password": testAcc.password(),
+	}, map[string]string{
+		"consented_scope": "openid",
+	}, map[string]interface{}{
+		"alg": "RS256",
+		"kid": kid,
+	}, map[string]interface{}{
+		"iss": testTa2.id(),
+		"sub": testTa2.id(),
+		"aud": idpSys.selfId + "/token",
+		"jti": strconv.FormatInt(time.Now().UnixNano(), 16),
+		"exp": time.Now().Add(idpSys.idTokExpiDur).Unix(),
+	}, map[string]string{
+		"grant_type":            "authorization_code",
+		"redirect_uri":          rediUri,
+		"client_id":             testTa2.id(),
+		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+	}, kid, sigKey); err != nil {
+		t.Fatal(err)
+	} else if scop, _ := res["scope"].(string); scop == "" {
+		t.Fatal("no scope")
+	}
+}
+
+// トークンレスポンスが Cache-Control: no-store, Pragma: no-cache ヘッダを含むか。
+func TestTokenResponseHeader(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer idpSys.close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	cookJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Jar: cookJar}
+
+	resp, err := testFromRequestAuthToGetTokenWithoutCheck(idpSys, cli, map[string]string{
+		"scope":         "openid email",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+		"redirect_uri":  rediUri,
+	}, map[string]string{
+		"username": testAcc.name(),
+	}, map[string]string{
+		"username": testAcc.name(),
+		"password": testAcc.password(),
+	}, map[string]string{
+		"consented_scope": "openid email",
+	}, map[string]interface{}{
+		"alg": "RS256",
+		"kid": kid,
+	}, map[string]interface{}{
+		"iss": testTa2.id(),
+		"sub": testTa2.id(),
+		"aud": idpSys.selfId + "/token",
+		"jti": strconv.FormatInt(time.Now().UnixNano(), 16),
+		"exp": time.Now().Add(idpSys.idTokExpiDur).Unix(),
+	}, map[string]string{
+		"grant_type":            "authorization_code",
+		"redirect_uri":          rediUri,
+		"client_id":             testTa2.id(),
+		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+	}, kid, sigKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(resp.StatusCode, http.StatusOK)
+	}
+
+	if resp.Header.Get("Cache-Control") != "no-store" {
+		t.Fatal(resp.Header.Get("Cache-Control"), "no-store")
+	} else if resp.Header.Get("Pragma") != "no-cache" {
+		t.Fatal(resp.Header.Get("Pragma"), "no-cache")
+	}
+}
+
+// POST でないトークンリクエストを拒否できるか。
+func TestDenyNonPostTokenRequest(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer idpSys.close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+
+	for _, meth := range []string{"GET", "PUT"} {
+		// TA にリダイレクトしたときのレスポンスを設定しておく。
+		taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+		cookJar, err := cookiejar.New(nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cli := &http.Client{Jar: cookJar}
+
+		consResp, err := testFromRequestAuthToConsent(idpSys, cli, map[string]string{
+			"scope":         "openid email",
+			"response_type": "code",
+			"client_id":     testTa2.id(),
+			"redirect_uri":  rediUri,
+		}, map[string]string{
+			"username": testAcc.name(),
+		}, map[string]string{
+			"username": testAcc.name(),
+			"password": testAcc.password(),
+		}, map[string]string{
+			"consented_scope": "openid email",
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer consResp.Body.Close()
+
+		cod := consResp.Request.FormValue("code")
+		if cod == "" {
+			server.LogRequest(level.ERR, consResp.Request, true)
+			t.Fatal("no code")
+		}
+
+		// 認可コードを取得できた。
+
+		assJt := jwt.New()
+		assJt.SetHeader("alg", "RS256")
+		assJt.SetHeader("kid", kid)
+		assJt.SetClaim("iss", testTa2.id())
+		assJt.SetClaim("sub", testTa2.id())
+		assJt.SetClaim("aud", idpSys.selfId+"/token")
+		assJt.SetClaim("jti", strconv.FormatInt(time.Now().UnixNano(), 16))
+		assJt.SetClaim("exp", time.Now().Add(idpSys.idTokExpiDur).Unix())
+		assJt.SetClaim("code", cod)
+		assBuff, err := assJt.Encode(map[string]interface{}{kid: sigKey}, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ass := string(assBuff)
+
+		req, err := http.NewRequest(meth, idpSys.selfId+"/token", strings.NewReader(url.Values{
+			"grant_type":            {"authorization_code"},
+			"redirect_uri":          {rediUri},
+			"client_id":             {testTa2.id()},
+			"client_assertion_type": {"urn:ietf:params:oauth:client-assertion-type:jwt-bearer"},
+			"code":                  {cod},
+			"client_assertion":      {ass},
+		}.Encode()))
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.Header.Set("Connection", "close")
+		resp, err := (&http.Client{}).Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusMethodNotAllowed {
+			server.LogRequest(level.ERR, req, true)
+			server.LogResponse(level.ERR, resp, true)
+			t.Fatal(resp.StatusCode, http.StatusMethodNotAllowed)
+		}
+
+		var res struct{ Error string }
+		if data, err := ioutil.ReadAll(resp.Body); err != nil {
+			server.LogRequest(level.ERR, req, true)
+			server.LogResponse(level.ERR, resp, true)
+			t.Fatal(err)
+		} else if err := json.Unmarshal(data, &res); err != nil {
+			server.LogRequest(level.ERR, req, true)
+			server.LogResponse(level.ERR, resp, true)
+			t.Fatal(err)
+		} else if res.Error != errInvReq {
+			t.Fatal(res.Error, errInvReq)
+		}
+	}
+}
+
+// トークンリクエストの未知のパラメータを無視できるか。
+func TestIgnoreUnknownParameterInTokenRequest(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer idpSys.close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	cookJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Jar: cookJar}
+
+	if res, err := testFromRequestAuthToGetAccountInfo(idpSys, cli, map[string]string{
+		"scope":         "openid",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+		"redirect_uri":  rediUri,
+	}, map[string]string{
+		"username": testAcc.name(),
+	}, map[string]string{
+		"username": testAcc.name(),
+		"password": testAcc.password(),
+	}, map[string]string{
+		"consented_scope": "openid email",
+	}, map[string]interface{}{
+		"alg": "RS256",
+		"kid": kid,
+	}, map[string]interface{}{
+		"iss": testTa2.id(),
+		"sub": testTa2.id(),
+		"aud": idpSys.selfId + "/token",
+		"jti": strconv.FormatInt(time.Now().UnixNano(), 16),
+		"exp": time.Now().Add(idpSys.idTokExpiDur).Unix(),
+	}, map[string]string{
+		"grant_type":            "authorization_code",
+		"redirect_uri":          rediUri,
+		"client_id":             testTa2.id(),
+		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+		"unknown_name":          "unknown_value",
+	}, kid, sigKey, nil); err != nil {
+		t.Fatal(err)
+	} else if em, _ := res["email"].(string); em != testAcc.attribute("email") {
+		t.Fatal(em, testAcc.attribute("email"))
+	}
+}
+
+// トークンリクエストのパラメータが重複していたら拒否できるか。
+func TestDenyOverlapParameterInTokenRequest(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer idpSys.close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	cookJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Jar: cookJar}
+
+	consResp, err := testFromRequestAuthToConsent(idpSys, cli, map[string]string{
+		"scope":         "openid email",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+		"redirect_uri":  rediUri,
+	}, map[string]string{
+		"username": testAcc.name(),
+	}, map[string]string{
+		"username": testAcc.name(),
+		"password": testAcc.password(),
+	}, map[string]string{
+		"consented_scope": "openid email",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer consResp.Body.Close()
+
+	cod := consResp.Request.FormValue("code")
+	if cod == "" {
+		server.LogRequest(level.ERR, consResp.Request, true)
+		t.Fatal("no code")
+	}
+
+	// 認可コードを取得できた。
+
+	assJt := jwt.New()
+	assJt.SetHeader("alg", "RS256")
+	assJt.SetHeader("kid", kid)
+	assJt.SetClaim("iss", testTa2.id())
+	assJt.SetClaim("sub", testTa2.id())
+	assJt.SetClaim("aud", idpSys.selfId+"/token")
+	assJt.SetClaim("jti", strconv.FormatInt(time.Now().UnixNano(), 16))
+	assJt.SetClaim("exp", time.Now().Add(idpSys.idTokExpiDur).Unix())
+	assJt.SetClaim("code", cod)
+	assBuff, err := assJt.Encode(map[string]interface{}{kid: sigKey}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ass := string(assBuff)
+
+	req, err := http.NewRequest("POST", idpSys.selfId+"/token", strings.NewReader(url.Values{
+		"grant_type":            {"authorization_code"},
+		"redirect_uri":          {rediUri},
+		"client_id":             {testTa2.id()},
+		"client_assertion_type": {"urn:ietf:params:oauth:client-assertion-type:jwt-bearer"},
+		"code":                  {cod},
+		"client_assertion":      {ass},
+	}.Encode()+"&grant_type=authorization_code"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Connection", "close")
+	resp, err := (&http.Client{}).Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		server.LogRequest(level.ERR, req, true)
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(resp.StatusCode, http.StatusBadRequest)
+	}
+
+	var res struct{ Error string }
+	if data, err := ioutil.ReadAll(resp.Body); err != nil {
+		server.LogRequest(level.ERR, req, true)
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if err := json.Unmarshal(data, &res); err != nil {
+		server.LogRequest(level.ERR, req, true)
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if res.Error != errInvReq {
+		t.Fatal(res.Error, errInvReq)
+	}
+}
+
+// トークンリクエストで grant_type が authorization_code なのに client_id が無かったら拒否できるか。
+func TestDenyTokenRequestWithoutClientId(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer idpSys.close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	cookJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Jar: cookJar}
+
+	resp, err := testFromRequestAuthToGetTokenWithoutCheck(idpSys, cli, map[string]string{
+		"scope":         "openid email",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+		"redirect_uri":  rediUri,
+	}, map[string]string{
+		"username": testAcc.name(),
+	}, map[string]string{
+		"username": testAcc.name(),
+		"password": testAcc.password(),
+	}, map[string]string{
+		"consented_scope": "openid email",
+	}, map[string]interface{}{
+		"alg": "RS256",
+		"kid": kid,
+	}, map[string]interface{}{
+		"iss": testTa2.id(),
+		"sub": testTa2.id(),
+		"aud": idpSys.selfId + "/token",
+		"jti": strconv.FormatInt(time.Now().UnixNano(), 16),
+		"exp": time.Now().Add(idpSys.idTokExpiDur).Unix(),
+	}, map[string]string{
+		"grant_type":            "authorization_code",
+		"redirect_uri":          rediUri,
+		"client_id":             "",
+		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+	}, kid, sigKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(resp.StatusCode, http.StatusBadRequest)
+	}
+
+	var res struct{ Error string }
+	if data, err := ioutil.ReadAll(resp.Body); err != nil {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if err := json.Unmarshal(data, &res); err != nil {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if res.Error != errInvReq {
+		t.Fatal(res.Error, errInvReq)
+	}
+}
+
+// トークンリクエストに grant_type が無いなら拒否できるか。
+func TestDenyNoGrantTypeInTokenRequest(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer idpSys.close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	cookJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Jar: cookJar}
+
+	resp, err := testFromRequestAuthToGetTokenWithoutCheck(idpSys, cli, map[string]string{
+		"scope":         "openid email",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+		"redirect_uri":  rediUri,
+	}, map[string]string{
+		"username": testAcc.name(),
+	}, map[string]string{
+		"username": testAcc.name(),
+		"password": testAcc.password(),
+	}, map[string]string{
+		"consented_scope": "openid email",
+	}, map[string]interface{}{
+		"alg": "RS256",
+		"kid": kid,
+	}, map[string]interface{}{
+		"iss": testTa2.id(),
+		"sub": testTa2.id(),
+		"aud": idpSys.selfId + "/token",
+		"jti": strconv.FormatInt(time.Now().UnixNano(), 16),
+		"exp": time.Now().Add(idpSys.idTokExpiDur).Unix(),
+	}, map[string]string{
+		"grant_type":            "",
+		"redirect_uri":          rediUri,
+		"client_id":             testTa2.id(),
+		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+	}, kid, sigKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.StatusCode != http.StatusBadRequest {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(resp.StatusCode, http.StatusBadRequest)
+	}
+
+	var res struct{ Error string }
+	if data, err := ioutil.ReadAll(resp.Body); err != nil {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if err := json.Unmarshal(data, &res); err != nil {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if res.Error != errInvReq {
+		t.Fatal(res.Error, errInvReq)
+	}
+}
+
+// トークンリクエストに code が無いなら拒否できるか。
+func TestDenyNoCodeInTokenRequest(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer idpSys.close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	cookJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Jar: cookJar}
+
+	resp, err := testFromRequestAuthToGetTokenWithoutCheck(idpSys, cli, map[string]string{
+		"scope":         "openid email",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+		"redirect_uri":  rediUri,
+	}, map[string]string{
+		"username": testAcc.name(),
+	}, map[string]string{
+		"username": testAcc.name(),
+		"password": testAcc.password(),
+	}, map[string]string{
+		"consented_scope": "openid email",
+	}, map[string]interface{}{
+		"alg": "RS256",
+		"kid": kid,
+	}, map[string]interface{}{
+		"iss": testTa2.id(),
+		"sub": testTa2.id(),
+		"aud": idpSys.selfId + "/token",
+		"jti": strconv.FormatInt(time.Now().UnixNano(), 16),
+		"exp": time.Now().Add(idpSys.idTokExpiDur).Unix(),
+	}, map[string]string{
+		"grant_type":            "authorization_code",
+		"redirect_uri":          rediUri,
+		"client_id":             testTa2.id(),
+		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+		"code":                  "",
+	}, kid, sigKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.StatusCode != http.StatusBadRequest {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(resp.StatusCode, http.StatusBadRequest)
+	}
+
+	var res struct{ Error string }
+	if data, err := ioutil.ReadAll(resp.Body); err != nil {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if err := json.Unmarshal(data, &res); err != nil {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if res.Error != errInvReq {
+		t.Fatal(res.Error, errInvReq)
+	}
+}
+
+// トークンリクエストに redirect_uri が無いなら拒否できるか。
+func TestDenyNoRedirectUriInTokenRequest(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer idpSys.close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	cookJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Jar: cookJar}
+
+	resp, err := testFromRequestAuthToGetTokenWithoutCheck(idpSys, cli, map[string]string{
+		"scope":         "openid email",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+		"redirect_uri":  rediUri,
+	}, map[string]string{
+		"username": testAcc.name(),
+	}, map[string]string{
+		"username": testAcc.name(),
+		"password": testAcc.password(),
+	}, map[string]string{
+		"consented_scope": "openid email",
+	}, map[string]interface{}{
+		"alg": "RS256",
+		"kid": kid,
+	}, map[string]interface{}{
+		"iss": testTa2.id(),
+		"sub": testTa2.id(),
+		"aud": idpSys.selfId + "/token",
+		"jti": strconv.FormatInt(time.Now().UnixNano(), 16),
+		"exp": time.Now().Add(idpSys.idTokExpiDur).Unix(),
+	}, map[string]string{
+		"grant_type":            "authorization_code",
+		"redirect_uri":          "",
+		"client_id":             testTa2.id(),
+		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+	}, kid, sigKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.StatusCode != http.StatusBadRequest {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(resp.StatusCode, http.StatusBadRequest)
+	}
+
+	var res struct{ Error string }
+	if data, err := ioutil.ReadAll(resp.Body); err != nil {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if err := json.Unmarshal(data, &res); err != nil {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if res.Error != errInvReq {
+		t.Fatal(res.Error, errInvReq)
+	}
+}
+
+// 知らない grant_type なら拒否できるか。
+func TestDenyUnknownGrantTypeInTokenRequest(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer idpSys.close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	cookJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Jar: cookJar}
+
+	resp, err := testFromRequestAuthToGetTokenWithoutCheck(idpSys, cli, map[string]string{
+		"scope":         "openid email",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+		"redirect_uri":  rediUri,
+	}, map[string]string{
+		"username": testAcc.name(),
+	}, map[string]string{
+		"username": testAcc.name(),
+		"password": testAcc.password(),
+	}, map[string]string{
+		"consented_scope": "openid email",
+	}, map[string]interface{}{
+		"alg": "RS256",
+		"kid": kid,
+	}, map[string]interface{}{
+		"iss": testTa2.id(),
+		"sub": testTa2.id(),
+		"aud": idpSys.selfId + "/token",
+		"jti": strconv.FormatInt(time.Now().UnixNano(), 16),
+		"exp": time.Now().Add(idpSys.idTokExpiDur).Unix(),
+	}, map[string]string{
+		"grant_type":            "unknown_grant_type",
+		"redirect_uri":          rediUri,
+		"client_id":             testTa2.id(),
+		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+	}, kid, sigKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.StatusCode != http.StatusBadRequest {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(resp.StatusCode, http.StatusBadRequest)
+	}
+
+	var res struct{ Error string }
+	if data, err := ioutil.ReadAll(resp.Body); err != nil {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if err := json.Unmarshal(data, &res); err != nil {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if res.Error != errUnsuppGrntType {
+		t.Fatal(res.Error, errUnsuppGrntType)
+	}
+}
+
+// 認可コードが発行されたクライアントでないなら拒否できるか。
+// クライアントが不正な認可コードを使っているとして error は invalid_grant か。
+func TestDenyNotCodeHolder(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	taBuff := *testTa
+	taBuff.Id = "http://example.org"
+	testTa1 := &taBuff
+
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, []*ta{testTa1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer idpSys.close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	cookJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Jar: cookJar}
+
+	resp, err := testFromRequestAuthToGetTokenWithoutCheck(idpSys, cli, map[string]string{
+		"scope":         "openid email",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+		"redirect_uri":  rediUri,
+	}, map[string]string{
+		"username": testAcc.name(),
+	}, map[string]string{
+		"username": testAcc.name(),
+		"password": testAcc.password(),
+	}, map[string]string{
+		"consented_scope": "openid email",
+	}, map[string]interface{}{
+		"alg": "RS256",
+		"kid": kid,
+	}, map[string]interface{}{
+		"iss": testTa1.id(),
+		"sub": testTa1.id(),
+		"aud": idpSys.selfId + "/token",
+		"jti": strconv.FormatInt(time.Now().UnixNano(), 16),
+		"exp": time.Now().Add(idpSys.idTokExpiDur).Unix(),
+	}, map[string]string{
+		"grant_type":            "authorization_code",
+		"redirect_uri":          rediUri,
+		"client_id":             testTa1.id(),
+		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+	}, kid, sigKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.StatusCode != http.StatusBadRequest {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(resp.StatusCode, http.StatusBadRequest)
+	}
+
+	var res struct{ Error, Error_description string }
+	if data, err := ioutil.ReadAll(resp.Body); err != nil {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if err := json.Unmarshal(data, &res); err != nil {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if res.Error != errInvGrnt {
+		t.Fatal(res.Error, res.Error_description, errInvGrnt)
+	}
+}
+
+// 認可コードがおかしかったら拒否できるか。
+// error は invalid_grant か。
+func TestDenyInvalidCode(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer idpSys.close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	cookJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Jar: cookJar}
+
+	resp, err := testFromRequestAuthToGetTokenWithoutCheck(idpSys, cli, map[string]string{
+		"scope":         "openid email",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+		"redirect_uri":  rediUri,
+	}, map[string]string{
+		"username": testAcc.name(),
+	}, map[string]string{
+		"username": testAcc.name(),
+		"password": testAcc.password(),
+	}, map[string]string{
+		"consented_scope": "openid email",
+	}, map[string]interface{}{
+		"alg": "RS256",
+		"kid": kid,
+	}, map[string]interface{}{
+		"iss": testTa2.id(),
+		"sub": testTa2.id(),
+		"aud": idpSys.selfId + "/token",
+		"jti": strconv.FormatInt(time.Now().UnixNano(), 16),
+		"exp": time.Now().Add(idpSys.idTokExpiDur).Unix(),
+	}, map[string]string{
+		"grant_type":            "authorization_code",
+		"redirect_uri":          rediUri,
+		"client_id":             testTa2.id(),
+		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+		"code":                  "cooooooooooooooooooooooooooooooode",
+	}, kid, sigKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.StatusCode != http.StatusBadRequest {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(resp.StatusCode, http.StatusBadRequest)
+	}
+
+	var res struct{ Error, Error_description string }
+	if data, err := ioutil.ReadAll(resp.Body); err != nil {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if err := json.Unmarshal(data, &res); err != nil {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if res.Error != errInvGrnt {
+		t.Fatal(res.Error, res.Error_description, errInvGrnt)
+	}
+}
+
+// redirect_uri が認証リクエストのときと違っていたら拒否できるか。
+// error は invalid_grant か。
+func TestDenyInvalidRedirectUri(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []string{"/a", "/b"}, []*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer idpSys.close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	var rediUri2 string
+	if strings.HasSuffix(rediUri, "/a") {
+		rediUri2 = rediUri[:len(rediUri)-len("/a")] + "/b"
+	} else {
+		rediUri2 = rediUri[:len(rediUri)-len("/b")] + "/a"
+	}
+
+	cookJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Jar: cookJar}
+
+	resp, err := testFromRequestAuthToGetTokenWithoutCheck(idpSys, cli, map[string]string{
+		"scope":         "openid email",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+		"redirect_uri":  rediUri,
+	}, map[string]string{
+		"username": testAcc.name(),
+	}, map[string]string{
+		"username": testAcc.name(),
+		"password": testAcc.password(),
+	}, map[string]string{
+		"consented_scope": "openid email",
+	}, map[string]interface{}{
+		"alg": "RS256",
+		"kid": kid,
+	}, map[string]interface{}{
+		"iss": testTa2.id(),
+		"sub": testTa2.id(),
+		"aud": idpSys.selfId + "/token",
+		"jti": strconv.FormatInt(time.Now().UnixNano(), 16),
+		"exp": time.Now().Add(idpSys.idTokExpiDur).Unix(),
+	}, map[string]string{
+		"grant_type":            "authorization_code",
+		"redirect_uri":          rediUri2,
+		"client_id":             testTa2.id(),
+		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+	}, kid, sigKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.StatusCode != http.StatusBadRequest {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(resp.StatusCode, http.StatusBadRequest)
+	}
+
+	var res struct{ Error, Error_description string }
+	if data, err := ioutil.ReadAll(resp.Body); err != nil {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if err := json.Unmarshal(data, &res); err != nil {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if res.Error != errInvGrnt {
+		t.Fatal(res.Error, res.Error_description, errInvGrnt)
+	}
+}
+
+// 複数のクライアント認証方式が使われていたら違っていたら拒否できるか。
+// error は invalid_request か。
+func TestDenyManyClientAuthAlgorithms(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []string{"/a", "/b"}, []*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer idpSys.close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	cookJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Jar: cookJar}
+
+	resp, err := testFromRequestAuthToGetTokenWithoutCheck(idpSys, cli, map[string]string{
+		"scope":         "openid email",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+		"redirect_uri":  rediUri,
+	}, map[string]string{
+		"username": testAcc.name(),
+	}, map[string]string{
+		"username": testAcc.name(),
+		"password": testAcc.password(),
+	}, map[string]string{
+		"consented_scope": "openid email",
+	}, map[string]interface{}{
+		"alg": "RS256",
+		"kid": kid,
+	}, map[string]interface{}{
+		"iss": testTa2.id(),
+		"sub": testTa2.id(),
+		"aud": idpSys.selfId + "/token",
+		"jti": strconv.FormatInt(time.Now().UnixNano(), 16),
+		"exp": time.Now().Add(idpSys.idTokExpiDur).Unix(),
+	}, map[string]string{
+		"grant_type":            "authorization_code",
+		"redirect_uri":          rediUri,
+		"client_id":             testTa2.id(),
+		"client_secret":         "hi-mi-tsu",
+		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+	}, kid, sigKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.StatusCode != http.StatusBadRequest {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(resp.StatusCode, http.StatusBadRequest)
+	}
+
+	var res struct{ Error, Error_description string }
+	if data, err := ioutil.ReadAll(resp.Body); err != nil {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if err := json.Unmarshal(data, &res); err != nil {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if res.Error != errInvReq {
+		t.Fatal(res.Error, res.Error_description, errInvReq)
+	}
+}
+
+// クライアントを認証できないなら拒否できるか。
+// error は invalid_client か。
+func TestDenyInvalidClient(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, []string{"/a", "/b"}, []*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer idpSys.close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	cookJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Jar: cookJar}
+
+	resp, err := testFromRequestAuthToGetTokenWithoutCheck(idpSys, cli, map[string]string{
+		"scope":         "openid email",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+		"redirect_uri":  rediUri,
+	}, map[string]string{
+		"username": testAcc.name(),
+	}, map[string]string{
+		"username": testAcc.name(),
+		"password": testAcc.password(),
+	}, map[string]string{
+		"consented_scope": "openid email",
+	}, map[string]interface{}{
+		"alg": "RS256",
+		"kid": kid,
+	}, map[string]interface{}{
+		"iss": testTa2.id(),
+		"sub": testTa2.id(),
+		"aud": idpSys.selfId + "/token",
+		"jti": strconv.FormatInt(time.Now().UnixNano(), 16),
+		"exp": time.Now().Add(idpSys.idTokExpiDur).Unix(),
+	}, map[string]string{
+		"grant_type":            "authorization_code",
+		"redirect_uri":          rediUri,
+		"client_id":             testTa2.id(),
+		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+		"client_assertion":      "ore dayo ore ore",
+	}, kid, sigKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.StatusCode != http.StatusBadRequest {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(resp.StatusCode, http.StatusBadRequest)
+	}
+
+	var res struct{ Error, Error_description string }
+	if data, err := ioutil.ReadAll(resp.Body); err != nil {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if err := json.Unmarshal(data, &res); err != nil {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if res.Error != errInvTa {
+		t.Fatal(res.Error, res.Error_description, errInvTa)
+	}
+}
+
+// 期限切れの認可コードを拒否できるか。
+// error は invalid_grant か。
+func TestDenyExpiredCode(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	idpSys := newTestSystem()
+	idpSys.codExpiDur = time.Millisecond
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(idpSys, []string{"/a", "/b"}, []*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer idpSys.close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	cookJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Jar: cookJar}
+
+	consResp, err := testFromRequestAuthToConsent(idpSys, cli, map[string]string{
+		"scope":         "openid email",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+		"redirect_uri":  rediUri,
+	}, map[string]string{
+		"username": testAcc.name(),
+	}, map[string]string{
+		"username": testAcc.name(),
+		"password": testAcc.password(),
+	}, map[string]string{
+		"consented_scope": "openid email",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	time.Sleep(idpSys.codExpiDur + time.Millisecond)
+
+	resp, err := testGetTokenWithoutCheck(idpSys, consResp, map[string]interface{}{
+		"alg": "RS256",
+		"kid": kid,
+	}, map[string]interface{}{
+		"iss": testTa2.id(),
+		"sub": testTa2.id(),
+		"aud": idpSys.selfId + "/token",
+		"jti": strconv.FormatInt(time.Now().UnixNano(), 16),
+		"exp": time.Now().Add(idpSys.idTokExpiDur).Unix(),
+	}, map[string]string{
+		"grant_type":            "authorization_code",
+		"redirect_uri":          rediUri,
+		"client_id":             testTa2.id(),
+		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+		"client_assertion":      "ore dayo ore ore",
+	}, kid, sigKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.StatusCode != http.StatusBadRequest {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(resp.StatusCode, http.StatusBadRequest)
+	}
+
+	var res struct{ Error, Error_description string }
+	if data, err := ioutil.ReadAll(resp.Body); err != nil {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if err := json.Unmarshal(data, &res); err != nil {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if res.Error != errInvGrnt {
+		t.Fatal(res.Error, res.Error_description, errInvGrnt)
+	}
+}
+
+// 認可コードが 2 回使われたら拒否できるか。
+func TestDenyUsedCode(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer idpSys.close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	cookJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Jar: cookJar}
+
+	consResp, err := testFromRequestAuthToConsent(idpSys, cli, map[string]string{
+		"scope":         "openid email",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+		"redirect_uri":  rediUri,
+	}, map[string]string{
+		"username": testAcc.name(),
+	}, map[string]string{
+		"username": testAcc.name(),
+		"password": testAcc.password(),
+	}, map[string]string{
+		"consented_scope": "openid email",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer consResp.Body.Close()
+
+	// 1 回目はアクセストークンを取得できる。
+	tokRes, err := testGetToken(idpSys, consResp, map[string]interface{}{
+		"alg": "RS256",
+		"kid": kid,
+	}, map[string]interface{}{
+		"iss": testTa2.id(),
+		"sub": testTa2.id(),
+		"aud": idpSys.selfId + "/token",
+		"jti": strconv.FormatInt(time.Now().UnixNano(), 16),
+		"exp": time.Now().Add(idpSys.idTokExpiDur).Unix(),
+	}, map[string]string{
+		"grant_type":            "authorization_code",
+		"redirect_uri":          rediUri,
+		"client_id":             testTa2.id(),
+		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+	}, kid, sigKey)
+	if err != nil {
+		t.Fatal(err)
+	} else if tokRes["access_token"] == "" {
+		t.Fatal(tokRes)
+	}
+
+	// 2 回目は拒否される。
+	resp, err := testGetTokenWithoutCheck(idpSys, consResp, map[string]interface{}{
+		"alg": "RS256",
+		"kid": kid,
+	}, map[string]interface{}{
+		"iss": testTa2.id(),
+		"sub": testTa2.id(),
+		"aud": idpSys.selfId + "/token",
+		"jti": strconv.FormatInt(time.Now().UnixNano(), 16),
+		"exp": time.Now().Add(idpSys.idTokExpiDur).Unix(),
+	}, map[string]string{
+		"grant_type":            "authorization_code",
+		"redirect_uri":          rediUri,
+		"client_id":             testTa2.id(),
+		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+	}, kid, sigKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(resp.StatusCode, http.StatusBadRequest)
+	}
+
+	var res struct{ Error string }
+	if data, err := ioutil.ReadAll(resp.Body); err != nil {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if err := json.Unmarshal(data, &res); err != nil {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if res.Error != errInvGrnt {
+		t.Fatal(res.Error, errInvGrnt)
+	}
+}
+
+// 2 回使われた認可コードで発行したアクセストークンを無効にできるか。
+func TestDisableTokenOfUsedCode(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer idpSys.close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	cookJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Jar: cookJar}
+
+	consResp, err := testFromRequestAuthToConsent(idpSys, cli, map[string]string{
+		"scope":         "openid email",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+		"redirect_uri":  rediUri,
+	}, map[string]string{
+		"username": testAcc.name(),
+	}, map[string]string{
+		"username": testAcc.name(),
+		"password": testAcc.password(),
+	}, map[string]string{
+		"consented_scope": "openid email",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer consResp.Body.Close()
+
+	// アクセストークンを取得してアカウント情報も取得する。
+	tokRes, err := testGetToken(idpSys, consResp, map[string]interface{}{
+		"alg": "RS256",
+		"kid": kid,
+	}, map[string]interface{}{
+		"iss": testTa2.id(),
+		"sub": testTa2.id(),
+		"aud": idpSys.selfId + "/token",
+		"jti": strconv.FormatInt(time.Now().UnixNano(), 16),
+		"exp": time.Now().Add(idpSys.idTokExpiDur).Unix(),
+	}, map[string]string{
+		"grant_type":            "authorization_code",
+		"redirect_uri":          rediUri,
+		"client_id":             testTa2.id(),
+		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+	}, kid, sigKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res, err := testGetAccountInfo(idpSys, tokRes, nil); err != nil {
+		t.Fatal(err)
+	} else if em, _ := res["email"].(string); em != testAcc.attribute("email") {
+		t.Fatal(em, testAcc.attribute("email"))
+	}
+
+	// もう一度アクセストークンを要求して拒否される。
+	tokResp, err := testGetTokenWithoutCheck(idpSys, consResp, map[string]interface{}{
+		"alg": "RS256",
+		"kid": kid,
+	}, map[string]interface{}{
+		"iss": testTa2.id(),
+		"sub": testTa2.id(),
+		"aud": idpSys.selfId + "/token",
+		"jti": strconv.FormatInt(time.Now().UnixNano(), 16),
+		"exp": time.Now().Add(idpSys.idTokExpiDur).Unix(),
+	}, map[string]string{
+		"grant_type":            "authorization_code",
+		"redirect_uri":          rediUri,
+		"client_id":             testTa2.id(),
+		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+	}, kid, sigKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tokResp.Body.Close()
+
+	// 拒否されていることは別テスト。
+
+	// さっき取得したアクセストークンでのアカウント情報取得も拒否される。
+	resp, err := testGetAccountInfoWithoutCheck(idpSys, tokRes, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.StatusCode != http.StatusBadRequest {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(resp.StatusCode, http.StatusBadRequest)
+	}
+
+	var res struct{ Error string }
+	if data, err := ioutil.ReadAll(resp.Body); err != nil {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if err := json.Unmarshal(data, &res); err != nil {
+		server.LogResponse(level.ERR, resp, true)
+		t.Fatal(err)
+	} else if res.Error != errInvTok {
+		t.Fatal(res.Error, errInvTok)
+	}
+}
+
+// ID トークンが iss, sub, aud, exp, iat クレームを含むか。
+func TestIdToken(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer idpSys.close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	cookJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Jar: cookJar}
+
+	if res, err := testFromRequestAuthToGetToken(idpSys, cli, map[string]string{
+		"scope":         "openid email",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+		"redirect_uri":  rediUri,
+	}, map[string]string{
+		"username": testAcc.name(),
+	}, map[string]string{
+		"username": testAcc.name(),
+		"password": testAcc.password(),
+	}, map[string]string{
+		"consented_scope": "openid email",
+	}, map[string]interface{}{
+		"alg": "RS256",
+		"kid": kid,
+	}, map[string]interface{}{
+		"iss": testTa2.id(),
+		"sub": testTa2.id(),
+		"aud": idpSys.selfId + "/token",
+		"jti": strconv.FormatInt(time.Now().UnixNano(), 16),
+		"exp": time.Now().Add(idpSys.idTokExpiDur).Unix(),
+	}, map[string]string{
+		"grant_type":            "authorization_code",
+		"redirect_uri":          rediUri,
+		"client_id":             testTa2.id(),
+		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+	}, kid, sigKey); err != nil {
+		t.Fatal(err)
+	} else if idTok, _ := res["id_token"].(string); idTok == "" {
+		t.Fatal("no id token")
+	} else if jt, err := jwt.Parse(idTok, map[string]interface{}{idpSys.sigKid: idpSys.verifyKey()}, nil); err != nil {
+		t.Fatal(err)
+	} else if iss, _ := jt.Claim("iss").(string); iss != idpSys.selfId {
+		t.Fatal(iss, idpSys.selfId)
+	} else if sub, _ := jt.Claim("sub").(string); sub != testAcc.id() {
+		t.Fatal(sub, testAcc.id())
+	} else if !audienceHas(jt.Claim("aud"), testTa2.id()) {
+		t.Fatal(jt.Claim("aud"), testTa2.id())
+	} else if exp, _ := jt.Claim("exp").(float64); exp < float64(time.Now().Unix()) {
+		t.Fatal(exp, time.Now().Unix())
+	} else if iat, _ := jt.Claim("iat").(float64); iat > float64(time.Now().Unix()) {
+		t.Fatal(iat, time.Now().Unix())
+	}
+}
+
+// 認証リクエストが max_age パラメータを含んでいたら、ID トークンが auth_time クレームを含むか。
+func TestAuthTimeOfIdToken(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer idpSys.close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	cookJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Jar: cookJar}
+
+	if res, err := testFromRequestAuthToGetToken(idpSys, cli, map[string]string{
+		"scope":         "openid email",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+		"redirect_uri":  rediUri,
+		"max_age":       "1",
+	}, map[string]string{
+		"username": testAcc.name(),
+	}, map[string]string{
+		"username": testAcc.name(),
+		"password": testAcc.password(),
+	}, map[string]string{
+		"consented_scope": "openid email",
+	}, map[string]interface{}{
+		"alg": "RS256",
+		"kid": kid,
+	}, map[string]interface{}{
+		"iss": testTa2.id(),
+		"sub": testTa2.id(),
+		"aud": idpSys.selfId + "/token",
+		"jti": strconv.FormatInt(time.Now().UnixNano(), 16),
+		"exp": time.Now().Add(idpSys.idTokExpiDur).Unix(),
+	}, map[string]string{
+		"grant_type":            "authorization_code",
+		"redirect_uri":          rediUri,
+		"client_id":             testTa2.id(),
+		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+	}, kid, sigKey); err != nil {
+		t.Fatal(err)
+	} else if idTok, _ := res["id_token"].(string); idTok == "" {
+		t.Fatal("no id token")
+	} else if jt, err := jwt.Parse(idTok, map[string]interface{}{idpSys.sigKid: idpSys.verifyKey()}, nil); err != nil {
+		t.Fatal(err)
+	} else if at, _ := jt.Claim("auth_time").(float64); at > float64(time.Now().Unix()) {
+		t.Fatal(at, time.Now().Unix())
+	}
+}
+
+// 認証リクエストが nonce パラメータを含んでいたら、ID トークンがその値を nonce クレームとして含むか。
+func TestNonceOfIdToken(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer idpSys.close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	cookJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Jar: cookJar}
+
+	if res, err := testFromRequestAuthToGetToken(idpSys, cli, map[string]string{
+		"scope":         "openid email",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+		"redirect_uri":  rediUri,
+		"nonce":         "nonce nansu",
+	}, map[string]string{
+		"username": testAcc.name(),
+	}, map[string]string{
+		"username": testAcc.name(),
+		"password": testAcc.password(),
+	}, map[string]string{
+		"consented_scope": "openid email",
+	}, map[string]interface{}{
+		"alg": "RS256",
+		"kid": kid,
+	}, map[string]interface{}{
+		"iss": testTa2.id(),
+		"sub": testTa2.id(),
+		"aud": idpSys.selfId + "/token",
+		"jti": strconv.FormatInt(time.Now().UnixNano(), 16),
+		"exp": time.Now().Add(idpSys.idTokExpiDur).Unix(),
+	}, map[string]string{
+		"grant_type":            "authorization_code",
+		"redirect_uri":          rediUri,
+		"client_id":             testTa2.id(),
+		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+	}, kid, sigKey); err != nil {
+		t.Fatal(err)
+	} else if idTok, _ := res["id_token"].(string); idTok == "" {
+		t.Fatal("no id token")
+	} else if jt, err := jwt.Parse(idTok, map[string]interface{}{idpSys.sigKid: idpSys.verifyKey()}, nil); err != nil {
+		t.Fatal(err)
+	} else if nonc, _ := jt.Claim("nonce").(string); nonc != "nonce nansu" {
+		t.Fatal(nonc, "nonce nansu")
+	}
+}
+
+// ID トークンが署名されているか。
+// ついでに at_hash クレームを含むか。
+func TestIdTokenSign(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testTa2, rediUri, kid, sigKey, taServ, idpSys, shutCh, err := setupTestTaAndIdp(nil, nil, []*account{testAcc}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taServ.Close()
+	defer idpSys.close()
+	defer os.RemoveAll(idpSys.uiPath)
+	defer func() { shutCh <- struct{}{} }()
+	// TA にリダイレクトしたときのレスポンスを設定しておく。
+	taServ.AddResponse(http.StatusOK, nil, []byte("success"))
+
+	cookJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Jar: cookJar}
+
+	res, err := testFromRequestAuthToGetToken(idpSys, cli, map[string]string{
+		"scope":         "openid email",
+		"response_type": "code",
+		"client_id":     testTa2.id(),
+		"redirect_uri":  rediUri,
+	}, map[string]string{
+		"username": testAcc.name(),
+	}, map[string]string{
+		"username": testAcc.name(),
+		"password": testAcc.password(),
+	}, map[string]string{
+		"consented_scope": "openid email",
+	}, map[string]interface{}{
+		"alg": "RS256",
+		"kid": kid,
+	}, map[string]interface{}{
+		"iss": testTa2.id(),
+		"sub": testTa2.id(),
+		"aud": idpSys.selfId + "/token",
+		"jti": strconv.FormatInt(time.Now().UnixNano(), 16),
+		"exp": time.Now().Add(idpSys.idTokExpiDur).Unix(),
+	}, map[string]string{
+		"grant_type":            "authorization_code",
+		"redirect_uri":          rediUri,
+		"client_id":             testTa2.id(),
+		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+	}, kid, sigKey)
+	if err != nil {
+		t.Fatal(err)
+	} else if tok, _ := res["access_token"].(string); tok == "" {
+		t.Fatal("no access token")
+	} else if idTok, _ := res["id_token"].(string); idTok == "" {
+		t.Fatal("no id token")
+	}
+	jt, err := jwt.Parse(res["id_token"].(string), map[string]interface{}{idpSys.sigKid: idpSys.verifyKey()}, nil)
+	if err != nil {
+		t.Fatal(err)
+	} else if alg, _ := jt.Header("alg").(string); alg == "" || alg == "none" {
+		t.Fatal("none sign algorithm " + alg)
+	}
+	hGen, err := jwt.HashFunction(jt.Header("alg").(string))
+	if err != nil {
+		t.Fatal(err)
+	}
+	h := hGen.New()
+	h.Write([]byte(res["access_token"].(string)))
+	sum := h.Sum(nil)
+	ah, _ := jt.Claim("at_hash").(string)
+	if ah == "" {
+		t.Fatal("no at_hash")
+	} else if buff, err := jwt.Base64UrlDecodeString(ah); err != nil {
+		t.Fatal(err)
+	} else if !bytes.Equal(buff, sum[:len(sum)/2]) {
+		t.Error(buff)
+		t.Error(sum[:len(sum)/2])
+	}
+}

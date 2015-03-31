@@ -43,6 +43,7 @@ limitations under the License.
 |アカウント情報|/userinfo|アカウント情報を提供する|
 |TA 間連携元|/cooperation/from|TA 間連携の仲介コードを発行する|
 |TA 間連携先|/cooperation/to|TA 間連携の仲介情報を提供する|
+|TA 情報|/tainfo|TA の情報を提供する|
 
 
 ## 2. セッション
@@ -215,8 +216,7 @@ HTTP/1.1 302 Found
 Set-Cookie: X-Edo-Id-Provider=GLeZi5VlD3VVxFgC-0KZQ0F0FKr0VE
     Expires=Tue, 24 Mar 2015 02:00:45 GMT; Path=/; Secure; HttpOnly
 Location: /ui/consent.html?username=dai.fuku&scope=openid&expires_in=3600
-    &client_id=https%3A%2F%2Fta.example.org
-    &client_friendly_name=%E4%BD%95%E3%81%8B%E3%81%AE%20TA#FwJrwq-8S1
+    &client_id=https%3A%2F%2Fta.example.org#FwJrwq-8S1
 ```
 
 改行とインデントは表示の都合による。
@@ -325,7 +325,6 @@ Host: idp.example.org
 |**`optional_claims`**|該当するなら必須|許可が欲しいクレーム|
 |**`expires_in`**|任意|発行されるアクセストークンの有効期間|
 |**`client_id`**|必須|要請元 TA の ID|
-|**`client_friendly_name`**|必須|要請元 TA の名前|
 |**`display`**|任意|[OpenID Connect Core 1.0 Section 3.1.2.1] の `display` と同じもの|
 |**`locales`**|任意|[OpenID Connect Core 1.0 Section 3.1.2.1] の `ui_locales` と同じもの|
 
@@ -336,8 +335,7 @@ UI の目的は、同意エンドポイントに POST させること。
 
 ```http
 GET /ui/consent.html?username=dai.fuku&scope=openid&expires_in=3600
-    &client_id=https%3A%2F%2Fta.example.org
-    &client_friendly_name=%E4%BD%95%E3%81%8B%E3%81%AE%20TA HTTP/1.1
+    &client_id=https%3A%2F%2Fta.example.org HTTP/1.1
 Host: idp.example.org
 ```
 
@@ -382,14 +380,48 @@ TA 間連携の仲介コードを発行する。
 * そうでなければ、仲介コードと引き換えに TA 間連携情報を返す。
 
 
-## 14. エラーレスポンス
+## 14. TA 情報エンドポイント
+
+同意 UI 用に TA の情報を返す。
+
+TA の指定は、TA の ID をパーセントエンコードし、パスにつなげて行う。
+
+TA 情報は以下を最上位要素として含む JSON で返される。
+
+* **`friendly_name`**
+    * 名前。
+      言語タグが付くことがある。
+
+
+### 14.1. リクエスト例
+
+```http
+GET /tainfo/https%3A%2F%2Fta.example.org
+Host: idp.example.org
+```
+
+
+### 14.1. レスポンス例
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+    "friendly_name#en": "That TA",
+    "friendly_name#ja": "あの TA"
+}
+```
+
+
+## 15. エラーレスポンス
 
 [OpenID Connect Core 1.0] と [TA 間連携プロトコル]を参照のこと。
 
 セッションがある場合、セッションとリクエスト内容や各チケットとの紐付けを解く。
 
 
-## 15. 外部データ
+## 16. 外部データ
 
 以下に分ける。
 
@@ -399,10 +431,10 @@ TA 間連携の仲介コードを発行する。
     * 共有するとしてもこのプログラムの別プロセスのみのもの。
 
 
-### 15.1. 共有データ
+### 16.1. 共有データ
 
 
-#### 15.1.1. アカウント情報
+#### 16.1.1. アカウント情報
 
 以下を含む。
 
@@ -423,7 +455,7 @@ TA 間連携の仲介コードを発行する。
 * 名前による取得
 * TA 単位で同意の上書き
 
-#### 15.1.2. TA 情報
+#### 16.1.2. TA 情報
 
 以下を含む。
 
@@ -437,10 +469,10 @@ TA 間連携の仲介コードを発行する。
 * ID による取得
 
 
-### 15.2. 非共有データ
+### 16.2. 非共有データ
 
 
-#### 15.2.1. セッション
+#### 16.2.1. セッション
 
 以下を含む。
 
@@ -466,7 +498,7 @@ TA 間連携の仲介コードを発行する。
     * ID、有効期限以外。
 
 
-#### 15.2.2. 認可コード
+#### 16.2.2. 認可コード
 
 以下を含む。
 
@@ -488,7 +520,7 @@ TA 間連携の仲介コードを発行する。
     * 発行したアクセストークンの ID が未設定の場合のみ成功する。
 
 
-#### 15.2.3. アクセストークン
+#### 16.2.3. アクセストークン
 
 以下を含む。
 
@@ -510,7 +542,7 @@ TA 間連携の仲介コードを発行する。
     * 有効な場合のみ成功する。
 
 
-#### 15.2.4. 仲介コード
+#### 16.2.4. 仲介コード
 
 以下を含む。
 

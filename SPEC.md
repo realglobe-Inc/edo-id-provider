@@ -233,8 +233,8 @@ Location: /ui/consent.html?username=dai.fuku&scope=openid&expires_in=3600
 |パラメータ名|必要性|値|
 |:--|:--|:--|
 |**`ticket`**|必須|同意チケット|
-|**`consented_scope`**|該当するなら必須|空白区切りの許可されたスコープ|
-|**`consented_claims`**|該当するなら必須|空白区切りの許可されたクレーム|
+|**`allowed_scope`**|該当するなら必須|空白区切りの許可されたスコープ|
+|**`allowed_claims`**|該当するなら必須|空白区切りの許可されたクレーム|
 |**`denied_scope`**|該当するなら必須|空白区切りの拒否されたスコープ|
 |**`denied_claims`**|該当するなら必須|空白区切りの拒否されたクレーム|
 |**`locale`**|任意|選択された表示言語|
@@ -252,7 +252,7 @@ Host: idp.example.org
 Cookie: X-Edo-Id-Provider=GLeZi5VlD3VVxFgC-0KZQ0F0FKr0VE
 Content-Type: application/x-www-form-urlencoded
 
-ticket=FwJrwq-8S1&consented_scope=openid
+ticket=FwJrwq-8S1&allowed_scope=openid
 ```
 
 

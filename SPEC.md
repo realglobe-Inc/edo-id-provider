@@ -52,7 +52,7 @@ limitations under the License.
 
 |Cookie 名|値|
 |:--|:--|
-|X-Edo-Id-Provider|セッション ID|
+|Id-Provider|セッション ID|
 
 ユーザー認証、アカウント選択、ログイン、同意エンドポイントへのリクエスト時に、セッション ID が通知されなかった場合、セッションを発行する。
 セッションの期限に余裕がない場合、設定を引き継いだセッションを発行する。
@@ -147,7 +147,7 @@ Location: /ui/select.html#_GCjShrXO9
 ```http
 POST /auth/select HTTP/1.1
 Host: idp.example.org
-Cookie: X-Edo-Id-Provider=gxQyExhR8QojI0Cxx-JVWIhhf_5Ac9
+Cookie: Id-Provider=gxQyExhR8QojI0Cxx-JVWIhhf_5Ac9
 Content-Type: application/x-www-form-urlencoded
 
 ticket=_GCjShrXO9&username=dai.fuku
@@ -200,7 +200,7 @@ Location: /ui/login.html?usernames=%5B%22dai.fuku%22%5D#kpTK-93-AQ
 ```http
 POST /auth/login HTTP/1.1
 Host: idp.example.org
-Cookie: X-Edo-Id-Provider=gxQyExhR8QojI0Cxx-JVWIhhf_5Ac9
+Cookie: Id-Provider=gxQyExhR8QojI0Cxx-JVWIhhf_5Ac9
 Content-Type: application/x-www-form-urlencoded
 
 ticket=kpTK-93-AQ&username=dai.fuku&password=zYdYoFVx4sSc
@@ -213,7 +213,7 @@ ticket=kpTK-93-AQ&username=dai.fuku&password=zYdYoFVx4sSc
 
 ```http
 HTTP/1.1 302 Found
-Set-Cookie: X-Edo-Id-Provider=GLeZi5VlD3VVxFgC-0KZQ0F0FKr0VE
+Set-Cookie: Id-Provider=GLeZi5VlD3VVxFgC-0KZQ0F0FKr0VE
     Expires=Tue, 24 Mar 2015 02:00:45 GMT; Path=/; Secure; HttpOnly
 Location: /ui/consent.html?username=dai.fuku&scope=openid&expires_in=3600
     &client_id=https%3A%2F%2Fta.example.org#FwJrwq-8S1
@@ -249,7 +249,7 @@ Location: /ui/consent.html?username=dai.fuku&scope=openid&expires_in=3600
 ```http
 POST /auth/consent HTTP/1.1
 Host: idp.example.org
-Cookie: X-Edo-Id-Provider=GLeZi5VlD3VVxFgC-0KZQ0F0FKr0VE
+Cookie: Id-Provider=GLeZi5VlD3VVxFgC-0KZQ0F0FKr0VE
 Content-Type: application/x-www-form-urlencoded
 
 ticket=FwJrwq-8S1&allowed_scope=openid

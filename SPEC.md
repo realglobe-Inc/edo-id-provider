@@ -30,7 +30,7 @@ limitations under the License.
 
 ## 1. エンドポイント
 
-|エンドポイント名|初期 URI|機能|
+|エンドポイント名|初期パス|機能|
 |:--|:--|:--|
 |ユーザー認証|/auth|ユーザー認証を開始する|
 |アカウント選択|/auth/select|アカウント選択を受け付ける|
@@ -40,9 +40,10 @@ limitations under the License.
 |ログイン UI|/ui/login.html|ログイン UI を提供する|
 |同意 UI|/ui/consent.html|同意 UI を提供する|
 |アクセストークン|/token|アクセストークンを発行する|
-|ユーザー情報|/userinfo|ユーザー情報を提供する|
+|アカウント情報|/userinfo|アカウント情報を提供する|
 |TA 間連携元|/cooperation/from|TA 間連携の仲介コードを発行する|
-|TA 間連携先|/cooperation/to|TA 間連携情報を提供する|
+|TA 間連携先|/cooperation/to|TA 間連携の仲介情報を提供する|
+|TA 情報|/tainfo|TA の情報を提供する|
 
 
 ## 2. セッション
@@ -51,12 +52,12 @@ limitations under the License.
 
 |Cookie 名|値|
 |:--|:--|
-|X-Edo-Id-Provider|セッション ID|
+|Id-Provider|セッション ID|
 
-ユーザー認証エンドポイントへのリクエスト時に、セッション ID が通知されなかった場合、セッションを発行する。
+ユーザー認証、アカウント選択、ログイン、同意エンドポイントへのリクエスト時に、セッション ID が通知されなかった場合、セッションを発行する。
 セッションの期限に余裕がない場合、設定を引き継いだセッションを発行する。
 
-ユーザー、アカウント選択、ログイン、同意エンドポイントからのレスポンス時に、未通知のセッション ID を通知する。
+ユーザー認証、アカウント選択、ログイン、同意エンドポイントからのレスポンス時に、未通知のセッション ID を通知する。
 
 
 ## 3. ユーザー認証エンドポイント<a name="user-auth-endpoint" />
@@ -92,7 +93,7 @@ limitations under the License.
 GET /auth?response_type=code%20id_token&scope=openid
     &client_id=https%3A%2F%2Fta.example.org
     &redirect_uri=https%3A%2F%2Fta.example.org%2Freturn&state=Ito-lCrO2H
-    &nonce=v46QjbP6Qr HTTP/1.1
+    &nonce=v46QjbP6Qr&prompt=select_account HTTP/1.1
 Host: idp.example.org
 ```
 
@@ -123,7 +124,7 @@ Location: /ui/select.html#_GCjShrXO9
 |:--|:--|:--|
 |**`ticket`**|必須|アカウント選択チケット|
 |**`username`**|必須|選択 / 入力されたアカウント名|
-|**`locale`**|任意|ユーザーが選択した表示言語|
+|**`locale`**|任意|選択された表示言語|
 
 * アカウント選択チケットがセッションに紐付くものと異なる場合、
     * エラーを返す。
@@ -146,7 +147,7 @@ Location: /ui/select.html#_GCjShrXO9
 ```http
 POST /auth/select HTTP/1.1
 Host: idp.example.org
-Cookie: X-Edo-Id-Provider=gxQyExhR8QojI0Cxx-JVWIhhf_5Ac9
+Cookie: Id-Provider=gxQyExhR8QojI0Cxx-JVWIhhf_5Ac9
 Content-Type: application/x-www-form-urlencoded
 
 ticket=_GCjShrXO9&username=dai.fuku
@@ -178,7 +179,7 @@ Location: /ui/login.html?usernames=%5B%22dai.fuku%22%5D#kpTK-93-AQ
 |**`ticket`**|必須|ログインチケット|
 |**`username`**|必須|アカウント名|
 |**`password`**|必須|入力されたパスワード|
-|**`locale`**|任意|ユーザーが選択した表示言語|
+|**`locale`**|任意|選択された表示言語|
 
 * ログインチケットがセッションに紐付くものと異なる場合、
     * エラーを返す。
@@ -199,7 +200,7 @@ Location: /ui/login.html?usernames=%5B%22dai.fuku%22%5D#kpTK-93-AQ
 ```http
 POST /auth/login HTTP/1.1
 Host: idp.example.org
-Cookie: X-Edo-Id-Provider=gxQyExhR8QojI0Cxx-JVWIhhf_5Ac9
+Cookie: Id-Provider=gxQyExhR8QojI0Cxx-JVWIhhf_5Ac9
 Content-Type: application/x-www-form-urlencoded
 
 ticket=kpTK-93-AQ&username=dai.fuku&password=zYdYoFVx4sSc
@@ -212,11 +213,10 @@ ticket=kpTK-93-AQ&username=dai.fuku&password=zYdYoFVx4sSc
 
 ```http
 HTTP/1.1 302 Found
-Set-Cookie: X-Edo-Id-Provider=GLeZi5VlD3VVxFgC-0KZQ0F0FKr0VE
+Set-Cookie: Id-Provider=GLeZi5VlD3VVxFgC-0KZQ0F0FKr0VE
     Expires=Tue, 24 Mar 2015 02:00:45 GMT; Path=/; Secure; HttpOnly
 Location: /ui/consent.html?username=dai.fuku&scope=openid&expires_in=3600
-    &client_id=https%3A%2F%2Fta.example.org
-    &client_friendly_name=%E4%BD%95%E3%81%8B%E3%81%AE%20TA#FwJrwq-8S1
+    &client_id=https%3A%2F%2Fta.example.org#FwJrwq-8S1
 ```
 
 改行とインデントは表示の都合による。
@@ -233,11 +233,11 @@ Location: /ui/consent.html?username=dai.fuku&scope=openid&expires_in=3600
 |パラメータ名|必要性|値|
 |:--|:--|:--|
 |**`ticket`**|必須|同意チケット|
-|**`consented_scope`**|該当するなら必須|許可された空白区切りのスコープ|
-|**`consented_claims`**|該当するなら必須|許可された空白区切りのクレーム|
-|**`denied_scope`**|該当するなら必須|拒否された空白区切りのスコープ|
-|**`denied_claims`**|該当するなら必須|拒否された空白区切りのクレーム|
-|**`locale`**|任意|ユーザーが選択した表示言語|
+|**`allowed_scope`**|該当するなら必須|空白区切りの許可されたスコープ|
+|**`allowed_claims`**|該当するなら必須|空白区切りの許可されたクレーム|
+|**`denied_scope`**|該当するなら必須|空白区切りの拒否されたスコープ|
+|**`denied_claims`**|該当するなら必須|空白区切りの拒否されたクレーム|
+|**`locale`**|任意|選択された表示言語|
 
 * 同意チケットがセッションに紐付くものと異なる、または、必要な許可が得られなかった場合、
     * エラーを返す。
@@ -249,10 +249,10 @@ Location: /ui/consent.html?username=dai.fuku&scope=openid&expires_in=3600
 ```http
 POST /auth/consent HTTP/1.1
 Host: idp.example.org
-Cookie: X-Edo-Id-Provider=GLeZi5VlD3VVxFgC-0KZQ0F0FKr0VE
+Cookie: Id-Provider=GLeZi5VlD3VVxFgC-0KZQ0F0FKr0VE
 Content-Type: application/x-www-form-urlencoded
 
-ticket=FwJrwq-8S1&consented_scope=openid
+ticket=FwJrwq-8S1&allowed_scope=openid
 ```
 
 
@@ -320,13 +320,11 @@ Host: idp.example.org
 |パラメータ名|必要性|値|
 |:--|:--|:--|
 |**`username`**|必須|アカウント名|
-|**`scope`**|該当するなら必須|許可が必要なスコープ|
-|**`optional_scope`**|該当するなら必須|許可が欲しいスコープ|
+|**`scope`**|該当するなら必須|許可が欲しいスコープ|
 |**`claims`**|該当するなら必須|許可が必要なクレーム|
 |**`optional_claims`**|該当するなら必須|許可が欲しいクレーム|
 |**`expires_in`**|任意|発行されるアクセストークンの有効期間|
 |**`client_id`**|必須|要請元 TA の ID|
-|**`client_friendly_name`**|必須|要請元 TA の名前|
 |**`display`**|任意|[OpenID Connect Core 1.0 Section 3.1.2.1] の `display` と同じもの|
 |**`locales`**|任意|[OpenID Connect Core 1.0 Section 3.1.2.1] の `ui_locales` と同じもの|
 
@@ -337,8 +335,7 @@ UI の目的は、同意エンドポイントに POST させること。
 
 ```http
 GET /ui/consent.html?username=dai.fuku&scope=openid&expires_in=3600
-    &client_id=https%3A%2F%2Fta.example.org
-    &client_friendly_name=%E4%BD%95%E3%81%8B%E3%81%AE%20TA HTTP/1.1
+    &client_id=https%3A%2F%2Fta.example.org HTTP/1.1
 Host: idp.example.org
 ```
 
@@ -353,14 +350,14 @@ Host: idp.example.org
 * そうでなければ、認可コードと引き換えにアクセストークン等を発行する。
 
 
-## 11. ユーザー情報エンドポイント
+## 11. アカウント情報エンドポイント
 
-ユーザー情報を提供する。
+アカウント情報を提供する。
 [OpenID Connect Core 1.0] を参照のこと。
 
 * リクエストに問題がある場合、
     * エラーを返す。
-* そうでなければ、アクセストークンに紐付くユーザー情報を返す。
+* そうでなければ、アクセストークンに紐付くアカウント情報を返す。
 
 
 ## 12. TA 間連携元エンドポイント
@@ -383,14 +380,48 @@ TA 間連携の仲介コードを発行する。
 * そうでなければ、仲介コードと引き換えに TA 間連携情報を返す。
 
 
-## 14. エラーレスポンス
+## 14. TA 情報エンドポイント
+
+同意 UI 用に TA の情報を返す。
+
+TA の指定は、TA の ID をパーセントエンコードし、パスにつなげて行う。
+
+TA 情報は以下を最上位要素として含む JSON で返される。
+
+* **`friendly_name`**
+    * 名前。
+      言語タグが付くことがある。
+
+
+### 14.1. リクエスト例
+
+```http
+GET /tainfo/https%3A%2F%2Fta.example.org
+Host: idp.example.org
+```
+
+
+### 14.1. レスポンス例
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+    "friendly_name#en": "That TA",
+    "friendly_name#ja": "あの TA"
+}
+```
+
+
+## 15. エラーレスポンス
 
 [OpenID Connect Core 1.0] と [TA 間連携プロトコル]を参照のこと。
 
 セッションがある場合、セッションとリクエスト内容や各チケットとの紐付けを解く。
 
 
-## 15. 外部データ
+## 16. 外部データ
 
 以下に分ける。
 
@@ -400,25 +431,31 @@ TA 間連携の仲介コードを発行する。
     * 共有するとしてもこのプログラムの別プロセスのみのもの。
 
 
-### 15.1. 共有データ
+### 16.1. 共有データ
 
 
-#### 15.1.1. アカウント情報
+#### 16.1.1. アカウント情報
 
 以下を含む。
 
 * ID
 * 名前
-* パスワード（ソルトとハッシュ値）
+* パスワード
+    * ソルト
+    * ハッシュ値
 * 同意
+* 属性
+    * TA ごとに
+        * 許可スコープ
+        * 許可クレーム
 
 以下の操作が必要。
 
 * ID による取得
 * 名前による取得
-* 同意の上書き
+* TA 単位で同意の上書き
 
-#### 15.1.2. TA 情報
+#### 16.1.2. TA 情報
 
 以下を含む。
 
@@ -432,18 +469,18 @@ TA 間連携の仲介コードを発行する。
 * ID による取得
 
 
-### 15.2. 非共有データ
+### 16.2. 非共有データ
 
 
-#### 15.2.1. セッション
+#### 16.2.1. セッション
 
 以下を含む。
 
-* ID
-* 有効期限
+* ID \*
+* 有効期限 \*
 * アカウント
     * ID
-    * ログイン済みか
+    * ログイン済みか \*
 * リクエスト内容
 * アカウント選択チケット
 * ログインチケット
@@ -451,65 +488,80 @@ TA 間連携の仲介コードを発行する。
 * 過去にログインしたアカウントの ID
 * UI 表示言語
 
+\* は設定を引き継がない。
+
 以下の操作が必要。
 
 * 保存
 * ID による取得
 * 上書き
+    * ID、有効期限以外。
 
 
-#### 15.2.2. 認可コード
+#### 16.2.2. 認可コード
 
 以下を含む。
 
 * ID
 * 有効期限
-* ユーザー ID
+* アカウント ID
 * 許可スコープ
 * 許可クレーム
 * 要請元 TA の ID
 * リダイレクト URI
 * `nonce` 値
+* 発行したアクセストークンの ID
 
 以下の操作が必要。
 
 * 保存
 * ID による取得
+* 発行したアクセストークンの ID の設定
+    * 発行したアクセストークンの ID が未設定の場合のみ成功する。
 
 
-#### 15.2.3. アクセストークン
+#### 16.2.3. アクセストークン
 
 以下を含む。
 
 * ID
+* 有効 / 無効
 * 有効期限
-* ユーザー ID
+* アカウント ID
 * 許可スコープ
 * 許可クレーム
 * 要請元 TA の ID
+* 発行したアクセストークンの ID
 
 以下の操作が必要。
 
 * 保存
 * ID による取得
+* 無効化
+* 発行したアクセストークンの ID の追加
+    * 有効な場合のみ成功する。
 
 
-#### 15.2.4. 仲介コード
+#### 16.2.4. 仲介コード
 
 以下を含む。
 
 * ID
 * 有効期限
-* 主体ユーザーの ID
+* 主体アカウントの ID
 * 許可スコープ
-* 関連ユーザーの ID
+* アクセストークンの有効期限
+* 関連アカウントの ID
 * 要請元 TA の ID
 * 要請先 TA の ID
+* 発行したアクセストークンの ID
 
 以下の操作が必要。
 
 * 保存
 * ID による取得
+* 発行したアクセストークンの ID の設定
+    * 発行したアクセストークンの ID が未設定の場合のみ成功する。
 
 
 <!-- 参照 -->

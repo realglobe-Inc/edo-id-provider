@@ -37,8 +37,8 @@ func getTaStamp(val interface{}) *driver.Stamp {
 }
 
 // スレッドセーフ。
-func newMongoTaContainer(url, dbName, collName string, staleDur, expiDur time.Duration) taContainer {
-	return &taContainerImpl{driver.NewMongoKeyValueStore(url, dbName, collName,
+func newMongoTaContainer(sess *mgo.Session, dbName, collName string, staleDur, expiDur time.Duration) taContainer {
+	return &taContainerImpl{driver.NewMongoKeyValueStore(sess, dbName, collName,
 		"id", nil, nil, readTa, getTaStamp,
 		staleDur, expiDur)}
 }

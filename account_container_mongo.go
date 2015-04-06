@@ -42,12 +42,12 @@ type mongoAccountContainer struct {
 }
 
 // スレッドセーフ。
-func newMongoAccountContainer(url, dbName, collName string, staleDur, expiDur time.Duration) accountContainer {
+func newMongoAccountContainer(sess *mgo.Session, dbName, collName string, staleDur, expiDur time.Duration) accountContainer {
 	return &mongoAccountContainer{
-		driver.NewMongoKeyValueStore(url, dbName, collName,
+		driver.NewMongoKeyValueStore(sess, dbName, collName,
 			"id", nil, nil, readAccount, getAccountStamp,
 			staleDur, expiDur),
-		driver.NewMongoKeyValueStore(url, dbName, collName,
+		driver.NewMongoKeyValueStore(sess, dbName, collName,
 			"username", nil, nil, readAccount, getAccountStamp,
 			staleDur, expiDur),
 	}

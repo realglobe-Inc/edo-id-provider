@@ -22,6 +22,7 @@ import (
 	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"github.com/realglobe-Inc/go-lib/rglog"
+	"gopkg.in/mgo.v2"
 	"net/http"
 	"os"
 	"time"
@@ -79,13 +80,22 @@ func mainCore(param *parameters) error {
 	)
 	redPools := map[string]*redis.Pool{} // 同じ redis-server ならコネクションプールを共有する。
 
+	mgoPools := map[string]*mgo.Session{} // 同じ mongodb ならコネクションプールを共有する。
+
 	var taCont taContainer
 	switch param.taContType {
 	case "file":
 		taCont = newFileTaContainer(param.taContPath, param.caStaleDur, param.caExpiDur)
 		log.Info("Use file TA container " + param.taContPath)
 	case "mongo":
-		taCont = newMongoTaContainer(param.taContUrl, param.taContDb, param.taContColl, param.caStaleDur, param.caExpiDur)
+		if mgoPools[param.taContUrl] == nil {
+			mgoPools[param.taContUrl], err = mgo.Dial(param.taContUrl)
+			if err != nil {
+				return erro.Wrap(err)
+			}
+			defer mgoPools[param.taContUrl].Close()
+		}
+		taCont = newMongoTaContainer(mgoPools[param.taContUrl], param.taContDb, param.taContColl, param.caStaleDur, param.caExpiDur)
 		log.Info("Use mongodb TA container " + param.taContUrl)
 	default:
 		return erro.New("invalid TA container type " + param.taContType)
@@ -97,7 +107,14 @@ func mainCore(param *parameters) error {
 		accCont = newFileAccountContainer(param.accContPath, param.accNameContPath, param.caStaleDur, param.caExpiDur)
 		log.Info("Use file account container " + param.accContPath + "," + param.accNameContPath)
 	case "mongo":
-		accCont = newMongoAccountContainer(param.accContUrl, param.accContDb, param.accContColl, param.caStaleDur, param.caExpiDur)
+		if mgoPools[param.accContUrl] == nil {
+			mgoPools[param.accContUrl], err = mgo.Dial(param.accContUrl)
+			if err != nil {
+				return erro.Wrap(err)
+			}
+			defer mgoPools[param.accContUrl].Close()
+		}
+		accCont = newMongoAccountContainer(mgoPools[param.accContUrl], param.accContDb, param.accContColl, param.caStaleDur, param.caExpiDur)
 		log.Info("Use mongodb account container " + param.accContUrl)
 	default:
 		return erro.New("invalid account container type " + param.accContType)
@@ -109,7 +126,14 @@ func mainCore(param *parameters) error {
 		consCont = newFileConsentContainer(param.consContPath, param.caStaleDur, param.caExpiDur)
 		log.Info("Use file consent container " + param.consContPath)
 	case "mongo":
-		consCont = newMongoConsentContainer(param.consContUrl, param.consContDb, param.consContColl, param.caStaleDur, param.caExpiDur)
+		if mgoPools[param.consContUrl] == nil {
+			mgoPools[param.consContUrl], err = mgo.Dial(param.consContUrl)
+			if err != nil {
+				return erro.Wrap(err)
+			}
+			defer mgoPools[param.consContUrl].Close()
+		}
+		consCont = newMongoConsentContainer(mgoPools[param.consContUrl], param.consContDb, param.consContColl, param.caStaleDur, param.caExpiDur)
 		log.Info("Use mongodb consent container " + param.consContUrl)
 	default:
 		return erro.New("invalid consent container type " + param.consContType)

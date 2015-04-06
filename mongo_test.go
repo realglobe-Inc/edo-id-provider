@@ -16,6 +16,7 @@ package main
 
 import (
 	"gopkg.in/mgo.v2"
+	"time"
 )
 
 // テストするなら、mongodb をたてる必要あり。
@@ -25,7 +26,7 @@ func init() {
 	if mongoAddr != "" {
 		// 実際にサーバーが立っているかどうか調べる。
 		// 立ってなかったらテストはスキップ。
-		conn, err := mgo.Dial(mongoAddr)
+		conn, err := mgo.DialWithTimeout(mongoAddr, time.Second)
 		if err != nil {
 			mongoAddr = ""
 		} else {

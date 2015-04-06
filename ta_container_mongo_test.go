@@ -35,5 +35,5 @@ func TestMongoTaContainer(t *testing.T) {
 	defer sess.Close()
 	defer sess.DB(testLabel).C("edo-id-provider").DropCollection()
 
-	testTaContainer(t, newMongoTaContainer(mongoAddr, testLabel, "edo-id-provider", testStaleDur, testCaExpiDur))
+	testTaContainer(t, newMongoTaContainer(sess, testLabel, "edo-id-provider", testStaleDur, testCaExpiDur))
 }

@@ -42,9 +42,9 @@ type mongoConsentContainer struct {
 }
 
 // スレッドセーフ。
-func newMongoConsentContainer(url, dbName, collName string, staleDur, expiDur time.Duration) consentContainer {
+func newMongoConsentContainer(sess *mgo.Session, dbName, collName string, staleDur, expiDur time.Duration) consentContainer {
 	return &mongoConsentContainer{
-		driver.NewMongoNKeyValueStore(url, dbName, collName,
+		driver.NewMongoNKeyValueStore(sess, dbName, collName,
 			[]string{"account", "client_id"}, nil, nil, readConsent, getConsentStamp,
 			staleDur, expiDur),
 	}

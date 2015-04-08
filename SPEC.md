@@ -178,12 +178,14 @@ Location: /ui/login.html?usernames=%5B%22dai.fuku%22%5D#kpTK-93-AQ
 |:--|:--|:--|
 |**`ticket`**|必須|ログインチケット|
 |**`username`**|必須|アカウント名|
-|**`password`**|必須|入力されたパスワード|
+|**`passwd_type`**|必須|パスワードの形式|
 |**`locale`**|任意|選択された表示言語|
+
+パスワード形式に従って追加のパラメータも取り出す。
 
 * ログインチケットがセッションに紐付くものと異なる場合、
     * エラーを返す。
-* そうでなく、アカウントが正当でない場合、
+* そうでなく、アカウントとパスワードが正当でない場合、
     * 試行回数が閾値以下の場合、
         * ログイン UI にリダイレクトさせる。
     * そうでなければ、エラーを返す。
@@ -195,7 +197,33 @@ Location: /ui/login.html?usernames=%5B%22dai.fuku%22%5D#kpTK-93-AQ
 * そうでなければ、要請元 TA にリダイレクトさせる。
 
 
-### 5.1. リクエスト例
+### 5.1. パスワード形式
+
+以下の形式を許可する。
+
+* `SHA256`
+
+
+#### 5.1.1. SHA256
+
+以下のパラメータを追加する。
+
+|パラメータ名|必要性|値|
+|:--|:--|:--|
+|**`password`**|必須|アカウント名と入力されたパスワードから計算されたハッシュ値|
+
+ハッシュ値は次のように計算する。
+アカウント名とパスワードをヌル文字で連結したバイト列をつくる。
+それを SHA-256 ハッシュ関数の入力にする。
+出力されたバイト列を Base64URL エンコードする。
+できた文字列が求めるハッシュ値である。
+
+```
+Base64URLEncode(SHA-256(<アカウント名> || <ヌル文字> || <パスワード>))
+```
+
+
+### 5.2. リクエスト例
 
 ```http
 POST /auth/login HTTP/1.1
@@ -203,11 +231,13 @@ Host: idp.example.org
 Cookie: Id-Provider=gxQyExhR8QojI0Cxx-JVWIhhf_5Ac9
 Content-Type: application/x-www-form-urlencoded
 
-ticket=kpTK-93-AQ&username=dai.fuku&password=zYdYoFVx4sSc
+ticket=kpTK-93-AQ&username=dai.fuku&passwd_type=SHA256&password=6lZEBsm-Cn9C_LzShjUHPtVAWr9xyi6akYUjnMbfDJw
 ```
 
+ユーザーが入力したパスワードは zYdYoFVx4sSc である。
 
-### 5.2. レスポンス例
+
+### 5.3. レスポンス例
 
 同意 UI へのリダイレクト例。
 
@@ -441,8 +471,9 @@ Content-Type: application/json
 * ID
 * 名前
 * パスワード
-    * ソルト
-    * ハッシュ値
+    * パスワード形式
+    * ソルト（`SHA256` なら）
+    * ハッシュ値（`SHA256` なら）
 * 同意
 * 属性
     * TA ごとに

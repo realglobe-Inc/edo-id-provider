@@ -15,15 +15,13 @@ limitations under the License.
 -->
 
 
-edo-id-provider
-===
+# edo-id-provider
 
 IdP。
 アカウント認証サーバー。
 
 
-起動
----
+## 1. 起動
 
 UI 用の HTML 等を html ディレクトリの下に置く。
 
@@ -40,8 +38,7 @@ UI 用の HTML 等を html ディレクトリの下に置く。
 |-uiPath|UI 用 HTML 等を置くディレクトリパス。初期値は実行ファイルディレクトリにある html ディレクトリ|
 
 
-URI
----
+## 2. URI
 
 |URI|機能|
 |:--|:--|
@@ -56,7 +53,7 @@ URI
 |/userinfo|アカウント情報を提供する|
 
 
-### GET /auth
+### 2.1. GET /auth
 
 ユーザー認証・認可を始める。
 
@@ -64,22 +61,22 @@ URI
 違いは認可コードの形式が一部指定されていること。
 
 
-### POST /auth/select
+### 2.2. POST /auth/select
 
 username フォームパラメータでアカウント名を受け取り、ユーザー認証・認可を続ける。
 
 
-### POST /auth/login
+### 2.3. POST /auth/login
 
 username と passwd フォームパラメータでアカウント名とパスワードを受け取り、ユーザー認証・認可を続ける。
 
 
-### POST /auth/consent
+### 2.4. POST /auth/consent
 
 フォームパラメータで同意情報を受け取り、ユーザー認証・認可を続ける。
 
 
-### GET /html/select.html#{ticket}
+### 2.5. GET /html/select.html#{ticket}
 
 アカウント選択 UI 用の HTML を提供する。
 目的は、以下のパラメータを /auth/select に POST させること。
@@ -99,7 +96,7 @@ username と passwd フォームパラメータでアカウント名とパスワ
 |usernames|候補となるアカウント名。JSON 配列|
 
 
-### GET /html/login.html#{ticket}
+### 2.6. GET /html/login.html#{ticket}
 
 ログイン UI 用の HTML を提供する。
 目的は、以下のパラメータを /auth/login に POST させること。
@@ -120,7 +117,7 @@ username と passwd フォームパラメータでアカウント名とパスワ
 |usernames|候補となるアカウント名。JSON 配列|
 
 
-### GET /html/consent.html#{ticket}
+### 2.7. GET /html/consent.html#{ticket}
 
 同意 UI 用の HTML を提供する。
 目的は、以下のパラメータを /auth/consent に POST させること。
@@ -148,7 +145,7 @@ username と passwd フォームパラメータでアカウント名とパスワ
 |username|アカウント名|
 
 
-### POST /token
+### 2.8. POST /token
 
 アクセストークンを発行する。
 
@@ -156,13 +153,13 @@ username と passwd フォームパラメータでアカウント名とパスワ
 違いはトークンリクエスト時に署名によるクライアント認証を強制する点。
 
 
-#### GET /userinfo
+### 2.9. GET /userinfo
 
 ユーザー情報を提供する。
 
 動作は OpenID Provider とほぼ同じ。
 
 
-## ライセンス
+## 3. ライセンス
 
 Apache License, Version 2.0

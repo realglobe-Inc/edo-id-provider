@@ -333,7 +333,7 @@ Host: idp.example.org
 UI の目的は、ログインエンドポイントに POST させること。
 
 
-### 8.1 リクエスト例
+### 8.1. リクエスト例
 
 ```http
 GET /ui/login.html?usernames=%5B%22dai.fuku%22%5D HTTP/1.1
@@ -431,7 +431,7 @@ Host: idp.example.org
 ```
 
 
-### 14.1. レスポンス例
+### 14.2. レスポンス例
 
 ```http
 HTTP/1.1 200 OK

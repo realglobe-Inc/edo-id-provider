@@ -17,7 +17,7 @@ limitations under the License.
 
 # edo-id-provider の仕様（目標）
 
-[OpenID Connect Core 1.0] も参照のこと。
+[ユーザー認証プロトコル]と [TA 間連携プロトコル]も参照のこと。
 
 以降の動作記述において、箇条書きに以下の構造を持たせることがある。
 
@@ -39,11 +39,11 @@ limitations under the License.
 |アカウント選択 UI|/ui/select.html|アカウント選択 UI を提供する|
 |ログイン UI|/ui/login.html|ログイン UI を提供する|
 |同意 UI|/ui/consent.html|同意 UI を提供する|
-|アクセストークン|/token|アクセストークンを発行する|
-|アカウント情報|/userinfo|アカウント情報を提供する|
-|TA 間連携元|/cooperation/from|TA 間連携の仲介コードを発行する|
-|TA 間連携先|/cooperation/to|TA 間連携の仲介情報を提供する|
-|TA 情報|/tainfo|TA の情報を提供する|
+|TA 情報|/api/info/ta|UI 用に TA の情報を提供する|
+|アクセストークン|/api/token|アクセストークンを発行する|
+|アカウント情報|/api/info/user|アカウント情報を提供する|
+|TA 間連携元|/api/cooperation/from|TA 間連携の仲介コードを発行する|
+|TA 間連携先|/api/cooperation/to|TA 間連携の仲介情報を提供する|
 
 
 ## 2. セッション
@@ -54,10 +54,25 @@ limitations under the License.
 |:--|:--|
 |Id-Provider|セッション ID|
 
-ユーザー認証、アカウント選択、ログイン、同意エンドポイントへのリクエスト時に、セッション ID が通知されなかった場合、セッションを発行する。
-セッションの期限に余裕がない場合、設定を引き継いだセッションを発行する。
+ユーザー認証、アカウント選択、ログイン、同意エンドポイントへのリクエスト時に、有効なセッションが宣言されなかった場合、セッションを発行する。
+ユーザー認証エンドポイントでは、セッションの期限に余裕がない場合、設定を引き継いだセッションを発行する。
 
 ユーザー認証、アカウント選択、ログイン、同意エンドポイントからのレスポンス時に、未通知のセッション ID を通知する。
+
+||利用|新規発行|引き継ぎ発行|
+|:--|:--:|:--:|:--:|
+|ユーザー認証|yes|yes|yes|
+|アカウント選択|yes|yes|no|
+|ログイン|yes|yes|no|
+|同意|yes|yse|no|
+|アカウント選択 UI|-|no|no|
+|ログイン UI|-|no|no|
+|同意 UI|-|no|no|
+|TA 情報|-|no|no|
+|アクセストークン|no|no|no|
+|アカウント情報|no|no|no|
+|TA 間連携元|no|no|no|
+|TA 間連携先|no|no|no|
 
 
 ## 3. ユーザー認証エンドポイント<a name="user-auth-endpoint" />
@@ -82,8 +97,8 @@ limitations under the License.
 チケットをセッションに紐付ける。
 チケットをフラグメントとして付加した UI エンドポイントにリダイレクトさせる。
 
-エラーでない要請元 TA へのリダイレクト時には、セッションとリクエスト内容や各チケットとの紐付けを解く。
-認可コード等を発行する。
+エラーでない要請元 TA へのリダイレクト時には、セッションからリクエスト内容と各チケットへの紐付けを解く。
+認可コードや ID トークンを発行する。
 それらを付加したリダイレクト URI にリダイレクトさせる。
 
 
@@ -123,12 +138,12 @@ Location: /ui/select.html#_GCjShrXO9
 |パラメータ名|必要性|値|
 |:--|:--|:--|
 |**`ticket`**|必須|アカウント選択チケット|
-|**`username`**|必須|選択 / 入力されたアカウント名|
+|**`username`**|必須|選択 / 入力されたアカウントのログイン名|
 |**`locale`**|任意|選択された表示言語|
 
 * アカウント選択チケットがセッションに紐付くものと異なる場合、
     * エラーを返す。
-* そうでなく、アカウント名が正当でない場合、
+* そうでなく、アカウントのログイン名が正当でない場合、
     * 試行回数が閾値以下の場合、
         * アカウント選択 UI にリダイレクトさせる。
     * そうでなければ、エラーを返す。
@@ -177,7 +192,7 @@ Location: /ui/login.html?usernames=%5B%22dai.fuku%22%5D#kpTK-93-AQ
 |パラメータ名|必要性|値|
 |:--|:--|:--|
 |**`ticket`**|必須|ログインチケット|
-|**`username`**|必須|アカウント名|
+|**`username`**|必須|アカウントのログイン名|
 |**`passwd_type`**|必須|パスワードの形式|
 |**`locale`**|任意|選択された表示言語|
 
@@ -189,8 +204,7 @@ Location: /ui/login.html?usernames=%5B%22dai.fuku%22%5D#kpTK-93-AQ
     * 試行回数が閾値以下の場合、
         * ログイン UI にリダイレクトさせる。
     * そうでなければ、エラーを返す。
-* そうでなければ、設定を引き継いだセッションを発行する。
-  セッションをログイン済みにする。
+* そうでなければ、セッションをログイン済みにする。
 
 * 同意が必要な場合（[ユーザー認証エンドポイント]を参照）、
     * 同意 UI エンドポイントにリダイレクトさせる。
@@ -201,26 +215,16 @@ Location: /ui/login.html?usernames=%5B%22dai.fuku%22%5D#kpTK-93-AQ
 
 以下の形式を許可する。
 
-* `SHA256`
+* `STR43`
 
 
-#### 5.1.1. SHA256
+#### 5.1.1. STR43
 
 以下のパラメータを追加する。
 
 |パラメータ名|必要性|値|
 |:--|:--|:--|
-|**`password`**|必須|アカウント名と入力されたパスワードから計算されたハッシュ値|
-
-ハッシュ値は次のように計算する。
-アカウント名とパスワードをヌル文字で連結したバイト列をつくる。
-それを SHA-256 ハッシュ関数の入力にする。
-出力されたバイト列を Base64URL エンコードする。
-できた文字列が求めるハッシュ値である。
-
-```
-Base64URLEncode(SHA-256(<アカウント名> || <ヌル文字> || <パスワード>))
-```
+|**`password`**|必須|43 文字の文字列|
 
 
 ### 5.2. リクエスト例
@@ -231,10 +235,11 @@ Host: idp.example.org
 Cookie: Id-Provider=gxQyExhR8QojI0Cxx-JVWIhhf_5Ac9
 Content-Type: application/x-www-form-urlencoded
 
-ticket=kpTK-93-AQ&username=dai.fuku&passwd_type=SHA256&password=6lZEBsm-Cn9C_LzShjUHPtVAWr9xyi6akYUjnMbfDJw
+ticket=kpTK-93-AQ&username=dai.fuku&passwd_type=STR43
+&password=6lZEBsm-Cn9C_LzShjUHPtVAWr9xyi6akYUjnMbfDJw
 ```
 
-ユーザーが入力したパスワードは zYdYoFVx4sSc である。
+改行は表示の都合による。
 
 
 ### 5.3. レスポンス例
@@ -243,8 +248,6 @@ ticket=kpTK-93-AQ&username=dai.fuku&passwd_type=SHA256&password=6lZEBsm-Cn9C_LzS
 
 ```http
 HTTP/1.1 302 Found
-Set-Cookie: Id-Provider=GLeZi5VlD3VVxFgC-0KZQ0F0FKr0VE
-    Expires=Tue, 24 Mar 2015 02:00:45 GMT; Path=/; Secure; HttpOnly
 Location: /ui/consent.html?username=dai.fuku&scope=openid&expires_in=3600
     &client_id=https%3A%2F%2Fta.example.org#FwJrwq-8S1
 ```
@@ -279,7 +282,7 @@ Location: /ui/consent.html?username=dai.fuku&scope=openid&expires_in=3600
 ```http
 POST /auth/consent HTTP/1.1
 Host: idp.example.org
-Cookie: Id-Provider=GLeZi5VlD3VVxFgC-0KZQ0F0FKr0VE
+Cookie: Id-Provider=gxQyExhR8QojI0Cxx-JVWIhhf_5Ac9
 Content-Type: application/x-www-form-urlencoded
 
 ticket=FwJrwq-8S1&allowed_scope=openid
@@ -309,7 +312,8 @@ Location: https://ta.example.org/return?code=AFnKabazoCv99dVErDtxs5RYVmwh6R
 
 |パラメータ名|必要性|値|
 |:--|:--|:--|
-|**`usernames`**|任意|候補になるアカウント名の JSON 配列|
+|**`issuer`**|任意|IdP の ID|
+|**`usernames`**|任意|候補になるアカウントのログイン名の JSON 配列|
 |**`display`**|任意|[OpenID Connect Core 1.0 Section 3.1.2.1] の `display` と同じもの|
 |**`locales`**|任意|[OpenID Connect Core 1.0 Section 3.1.2.1] の `ui_locales` と同じもの|
 
@@ -329,8 +333,18 @@ Host: idp.example.org
 ログイン用の UI を提供する。
 
 アカウント選択 UI と同じパラメータを受け付ける。
+ただし、`issuer` を必須にする。
 
 UI の目的は、ログインエンドポイントに POST させること。
+`password` の値は次のように計算する。
+IdP の ID、アカウントのログイン名、入力されたパスワードをヌル文字で連結したバイト列をつくる。
+それを SHA-256 ハッシュ関数の入力にする。
+出力されたバイト列を Base64URL エンコードする。
+できた文字列を `password` の値にする。
+
+```
+Base64URLEncode(SHA-256(<IdP の ID> || <ヌル文字> || <アカウントのログイン名> || <ヌル文字> || <パスワード>))
+```
 
 
 ### 8.1. リクエスト例
@@ -349,7 +363,8 @@ Host: idp.example.org
 
 |パラメータ名|必要性|値|
 |:--|:--|:--|
-|**`username`**|必須|アカウント名|
+|**`issuer`**|任意|IdP の ID|
+|**`username`**|必須|アカウントのログイン名|
 |**`scope`**|該当するなら必須|許可が欲しいスコープ|
 |**`claims`**|該当するなら必須|許可が必要なクレーム|
 |**`optional_claims`**|該当するなら必須|許可が欲しいクレーム|
@@ -370,47 +385,7 @@ Host: idp.example.org
 ```
 
 
-## 10. アクセストークンエンドポイント
-
-アクセストークンを発行する。
-[OpenID Connect Core 1.0] を参照のこと。
-
-* リクエストに問題がある、または、要請元 TA に問題がある場合、
-    * エラーを返す。
-* そうでなければ、認可コードと引き換えにアクセストークン等を発行する。
-
-
-## 11. アカウント情報エンドポイント
-
-アカウント情報を提供する。
-[OpenID Connect Core 1.0] を参照のこと。
-
-* リクエストに問題がある場合、
-    * エラーを返す。
-* そうでなければ、アクセストークンに紐付くアカウント情報を返す。
-
-
-## 12. TA 間連携元エンドポイント
-
-TA 間連携の仲介コードを発行する。
-[TA 間連携プロトコル]を参照のこと。
-
-* リクエストに問題がある、または、要請元 TA に問題がある場合、
-    * エラーを返す。
-* そうでなければ、仲介コードを発行する。
-
-
-## 13. TA 間連携先エンドポイント
-
-仲介コードと引き換えに TA 間連携情報を提供する。
-[TA 間連携プロトコル]を参照のこと。
-
-* リクエストに問題がある、または、要請元 TA に問題がある場合、
-    * エラーを返す。
-* そうでなければ、仲介コードと引き換えに TA 間連携情報を返す。
-
-
-## 14. TA 情報エンドポイント
+## 10. TA 情報エンドポイント
 
 同意 UI 用に TA の情報を返す。
 
@@ -423,15 +398,15 @@ TA 情報は以下を最上位要素として含む JSON で返される。
       言語タグが付くことがある。
 
 
-### 14.1. リクエスト例
+### 10.1. リクエスト例
 
 ```http
-GET /tainfo/https%3A%2F%2Fta.example.org
+GET /api/info/ta/https%3A%2F%2Fta.example.org
 Host: idp.example.org
 ```
 
 
-### 14.2. レスポンス例
+### 10.2. レスポンス例
 
 ```http
 HTTP/1.1 200 OK
@@ -444,11 +419,51 @@ Content-Type: application/json
 ```
 
 
+## 11. アクセストークンエンドポイント
+
+アクセストークンを発行する。
+[OpenID Connect Core 1.0] を参照のこと。
+
+* リクエストに問題がある、または、要請元 TA に問題がある場合、
+    * エラーを返す。
+* そうでなければ、認可コードと引き換えにアクセストークン等を発行する。
+
+
+## 12. アカウント情報エンドポイント
+
+アカウント情報を提供する。
+[OpenID Connect Core 1.0] を参照のこと。
+
+* リクエストに問題がある場合、
+    * エラーを返す。
+* そうでなければ、アクセストークンに紐付くアカウント情報を返す。
+
+
+## 13. TA 間連携元エンドポイント
+
+TA 間連携の仲介コードを発行する。
+[TA 間連携プロトコル]を参照のこと。
+
+* リクエストに問題がある、または、要請元 TA に問題がある場合、
+    * エラーを返す。
+* そうでなければ、仲介コードを発行する。
+
+
+## 14. TA 間連携先エンドポイント
+
+仲介コードと引き換えに TA 間連携情報を提供する。
+[TA 間連携プロトコル]を参照のこと。
+
+* リクエストに問題がある、または、要請元 TA に問題がある場合、
+    * エラーを返す。
+* そうでなければ、仲介コードと引き換えに TA 間連携情報を返す。
+
+
 ## 15. エラーレスポンス
 
 [OpenID Connect Core 1.0] と [TA 間連携プロトコル]を参照のこと。
 
-セッションがある場合、セッションとリクエスト内容や各チケットとの紐付けを解く。
+セッションがある場合、セッションからリクエスト内容と各チケットへの紐付けを解く。
 
 
 ## 16. 外部データ
@@ -469,21 +484,22 @@ Content-Type: application/json
 以下を含む。
 
 * ID
-* 名前
+* ログイン名
 * パスワード
     * パスワード形式
-    * ソルト（`SHA256` なら）
-    * ハッシュ値（`SHA256` なら）
+    * ソルト（`STR43` なら）
+    * ハッシュ値（`STR43` なら）
 * 同意
-* 属性
-    * TA ごとに
+    * TA 集
+        * ID
         * 許可スコープ
-        * 許可クレーム
+        * 許可属性（クレーム）
+* 属性
 
 以下の操作が必要。
 
 * ID による取得
-* 名前による取得
+* ログイン名による取得
 * TA 単位で同意の上書き
 
 #### 16.1.2. TA 情報
@@ -491,13 +507,32 @@ Content-Type: application/json
 以下を含む。
 
 * ID
-* 名前
+* 表示名
 * リダイレクト URI
 * 検証鍵
 
 以下の操作が必要。
 
 * ID による取得
+
+
+#### 16.1.3. TA 固有のアカウント ID
+
+TA 固有のアカウント ID を使う場合のみ。
+TA 間連携プロトコルで逆引きが必要になる。
+
+以下を含む。
+
+* アカウント ID
+* TA の ID
+* TA 固有のアカウント ID
+
+以下の操作が必要。
+
+* 保存
+* TA の ID と TA 固有のアカウント ID による取得
+* TA の ID による削除
+* アカウント ID による削除
 
 
 ### 16.2. 非共有データ
@@ -511,12 +546,16 @@ Content-Type: application/json
 * 有効期限 \*
 * アカウント
     * ID
+    * ログイン名
     * ログイン済みか \*
 * リクエスト内容
 * アカウント選択チケット
 * ログインチケット
 * 同意チケット
-* 過去にログインしたアカウントの ID
+* 過去にログインしたアカウント集
+    * ID
+    * ログイン名
+    * ログイン済みか \*
 * UI 表示言語
 
 \* は設定を引き継がない。
@@ -584,7 +623,7 @@ Content-Type: application/json
     * タグ
 * 許可スコープ
 * アクセストークンの有効期限
-* 関連アカウント
+* 関連アカウント集
     * ID
     * タグ
 * 要請元 TA の ID
@@ -615,25 +654,9 @@ JWT の再利用を防ぐため。
     * `iss` と `jti` が重複していたら失敗する。
 
 
-#### 16.2.6. TA 固有のアカウント ID
-
-TA 固有のアカウント ID を使う場合のみ。
-TA 間連携プロトコルで逆引きが必要になる。
-
-以下を含む。
-
-* アカウント ID
-* TA の ID
-* TA の固有のアカウント ID
-
-以下の操作が必要。
-
-* 保存
-* TA の ID と TA の固有のアカウント ID による取得
-
-
 <!-- 参照 -->
 [OpenID Connect Core 1.0 Section 3.1.2.1]: http://openid-foundation-japan.github.io/openid-connect-core-1_0.ja.html#AuthRequest
 [OpenID Connect Core 1.0]: http://openid.net/specs/openid-connect-core-1_0.html
 [TA 間連携プロトコル]: https://github.com/realglobe-Inc/edo/blob/master/ta_cooperation.md
 [ユーザー認証エンドポイント]: #user-auth-endpoint
+[ユーザー認証プロトコル]: https://github.com/realglobe-Inc/edo/blob/master/user_authentication.md

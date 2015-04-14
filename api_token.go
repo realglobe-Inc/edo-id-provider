@@ -16,6 +16,7 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/realglobe-Inc/edo-lib/base64url"
 	"github.com/realglobe-Inc/edo-lib/jwt"
 	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/go-lib/erro"
@@ -227,7 +228,7 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 		h := hGen.New()
 		h.Write([]byte(tokId))
 		sum := h.Sum(nil)
-		idTokJt.SetClaim(clmAtHash, jwt.Base64UrlEncodeToString(sum[:len(sum)/2]))
+		idTokJt.SetClaim(clmAtHash, base64url.EncodeToString(sum[:len(sum)/2]))
 	}
 	buff, err := idTokJt.Encode(map[string]interface{}{sys.sigKid: sys.sigKey}, nil)
 	if err != nil {

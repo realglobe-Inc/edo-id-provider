@@ -19,6 +19,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/realglobe-Inc/edo-lib/base64url"
 	"github.com/realglobe-Inc/edo-lib/jwt"
 	logutil "github.com/realglobe-Inc/edo-lib/log"
 	"github.com/realglobe-Inc/edo-lib/server"
@@ -1800,7 +1801,7 @@ func TestIdTokenSign(t *testing.T) {
 	ah, _ := jt.Claim("at_hash").(string)
 	if ah == "" {
 		t.Fatal("no at_hash")
-	} else if buff, err := jwt.Base64UrlDecodeString(ah); err != nil {
+	} else if buff, err := base64url.DecodeString(ah); err != nil {
 		t.Fatal(err)
 	} else if !bytes.Equal(buff, sum[:len(sum)/2]) {
 		t.Error(buff)

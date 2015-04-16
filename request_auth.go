@@ -367,7 +367,6 @@ func authRequestFromJwt(jt *jwt.Jwt) (authReq *authRequest, err error) {
 	if raw := jt.Claim(formClms); raw != nil {
 		m, ok := raw.(map[string]interface{})
 		if !ok {
-			log.Err("AHO ", raw)
 			return nil, erro.New(formClms + " is not map")
 		}
 		if mAccInf := m["userinfo"]; mAccInf != nil {

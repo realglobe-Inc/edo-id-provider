@@ -16,10 +16,30 @@ package account
 
 import ()
 
-// 認証機構。
-type Authenticator interface {
-	// 方式を返す。
-	Type() string
-	// 認証する。
-	Verify(passwd string, params ...interface{}) bool
+// アカウント情報の実装。
+type element struct {
+	id    string
+	name  string
+	auth  Authenticator
+	attrs map[string]interface{}
+}
+
+func newElement(id, name string, auth Authenticator, attrs map[string]interface{}) *element {
+	return &element{id, name, auth, attrs}
+}
+
+func (this *element) Id() string {
+	return this.id
+}
+
+func (this *element) Name() string {
+	return this.name
+}
+
+func (this *element) Authenticator() Authenticator {
+	return this.auth
+}
+
+func (this *element) Attribute(attrName string) interface{} {
+	return this.attrs[attrName]
 }

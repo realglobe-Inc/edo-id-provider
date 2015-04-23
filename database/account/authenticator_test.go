@@ -14,12 +14,21 @@
 
 package account
 
-import ()
+import (
+	"testing"
+)
 
-// 認証機構。
-type Authenticator interface {
-	// 方式を返す。
-	Type() string
-	// 認証する。
-	Verify(passwd string, params ...interface{}) bool
+func testAuthenticatorType(t *testing.T, auth Authenticator, typ string) {
+	if auth.Type() != typ {
+		t.Error(auth.Type())
+		t.Error(typ)
+	}
+}
+
+func testAuthenticatorVerify(t *testing.T, auth Authenticator, passwd string, params ...interface{}) {
+	if !auth.Verify(passwd, params...) {
+		t.Error("verification error")
+	} else if auth.Verify(passwd[1:]+passwd[:1], params...) {
+		t.Error("security error")
+	}
 }

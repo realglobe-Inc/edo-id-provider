@@ -14,12 +14,10 @@
 
 package account
 
-import ()
+import (
+	"testing"
+)
 
-// 認証機構。
-type Authenticator interface {
-	// 方式を返す。
-	Type() string
-	// 認証する。
-	Verify(passwd string, params ...interface{}) bool
+func TestMemoryDb(t *testing.T) {
+	testDb(t, NewMemoryDb([]Element{test_elem}))
 }

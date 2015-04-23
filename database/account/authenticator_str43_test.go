@@ -14,12 +14,20 @@
 
 package account
 
-import ()
+import (
+	"testing"
+)
 
-// 認証機構。
-type Authenticator interface {
-	// 方式を返す。
-	Type() string
-	// 認証する。
-	Verify(passwd string, params ...interface{}) bool
+const (
+	test_passwd43 = "ltFq9kclPgMK4ilaOF7fNlx2TE9OYFiyrX4x9gwCc9n"
+)
+
+func TestStr43AuthenticatorType(t *testing.T) {
+	auth, _ := GenerateStr43Authenticator(test_passwd43, 20)
+	testAuthenticatorType(t, auth, "STR43")
+}
+
+func TestStr43AuthenticatorVerify(t *testing.T) {
+	auth, _ := GenerateStr43Authenticator(test_passwd43, 20)
+	testAuthenticatorVerify(t, auth, test_passwd43)
 }

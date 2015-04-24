@@ -12,23 +12,40 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package acstoken
+package consent
 
 import (
-	"time"
+	"reflect"
+	"testing"
 )
 
-// バックエンドのデータもこのプログラム専用の前提。
+func testDb(t *testing.T, db Db) {
+	if el, err := db.Get(test_acnt, test_ta); err != nil {
+		t.Error(err)
+		return
+	} else if el != nil {
+		t.Error(el)
+		return
+	}
 
-// アクセストークン情報の格納庫。
-type Db interface {
-	// 取得。
-	Get(id string) (*Element, error)
+	elem := New(test_acnt, test_ta)
+	elem.AllowScope(test_scop)
 
-	// 保存。
-	Save(elem *Element) error
+	if err := db.Save(elem); err != nil {
+		t.Error(err)
+		return
+	}
 
-	// 上書き。
-	// savedDate が保存されている要素の更新日時と同じでなければ失敗する。
-	Replace(elem *Element, savedDate time.Time) (ok bool, err error)
+	elem2, err := db.Get(elem.Account(), elem.Ta())
+	if err != nil {
+		t.Error(err)
+		return
+	} else if elem2 == nil {
+		t.Error("no element")
+		return
+	} else if !reflect.DeepEqual(elem2, elem) {
+		t.Error(elem2)
+		t.Error(elem)
+		return
+	}
 }

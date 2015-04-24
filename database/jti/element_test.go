@@ -12,24 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package authcode
+package jti
 
 import (
+	"testing"
 	"time"
 )
 
-// バックエンドのデータもこのプログラム専用の前提。
+const (
+	test_iss = "https://ta.example.org"
+	test_id  = "R-seIeMPBly4xPAh"
+)
 
-// 認可コード情報の格納庫。
-type Db interface {
-	// 取得。
-	Get(id string) (*Element, error)
+func TestElement(t *testing.T) {
+	exp := time.Now().Add(time.Second)
 
-	// 保存。
-	// exp: 保存期限。この期間以降は Get や Replace できなくて良い。
-	Save(elem *Element, exp time.Time) error
-
-	// 上書き。
-	// savedDate が保存されている要素の更新日時と同じでなければ失敗する。
-	Replace(elem *Element, savedDate time.Time) (ok bool, err error)
+	if elem := New(test_iss, test_id, exp); elem.Issuer() != test_iss {
+		t.Error(elem.Issuer())
+		t.Error(test_iss)
+	} else if elem.Id() != test_id {
+		t.Error(elem.Id())
+		t.Error(test_id)
+	} else if !elem.ExpiresIn().Equal(exp) {
+		t.Error(elem.ExpiresIn())
+		t.Error(exp)
+	}
 }

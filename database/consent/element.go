@@ -18,31 +18,42 @@ import ()
 
 // アカウントがどの TA にどの情報の提供を許可しているかという情報。
 type Element struct {
-	acntId string
-	taId   string
+	acnt string
+	ta   string
 	// 許可スコープ。
 	scops map[string]bool
 	// 許可属性。
 	attrs map[string]bool
 }
 
-func New(acntId, taId string) *Element {
+func New(acnt, ta string) *Element {
 	return &Element{
-		acntId: acntId,
-		taId:   taId,
-		scops:  map[string]bool{},
-		attrs:  map[string]bool{},
+		acnt:  acnt,
+		ta:    ta,
+		scops: map[string]bool{},
+		attrs: map[string]bool{},
 	}
 }
 
+func (this *Element) copy() *Element {
+	elem := New(this.acnt, this.ta)
+	for k := range this.scops {
+		elem.scops[k] = true
+	}
+	for k := range this.attrs {
+		elem.attrs[k] = true
+	}
+	return elem
+}
+
 // アカウント ID を返す。
-func (this *Element) AccountId() string {
-	return this.acntId
+func (this *Element) Account() string {
+	return this.acnt
 }
 
 // 許可される TA の ID を返す。
-func (this *Element) TaId() string {
-	return this.taId
+func (this *Element) Ta() string {
+	return this.ta
 }
 
 // スコープが許可されているかどうか。

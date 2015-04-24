@@ -12,24 +12,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package authcode
+package pairwise
 
 import (
-	"time"
+	"reflect"
+	"testing"
 )
 
-// バックエンドのデータもこのプログラム専用の前提。
+func testDb(t *testing.T, db Db) {
+	if elem, err := db.GetByPairwise(test_ta, test_pw_acnt); err != nil {
+		t.Error(err)
+		return
+	} else if elem != nil {
+		t.Error(elem)
+		return
+	}
 
-// 認可コード情報の格納庫。
-type Db interface {
-	// 取得。
-	Get(id string) (*Element, error)
-
-	// 保存。
-	// exp: 保存期限。この期間以降は Get や Replace できなくて良い。
-	Save(elem *Element, exp time.Time) error
-
-	// 上書き。
-	// savedDate が保存されている要素の更新日時と同じでなければ失敗する。
-	Replace(elem *Element, savedDate time.Time) (ok bool, err error)
+	elem := New(test_acnt, test_ta, test_pw_acnt)
+	if err := db.Save(elem); err != nil {
+		t.Error(err)
+		return
+	} else if elem2, err := db.GetByPairwise(elem.Ta(), elem.PairwiseAccount()); err != nil {
+		t.Error(err)
+		return
+	} else if elem2 == nil {
+		t.Error("no element")
+		return
+	} else if !reflect.DeepEqual(elem2, elem) {
+		t.Error(elem2)
+		t.Error(elem)
+		return
+	}
 }

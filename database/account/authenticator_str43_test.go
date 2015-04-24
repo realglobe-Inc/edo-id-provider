@@ -12,24 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package authcode
+package account
 
 import (
-	"time"
+	"testing"
 )
 
-// バックエンドのデータもこのプログラム専用の前提。
+const (
+	test_passwd43 = "ltFq9kclPgMK4ilaOF7fNlx2TE9OYFiyrX4x9gwCc9n"
+)
 
-// 認可コード情報の格納庫。
-type Db interface {
-	// 取得。
-	Get(id string) (*Element, error)
+func TestStr43AuthenticatorType(t *testing.T) {
+	auth, _ := GenerateStr43Authenticator(test_passwd43, 20)
+	testAuthenticatorType(t, auth, "STR43")
+}
 
-	// 保存。
-	// exp: 保存期限。この期間以降は Get や Replace できなくて良い。
-	Save(elem *Element, exp time.Time) error
-
-	// 上書き。
-	// savedDate が保存されている要素の更新日時と同じでなければ失敗する。
-	Replace(elem *Element, savedDate time.Time) (ok bool, err error)
+func TestStr43AuthenticatorVerify(t *testing.T) {
+	auth, _ := GenerateStr43Authenticator(test_passwd43, 20)
+	testAuthenticatorVerify(t, auth, test_passwd43)
 }

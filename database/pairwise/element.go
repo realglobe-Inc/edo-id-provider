@@ -14,34 +14,50 @@
 
 package pairwise
 
-import ()
+import (
+	"crypto/sha256"
+	"github.com/realglobe-Inc/edo-lib/base64url"
+)
 
 // TA 固有のアカウント ID の情報。
 type Element struct {
-	acntId   string
-	taId     string
-	pwAcntId string
+	// 真のアカウント ID。
+	acnt string
+	// TA の ID。
+	ta string
+	// TA 固有のアカウント ID。
+	pwAcnt string
 }
 
-func New(acntId, taId, pwAcntId string) *Element {
+func New(acnt, ta, pwAcnt string) *Element {
 	return &Element{
-		acntId:   acntId,
-		taId:     taId,
-		pwAcntId: pwAcntId,
+		acnt:   acnt,
+		ta:     ta,
+		pwAcnt: pwAcnt,
 	}
 }
 
-// アカウント ID を返す。
-func (this *Element) AccountId() string {
-	return this.acntId
+// 真のアカウント ID を返す。
+func (this *Element) Account() string {
+	return this.acnt
 }
 
 // TA の ID を返す。
-func (this *Element) TaId() string {
-	return this.taId
+func (this *Element) Ta() string {
+	return this.ta
 }
 
 // TA 固有のアカウント ID を返す。
-func (this *Element) PairwiseAccountId() string {
-	return this.pwAcntId
+func (this *Element) PairwiseAccount() string {
+	return this.pwAcnt
+}
+
+// TA 固有のアカウントを計算する。
+func Generate(acnt, ta string) *Element {
+	h := sha256.New()
+	h.Write([]byte(ta))
+	h.Write([]byte{0})
+	h.Write([]byte(acnt))
+	pwAcnt := base64url.EncodeToString(h.Sum(nil))
+	return New(acnt, ta, pwAcnt)
 }

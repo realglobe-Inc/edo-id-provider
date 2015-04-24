@@ -18,40 +18,47 @@ import (
 	"testing"
 )
 
+const (
+	test_acnt = "EYClXo4mQKwSgPel"
+	test_ta   = "https://ta.example.org"
+	test_scop = "openid"
+	test_attr = "pds"
+)
+
 func TestElement(t *testing.T) {
-	a := New("test-account-id", "test-ta-id")
-	if a.AccountId() != "test-account-id" {
-		t.Error(a.AccountId())
+	a := New(test_acnt, test_ta)
+	if a.Account() != test_acnt {
+		t.Error(a.Account())
 		return
-	} else if a.TaId() != "test-ta-id" {
-		t.Error(a.TaId())
-		return
-	}
-
-	if a.ScopeAllowed("test-scope") {
-		t.Error(a)
-		return
-	} else if a.AttributeAllowed("test-attribute") {
-		t.Error(a)
+	} else if a.Ta() != test_ta {
+		t.Error(a.Ta())
 		return
 	}
 
-	a.AllowScope("test-scope")
-	a.AllowAttribute("test-attribute")
-	if !a.ScopeAllowed("test-scope") {
+	if a.ScopeAllowed(test_scop) {
 		t.Error(a)
 		return
-	} else if !a.AttributeAllowed("test-attribute") {
+	} else if a.AttributeAllowed(test_attr) {
 		t.Error(a)
 		return
 	}
 
-	a.DenyScope("test-scope")
-	a.DenyAttribute("test-attribute")
-	if a.ScopeAllowed("test-scope") {
+	a.AllowScope(test_scop)
+	a.AllowAttribute(test_attr)
+	if !a.ScopeAllowed(test_scop) {
 		t.Error(a)
 		return
-	} else if a.AttributeAllowed("test-attribute") {
+	} else if !a.AttributeAllowed(test_attr) {
+		t.Error(a)
+		return
+	}
+
+	a.DenyScope(test_scop)
+	a.DenyAttribute(test_attr)
+	if a.ScopeAllowed(test_scop) {
+		t.Error(a)
+		return
+	} else if a.AttributeAllowed(test_attr) {
 		t.Error(a)
 		return
 	}

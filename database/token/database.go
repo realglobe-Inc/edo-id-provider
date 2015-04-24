@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package authcode
+package token
 
 import (
 	"time"
@@ -20,7 +20,7 @@ import (
 
 // バックエンドのデータもこのプログラム専用の前提。
 
-// 認可コード情報の格納庫。
+// アクセストークン情報の格納庫。
 type Db interface {
 	// 取得。
 	Get(id string) (*Element, error)

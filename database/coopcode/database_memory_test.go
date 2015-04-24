@@ -12,24 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package authcode
+package coopcode
 
 import (
-	"time"
+	"testing"
 )
 
-// バックエンドのデータもこのプログラム専用の前提。
-
-// 認可コード情報の格納庫。
-type Db interface {
-	// 取得。
-	Get(id string) (*Element, error)
-
-	// 保存。
-	// exp: 保存期限。この期間以降は Get や Replace できなくて良い。
-	Save(elem *Element, exp time.Time) error
-
-	// 上書き。
-	// savedDate が保存されている要素の更新日時と同じでなければ失敗する。
-	Replace(elem *Element, savedDate time.Time) (ok bool, err error)
+func TestMemoryDb(t *testing.T) {
+	testDb(t, NewMemoryDb())
 }

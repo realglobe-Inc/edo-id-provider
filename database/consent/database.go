@@ -21,7 +21,7 @@ import ()
 // アカウントがどの TA にどの属性の提供を許可しているかという情報の格納庫。
 type Db interface {
 	// 取得。
-	Get(acntId, taId string) (Element, error)
+	Get(acnt, ta string) (*Element, error)
 
 	// 保存。
 	Save(elem *Element) error

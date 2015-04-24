@@ -12,24 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package authcode
+package jti
 
 import (
+	"testing"
 	"time"
 )
 
-// バックエンドのデータもこのプログラム専用の前提。
+func testDb(t *testing.T, db Db) {
+	elem := New(test_iss, test_id, time.Now().Add(time.Minute))
+	if ok, err := db.SaveIfAbsent(elem); err != nil {
+		t.Error(err)
+		return
+	} else if !ok {
+		t.Error("saving failed")
+		return
+	}
 
-// 認可コード情報の格納庫。
-type Db interface {
-	// 取得。
-	Get(id string) (*Element, error)
-
-	// 保存。
-	// exp: 保存期限。この期間以降は Get や Replace できなくて良い。
-	Save(elem *Element, exp time.Time) error
-
-	// 上書き。
-	// savedDate が保存されている要素の更新日時と同じでなければ失敗する。
-	Replace(elem *Element, savedDate time.Time) (ok bool, err error)
+	elem2 := New(test_iss, test_id, time.Now().Add(time.Minute))
+	if ok, err := db.SaveIfAbsent(elem2); err != nil {
+		t.Error(err)
+		return
+	} else if ok {
+		t.Error("saving passed")
+		return
+	}
 }

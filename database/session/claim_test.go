@@ -44,9 +44,7 @@ func TestClaimSample(t *testing.T) {
 	if err := json.Unmarshal(sample, &clms); err != nil {
 		t.Error(err)
 		return
-	}
-
-	if acntInf := clms.WithAccountInfo(); acntInf == nil {
+	} else if acntInf := clms.WithAccountInfo(); acntInf == nil {
 		t.Error(clms)
 	} else if v := acntInf["given_name"]; v == nil || !v.Essential() {
 		t.Error(v)
@@ -64,7 +62,8 @@ func TestClaimSample(t *testing.T) {
 		t.Error(clms)
 	} else if v := idTok["auth_time"]; v == nil || !v.Essential() {
 		t.Error(v)
-	} else if v := idTok["acr"]; v == nil || !reflect.DeepEqual(toStrings(v.Values()), []string{"urn:mace:incommon:iap:silver"}) {
+	} else if v := idTok["acr"]; v == nil ||
+		!reflect.DeepEqual(toStrings(v.Values()), []string{"urn:mace:incommon:iap:silver"}) {
 		t.Error(v)
 	}
 }

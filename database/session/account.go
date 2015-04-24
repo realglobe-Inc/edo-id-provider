@@ -27,6 +27,12 @@ type Account struct {
 	loginDate time.Time
 }
 
+// 防御的コピー用。
+func (this *Account) copy() *Account {
+	acnt := *this
+	return &acnt
+}
+
 func NewAccount(id, name string) *Account {
 	return &Account{
 		id:   id,

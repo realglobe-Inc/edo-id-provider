@@ -16,22 +16,54 @@ package session
 
 import (
 	"testing"
+	"time"
 )
 
-func TestAccountNew(t *testing.T) {
-	a := NewAccount("test-account-id", "test-account-name")
-	a.Login()
-	if !a.LoggedIn() {
-		t.Error("account not logged in")
+const (
+	test_acnt_id   = "ZkTPOdBdh_bS2PqWnb1r8A3DqeKGCC"
+	test_acnt_name = "edo-id-provider-tester"
+)
+
+func TestAccount(t *testing.T) {
+	acnt := NewAccount(test_acnt_id, test_acnt_name)
+
+	if acnt.Id() != test_acnt_id {
+		t.Error(acnt.Id())
+		t.Error(test_acnt_id)
+		return
+	} else if acnt.Name() != test_acnt_name {
+		t.Error(acnt.Name())
+		t.Error(test_acnt_name)
+		return
+	} else if acnt.LoggedIn() {
+		t.Error("new account logged in")
+		return
 	}
 
-	b := a.New()
+	bef := time.Now()
+	acnt.Login()
+	aft := time.Now()
+	if !acnt.LoggedIn() {
+		t.Error("not logged in")
+		return
+	} else if bef.After(acnt.LoginDate()) {
+		t.Error(acnt.LoginDate())
+		t.Error(bef)
+		return
+	} else if aft.Before(acnt.LoginDate()) {
+		t.Error(acnt.LoginDate())
+		t.Error(aft)
+		return
+	}
 
-	if b.Id() != a.Id() {
-		t.Error(b.Id())
-	} else if b.Name() != a.Name() {
-		t.Error(b.Name())
-	} else if b.LoggedIn() {
-		t.Error("new account logged in")
+	acnt2 := acnt.New()
+	if acnt2.Id() != acnt.Id() {
+		t.Error(acnt2.Id())
+		t.Error(acnt.Id())
+	} else if acnt2.Name() != acnt.Name() {
+		t.Error(acnt2.Name())
+		t.Error(acnt.Name())
+	} else if acnt2.LoggedIn() {
+		t.Error("copy account logged in")
 	}
 }

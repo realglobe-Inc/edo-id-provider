@@ -36,6 +36,22 @@ type Element struct {
 	lang string
 }
 
+// 防御的コピー用。
+func (this *Element) copy() *Element {
+	elem := New(this.id, this.exp)
+	if this.acnt != nil {
+		elem.acnt = this.acnt.copy()
+	}
+	elem.req = this.req
+	elem.tic = this.tic
+	elem.tic = this.tic
+	for e := this.pastAcnts.Back(); e != nil; e = e.Prev() {
+		elem.pastAcnts.PushFront(e.Value.(*Account).copy())
+	}
+	elem.lang = this.lang
+	return elem
+}
+
 func New(id string, exp time.Time) *Element {
 	return &Element{
 		id:  id,

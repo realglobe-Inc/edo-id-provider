@@ -23,30 +23,30 @@ type Element struct {
 	// JWT の iss。
 	iss string
 	// JWT の jti。
-	jti string
+	id string
 	// JWT の exp または有効期限。
 	exp time.Time
 }
 
-func New(iss, jti string, exp time.Time) *Element {
+func New(iss, id string, exp time.Time) *Element {
 	return &Element{
 		iss: iss,
-		jti: jti,
+		id:  id,
 		exp: exp,
 	}
 }
 
-// iss を返す。
+// 発行者を返す。
 func (this *Element) Issuer() string {
 	return this.iss
 }
 
-// jti を返す。
+// ID を返す。
 func (this *Element) Id() string {
-	return this.jti
+	return this.id
 }
 
-// exp または有効期限を返す。
+// 有効期限を返す。
 func (this *Element) ExpiresIn() time.Time {
 	return this.exp
 }

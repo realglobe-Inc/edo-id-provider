@@ -21,6 +21,6 @@ import ()
 // JWT の ID の格納庫。
 type Db interface {
 	// 保存。
-	// iss と jti が既存のものと重複する場合は失敗する。
+	// 発行者と ID が既存の有効期限が切れていないものと重複する場合は失敗する。
 	SaveIfAbsent(elem *Element) (ok bool, err error)
 }

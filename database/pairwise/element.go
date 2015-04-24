@@ -14,7 +14,10 @@
 
 package pairwise
 
-import ()
+import (
+	"crypto/sha256"
+	"github.com/realglobe-Inc/edo-lib/base64url"
+)
 
 // TA 固有のアカウント ID の情報。
 type Element struct {
@@ -47,4 +50,14 @@ func (this *Element) Ta() string {
 // TA 固有のアカウント ID を返す。
 func (this *Element) PairwiseAccount() string {
 	return this.pwAcnt
+}
+
+// TA 固有のアカウントを計算する。
+func Generate(acnt, ta string) *Element {
+	h := sha256.New()
+	h.Write([]byte(ta))
+	h.Write([]byte{0})
+	h.Write([]byte(acnt))
+	pwAcnt := base64url.EncodeToString(h.Sum(nil))
+	return New(acnt, ta, pwAcnt)
 }

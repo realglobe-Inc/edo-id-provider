@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	test_acnt = "edo-id-provider-tester"
+	test_acnt = "EYClXo4mQKwSgPel"
 	test_ta   = "https://ta.example.org"
 	test_scop = "openid"
 	test_attr = "pds"

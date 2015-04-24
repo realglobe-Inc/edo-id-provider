@@ -35,6 +35,17 @@ func New(acnt, ta string) *Element {
 	}
 }
 
+func (this *Element) copy() *Element {
+	elem := New(this.acnt, this.ta)
+	for k := range this.scops {
+		elem.scops[k] = true
+	}
+	for k := range this.attrs {
+		elem.attrs[k] = true
+	}
+	return elem
+}
+
 // アカウント ID を返す。
 func (this *Element) Account() string {
 	return this.acnt

@@ -21,7 +21,7 @@ import ()
 // TA 固有のアカウント ID の情報の格納庫。
 type Db interface {
 	// TA 固有のアカウント ID による取得。
-	GetByPairwise(taId, pwAcntId string) (*Element, error)
+	GetByPairwise(ta, pwAcnt string) (*Element, error)
 
 	// 保存。
 	Save(elem *Element) error

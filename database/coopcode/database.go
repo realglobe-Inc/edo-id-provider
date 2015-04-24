@@ -26,7 +26,8 @@ type Db interface {
 	Get(id string) (*Element, error)
 
 	// 保存。
-	Save(elem *Element) error
+	// exp: 保存期限。この期間以降は Get や Replace できなくて良い。
+	Save(elem *Element, exp time.Time) error
 
 	// 上書き。
 	// savedDate が保存されている要素の更新日時と同じでなければ失敗する。

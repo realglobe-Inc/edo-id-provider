@@ -15,6 +15,7 @@
 package session
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -22,11 +23,9 @@ import (
 
 func testDb(t *testing.T, db Db) {
 	if elem, err := db.Get(test_id); err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	} else if elem != nil {
-		t.Error(elem)
-		return
+		t.Fatal(elem)
 	}
 
 	exp := time.Now().Add(time.Second)
@@ -38,17 +37,21 @@ func testDb(t *testing.T, db Db) {
 	saveExp := exp.Add(time.Minute)
 
 	if err := db.Save(elem, saveExp); err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 
 	elem2, err := db.Get(elem.Id())
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	} else if elem2 == nil {
-		t.Error("no element")
-	} else if !reflect.DeepEqual(elem2, elem) {
-		t.Error(elem2)
-		t.Error(elem)
+		t.Fatal("no element")
+	} else if !elem2.Saved() {
+		t.Fatal("not saved")
+	}
+
+	elem2.saved = false
+	if !reflect.DeepEqual(elem2, elem) {
+		t.Error(fmt.Sprintf("%#v", elem2))
+		t.Fatal(fmt.Sprintf("%#v", elem))
 	}
 }

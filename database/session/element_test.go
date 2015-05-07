@@ -35,7 +35,7 @@ var (
 )
 
 func init() {
-	test_acnt = NewAccount(test_acnt_id, test_acnt_name)
+	test_acnt = NewAccount(test_acntId, test_acntName)
 	r, err := http.NewRequest("GET", "https://idp.example.org/auth", nil)
 	if err != nil {
 		panic(err)
@@ -44,12 +44,12 @@ func init() {
 	q.Add("scope", "openid email")
 	q.Add("response_type", "code id_token")
 	q.Add("client_id", test_ta)
-	q.Add("redirect_uri", test_redi_uri.String())
+	q.Add("redirect_uri", test_rediUri)
 	q.Add("state", test_stat)
 	q.Add("nonce", test_nonc)
 	q.Add("display", test_disp)
 	q.Add("prompt", "login consent")
-	q.Add("max_age", strconv.FormatInt(int64(test_max_age/time.Second), 10))
+	q.Add("max_age", strconv.FormatInt(int64(test_maxAge/time.Second), 10))
 	q.Add("ui_locales", "ja-JP")
 	//q.Add("id_token_hint", "")
 	q.Add("claims", `{"id_token":{"pds":{"essential":true}}}`)
@@ -69,24 +69,18 @@ func TestElement(t *testing.T) {
 
 	if elem.Id() != test_id {
 		t.Error(elem.Id())
-		t.Error(test_id)
-		return
-	} else if !elem.ExpiresIn().Equal(exp) {
-		t.Error(elem.ExpiresIn())
-		t.Error(exp)
-		return
+		t.Fatal(test_id)
+	} else if !elem.Expires().Equal(exp) {
+		t.Error(elem.Expires())
+		t.Fatal(exp)
 	} else if elem.Request() != nil {
-		t.Error(elem.Request())
-		return
+		t.Fatal(elem.Request())
 	} else if elem.Ticket() != "" {
-		t.Error(elem.Ticket())
-		return
+		t.Fatal(elem.Ticket())
 	} else if len(elem.SelectedAccounts()) > 0 {
-		t.Error(elem.SelectedAccounts())
-		return
+		t.Fatal(elem.SelectedAccounts())
 	} else if elem.Language() != "" {
-		t.Error(elem.Language())
-		return
+		t.Fatal(elem.Language())
 	}
 
 	elem.SelectAccount(test_acnt)
@@ -96,27 +90,23 @@ func TestElement(t *testing.T) {
 
 	if !reflect.DeepEqual(elem.Request(), test_req) {
 		t.Error(elem.Request())
-		t.Error(test_req)
-		return
+		t.Fatal(test_req)
 	} else if elem.Ticket() != test_tic {
 		t.Error(elem.Ticket())
-		t.Error(test_tic)
-		return
+		t.Fatal(test_tic)
 	} else if !reflect.DeepEqual(elem.SelectedAccounts(), []*Account{test_acnt}) {
 		t.Error(elem.SelectedAccounts())
-		t.Error([]*Account{test_acnt})
-		return
+		t.Fatal([]*Account{test_acnt})
 	} else if elem.Language() != test_lang {
 		t.Error(elem.Language())
-		t.Error(test_lang)
-		return
+		t.Fatal(test_lang)
 	}
 
 	elem.Clear()
 	if elem.Request() != nil {
-		t.Error(elem.Request())
+		t.Fatal(elem.Request())
 	} else if elem.Ticket() != "" {
-		t.Error(elem.Ticket())
+		t.Fatal(elem.Ticket())
 	}
 }
 
@@ -124,60 +114,51 @@ func TestElementPastAccount(t *testing.T) {
 	exp := time.Now().Add(24 * time.Hour)
 	elem := New(test_id, exp)
 	if len(elem.SelectedAccounts()) != 0 {
-		t.Error(elem.SelectedAccounts())
-		return
+		t.Fatal(elem.SelectedAccounts())
 	}
 
-	elem.SelectAccount(NewAccount(test_acnt_id, test_acnt_name))
+	elem.SelectAccount(NewAccount(test_acntId, test_acntName))
 	if len(elem.SelectedAccounts()) != 1 {
-		t.Error(elem.SelectedAccounts())
-		return
+		t.Fatal(elem.SelectedAccounts())
 	}
 
-	elem.SelectAccount(NewAccount(test_acnt_id+"2", test_acnt_name+"2"))
+	elem.SelectAccount(NewAccount(test_acntId+"2", test_acntName+"2"))
 	if len(elem.SelectedAccounts()) != 2 {
-		t.Error(elem.SelectedAccounts())
-		return
+		t.Fatal(elem.SelectedAccounts())
 	}
 
 	// 同じのだから増えない。
-	elem.SelectAccount(NewAccount(test_acnt_id, test_acnt_name))
+	elem.SelectAccount(NewAccount(test_acntId, test_acntName))
 	if len(elem.SelectedAccounts()) != 2 {
-		t.Error(elem.SelectedAccounts())
-		return
+		t.Fatal(elem.SelectedAccounts())
 	}
 
-	elem.SelectAccount(NewAccount(test_acnt_id+"3", test_acnt_name+"3"))
+	elem.SelectAccount(NewAccount(test_acntId+"3", test_acntName+"3"))
 	if len(elem.SelectedAccounts()) != 3 {
-		t.Error(elem.SelectedAccounts())
-		return
+		t.Fatal(elem.SelectedAccounts())
 	}
 
 	if !reflect.DeepEqual(elem.SelectedAccounts(), []*Account{
-		NewAccount(test_acnt_id+"3", test_acnt_name+"3"),
-		NewAccount(test_acnt_id, test_acnt_name),
-		NewAccount(test_acnt_id+"2", test_acnt_name+"2")}) {
-		t.Error(elem.SelectedAccounts())
-		return
+		NewAccount(test_acntId+"3", test_acntName+"3"),
+		NewAccount(test_acntId, test_acntName),
+		NewAccount(test_acntId+"2", test_acntName+"2")}) {
+		t.Fatal(elem.SelectedAccounts())
 	}
 
 	for i := 0; i < 2*MaxHistory; i++ {
-		elem.SelectAccount(NewAccount(test_acnt_id+strconv.Itoa(i), test_acnt_name+strconv.Itoa(i)))
+		elem.SelectAccount(NewAccount(test_acntId+strconv.Itoa(i), test_acntName+strconv.Itoa(i)))
 		if acnts := elem.SelectedAccounts(); len(acnts) > MaxHistory+1 {
 			t.Error(i)
-			t.Error(acnts)
-			return
+			t.Fatal(acnts)
 		}
 		elem.Account().Login()
 	}
 	if acnts := elem.SelectedAccounts(); len(acnts) != MaxHistory {
-		t.Error(acnts)
-		return
+		t.Fatal(acnts)
 	}
 	for _, acnt := range elem.SelectedAccounts() {
 		if !acnt.LoggedIn() {
-			t.Error(acnt)
-			return
+			t.Fatal(acnt)
 		}
 	}
 }
@@ -189,52 +170,44 @@ func TestElementNew(t *testing.T) {
 	elem.SetTicket(test_tic)
 	elem.SetLanguage(test_lang)
 	for i := 0; i < 2*MaxHistory; i++ {
-		elem.SelectAccount(NewAccount(test_acnt_id+strconv.Itoa(i), test_acnt_name+strconv.Itoa(i)))
+		elem.SelectAccount(NewAccount(test_acntId+strconv.Itoa(i), test_acntName+strconv.Itoa(i)))
 		elem2 := elem.New(test_id+"2", exp.Add(time.Second))
 
 		if elem2.Id() == elem.Id() {
 			t.Error(i)
-			t.Error(elem2.Id())
-			return
-		} else if elem2.ExpiresIn().Equal(elem.ExpiresIn()) {
+			t.Fatal(elem2.Id())
+		} else if elem2.Expires().Equal(elem.Expires()) {
 			t.Error(i)
-			t.Error(elem2.ExpiresIn())
-			return
+			t.Fatal(elem2.Expires())
 		} else if elem2.Account() != nil {
 			t.Error(i)
-			t.Error(elem2.Account())
-			return
+			t.Fatal(elem2.Account())
 		} else if elem2.Request() != nil {
 			t.Error(i)
-			t.Error(elem2.Request())
-			return
+			t.Fatal(elem2.Request())
 		} else if elem2.Ticket() != "" {
 			t.Error(i)
-			t.Error(elem2.Ticket())
-			return
+			t.Fatal(elem2.Ticket())
 		} else if !reflect.DeepEqual(elem.SelectedAccounts(), elem2.SelectedAccounts()) {
 			t.Error(i)
 			t.Error(elem2.SelectedAccounts())
-			t.Error(elem.SelectedAccounts())
-			return
+			t.Fatal(elem.SelectedAccounts())
 		} else if elem2.Language() != elem.Language() {
 			t.Error(i)
 			t.Error(elem2.Language())
-			t.Error(elem.Language())
-			return
+			t.Fatal(elem.Language())
 		}
 	}
 
 	for i := 0; i < MaxHistory; i++ {
-		elem.SelectAccount(NewAccount(test_acnt_id+strconv.Itoa(i), test_acnt_name+strconv.Itoa(i)))
+		elem.SelectAccount(NewAccount(test_acntId+strconv.Itoa(i), test_acntName+strconv.Itoa(i)))
 		elem.Account().Login()
 		elem2 := elem.New(test_id+"2", exp.Add(time.Second))
 
 		for _, acnt := range elem2.SelectedAccounts() {
 			if acnt.LoggedIn() {
 				t.Error(i)
-				t.Error("new account logged in")
-				return
+				t.Fatal("new account logged in")
 			}
 		}
 	}

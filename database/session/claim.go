@@ -23,67 +23,67 @@ import (
 
 // 認証リクエストの claims パラメータ。
 type Claim struct {
-	// userinfo
-	acntInf map[string]*ClaimEntry
 	// id_token
 	idTok map[string]*ClaimEntry
-}
-
-// アカウント情報エンドポイントから返すように要求されているクレームの情報を返す。
-func (this *Claim) WithAccountInfo() map[string]*ClaimEntry {
-	return this.acntInf
+	// userinfo
+	acnt map[string]*ClaimEntry
 }
 
 // ID トークンに入れて返すように要求されているクレームの情報を返す。
-func (this *Claim) WithIdToken() map[string]*ClaimEntry {
+func (this *Claim) IdTokenEntries() map[string]*ClaimEntry {
 	return this.idTok
+}
+
+// アカウント情報エンドポイントから返すように要求されているクレームの情報を返す。
+func (this *Claim) AccountEntries() map[string]*ClaimEntry {
+	return this.acnt
+}
+
+// クレーム名を返す。
+// clms: 必須クレーム名。
+// optClms: 必須でないクレーム名。
+func (this *Claim) Names() (clms, optClms map[string]bool) {
+	clms = map[string]bool{}
+	optClms = map[string]bool{}
+	for _, set := range []map[string]*ClaimEntry{this.acnt, this.idTok} {
+		for clm, ent := range set {
+			if ent != nil && ent.Essential() {
+				clms[clm] = true
+				delete(optClms, clm)
+			} else if !clms[clm] {
+				optClms[clm] = true
+			}
+		}
+	}
+	return clms, optClms
+}
+
+//  {
+//      "id_token": {
+//          <属性名>: <ClaimEntry>,
+//          ...
+//      },
+//      "userinfo": {
+//          <属性名>: <ClaimEntry>,
+//          ...
+//      }
+//  }
+func (this *Claim) MarshalJSON() (data []byte, err error) {
+	return json.Marshal(map[string]interface{}{
+		"id_token": this.idTok,
+		"userinfo": this.acnt,
+	})
 }
 
 func (this *Claim) UnmarshalJSON(data []byte) error {
 	var buff struct {
-		AcntInf map[string]*ClaimEntry `json:"userinfo"`
-		IdTok   map[string]*ClaimEntry `json:"id_token"`
+		Acnt  map[string]*ClaimEntry `json:"userinfo"`
+		IdTok map[string]*ClaimEntry `json:"id_token"`
 	}
 	if err := json.Unmarshal(data, &buff); err != nil {
 		return erro.Wrap(err)
 	}
-	this.acntInf = buff.AcntInf
+	this.acnt = buff.Acnt
 	this.idTok = buff.IdTok
-	return nil
-}
-
-type ClaimEntry struct {
-	// essential
-	ess bool
-	// value
-	val interface{}
-	// values
-	vals []interface{}
-}
-
-func (this *ClaimEntry) Essential() bool {
-	return this.ess
-}
-
-func (this *ClaimEntry) Value() interface{} {
-	return this.val
-}
-
-func (this *ClaimEntry) Values() []interface{} {
-	return this.vals
-}
-
-func (this *ClaimEntry) UnmarshalJSON(data []byte) error {
-	var buff struct {
-		Ess  bool          `json:"essential"`
-		Val  interface{}   `json:"value"`
-		Vals []interface{} `json:"values"`
-	}
-	if err := json.Unmarshal(data, &buff); err != nil {
-		return erro.Wrap(err)
-	}
-	this.ess = buff.Ess
-	this.val = buff.Val
-	this.vals = buff.Vals
 	return nil
 }

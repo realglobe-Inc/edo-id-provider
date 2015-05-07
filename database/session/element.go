@@ -16,6 +16,9 @@ package session
 
 import (
 	"container/list"
+	"encoding/json"
+	rist "github.com/realglobe-Inc/edo-lib/list"
+	"github.com/realglobe-Inc/go-lib/erro"
 	"time"
 )
 
@@ -31,9 +34,14 @@ type Element struct {
 	// 現在発行されているチケット。
 	tic string
 	// 過去に選択されたアカウント。
-	pastAcnts list.List
+	pastAcnts *list.List
 	// 最後に選択された表示言語。
 	lang string
+
+	// 以下、作業用。
+
+	// 読み込まれたセッションかどうか。
+	saved bool
 }
 
 // 防御的コピー用。
@@ -54,17 +62,19 @@ func (this *Element) copy() *Element {
 
 func New(id string, exp time.Time) *Element {
 	return &Element{
-		id:  id,
-		exp: exp,
+		id:        id,
+		exp:       exp,
+		pastAcnts: list.New(),
 	}
 }
 
 // 履歴を引き継いだセッションを作成する。
 func (this *Element) New(id string, exp time.Time) *Element {
 	elem := &Element{
-		id:   id,
-		exp:  exp,
-		lang: this.lang,
+		id:        id,
+		exp:       exp,
+		lang:      this.lang,
+		pastAcnts: list.New(),
 	}
 	for e := this.pastAcnts.Back(); e != nil; e = e.Prev() {
 		elem.pastAcnts.PushFront(e.Value.(*Account).New())
@@ -85,7 +95,7 @@ func (this *Element) Id() string {
 }
 
 // 有効期限を返す。
-func (this *Element) ExpiresIn() time.Time {
+func (this *Element) Expires() time.Time {
 	return this.exp
 }
 
@@ -168,4 +178,64 @@ func (this *Element) SetLanguage(lang string) {
 func (this *Element) Clear() {
 	this.req = nil
 	this.tic = ""
+}
+
+// 読み込まれたセッションかどうか。
+func (this *Element) Saved() bool {
+	return this.saved
+}
+
+func (this *Element) setSaved() {
+	this.saved = true
+}
+
+//  {
+//      "id": <ID>,
+//      "expires": <有効期限>,
+//      "account": <主アカウント>,
+//      "request": <リクエスト内容>,
+//      "ticket": <チケット>,
+//      "past_accounts": [
+//          <既ログインアカウント>,
+//          ...
+//      ],
+//      "locale": <表示言語>
+//  }
+func (this *Element) MarshalJSON() (data []byte, err error) {
+	return json.Marshal(map[string]interface{}{
+		"id":            this.id,
+		"expires":       this.exp,
+		"account":       this.acnt,
+		"request":       this.req,
+		"ticket":        this.tic,
+		"past_accounts": (*rist.List)(this.pastAcnts),
+		"locale":        this.lang,
+	})
+}
+
+func (this *Element) UnmarshalJSON(data []byte) error {
+	var buff struct {
+		Id        string     `json:"id"`
+		Exp       time.Time  `json:"expires"`
+		Acnt      *Account   `json:"account"`
+		Req       *Request   `json:"request"`
+		Tic       string     `json:"ticket"`
+		PastAcnts *rist.List `json:"past_accounts"`
+		Lang      string     `json:"locale"`
+	}
+	if err := json.Unmarshal(data, &buff); err != nil {
+		return erro.Wrap(err)
+	}
+
+	this.id = buff.Id
+	this.exp = buff.Exp
+	this.acnt = buff.Acnt
+	this.req = buff.Req
+	this.tic = buff.Tic
+	this.pastAcnts = (*list.List)(buff.PastAcnts)
+	if this.pastAcnts == nil {
+		this.pastAcnts = list.New()
+	}
+	this.lang = buff.Lang
+	return nil
 }

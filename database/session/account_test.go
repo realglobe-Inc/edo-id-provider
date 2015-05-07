@@ -20,50 +20,44 @@ import (
 )
 
 const (
-	test_acnt_id   = "ZkTPOdBdh_bS2PqWnb1r8A3DqeKGCC"
-	test_acnt_name = "edo-id-provider-tester"
+	test_acntId   = "ZkTPOdBdh_bS2PqWnb1r8A3DqeKGCC"
+	test_acntName = "edo-id-provider-tester"
 )
 
 func TestAccount(t *testing.T) {
-	acnt := NewAccount(test_acnt_id, test_acnt_name)
+	acnt := NewAccount(test_acntId, test_acntName)
 
-	if acnt.Id() != test_acnt_id {
+	if acnt.Id() != test_acntId {
 		t.Error(acnt.Id())
-		t.Error(test_acnt_id)
-		return
-	} else if acnt.Name() != test_acnt_name {
+		t.Fatal(test_acntId)
+	} else if acnt.Name() != test_acntName {
 		t.Error(acnt.Name())
-		t.Error(test_acnt_name)
-		return
+		t.Fatal(test_acntName)
 	} else if acnt.LoggedIn() {
-		t.Error("new account logged in")
-		return
+		t.Fatal("new account logged in")
 	}
 
 	bef := time.Now()
 	acnt.Login()
 	aft := time.Now()
 	if !acnt.LoggedIn() {
-		t.Error("not logged in")
-		return
+		t.Fatal("not logged in")
 	} else if bef.After(acnt.LoginDate()) {
 		t.Error(acnt.LoginDate())
-		t.Error(bef)
-		return
+		t.Fatal(bef)
 	} else if aft.Before(acnt.LoginDate()) {
 		t.Error(acnt.LoginDate())
-		t.Error(aft)
-		return
+		t.Fatal(aft)
 	}
 
 	acnt2 := acnt.New()
 	if acnt2.Id() != acnt.Id() {
 		t.Error(acnt2.Id())
-		t.Error(acnt.Id())
+		t.Fatal(acnt.Id())
 	} else if acnt2.Name() != acnt.Name() {
 		t.Error(acnt2.Name())
-		t.Error(acnt.Name())
+		t.Fatal(acnt.Name())
 	} else if acnt2.LoggedIn() {
-		t.Error("copy account logged in")
+		t.Fatal("copy account logged in")
 	}
 }

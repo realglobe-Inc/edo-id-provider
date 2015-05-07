@@ -42,12 +42,17 @@ func (this *str43Authenticator) Verify(passwd string, params ...interface{}) boo
 
 	h := sha256.New()
 	h.Write(this.salt)
+	h.Write([]byte{0})
 	h.Write([]byte(passwd))
 	return bytes.Equal(h.Sum(nil), this.hVal)
 }
 
 // パスワードからつくる。
 func GenerateStr43Authenticator(passwd string, sLen int) (Authenticator, error) {
+	if len(passwd) != 43 {
+		return nil, erro.New("invalid password length")
+	}
+
 	salt, err := secrand.Bytes(sLen)
 	if err != nil {
 		return nil, erro.Wrap(err)
@@ -55,6 +60,7 @@ func GenerateStr43Authenticator(passwd string, sLen int) (Authenticator, error) 
 
 	h := sha256.New()
 	h.Write(salt)
+	h.Write([]byte{0})
 	h.Write([]byte(passwd))
 	hVal := h.Sum(nil)
 

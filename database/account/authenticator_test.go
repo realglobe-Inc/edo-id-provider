@@ -21,14 +21,14 @@ import (
 func testAuthenticatorType(t *testing.T, auth Authenticator, typ string) {
 	if auth.Type() != typ {
 		t.Error(auth.Type())
-		t.Error(typ)
+		t.Fatal(typ)
 	}
 }
 
 func testAuthenticatorVerify(t *testing.T, auth Authenticator, passwd string, params ...interface{}) {
 	if !auth.Verify(passwd, params...) {
-		t.Error("verification error")
+		t.Fatal("verification error")
 	} else if auth.Verify(passwd[1:]+passwd[:1], params...) {
-		t.Error("security error")
+		t.Fatal("security error")
 	}
 }

@@ -19,22 +19,43 @@ import (
 	"testing"
 )
 
-var test_elem = newElement(test_id, test_name, test_auth, map[string]interface{}{test_attr: test_pds})
+var (
+	test_salt = []byte{
+		0, 1, 2, 3, 4, 5, 6, 7,
+		8, 9, 10, 11, 12, 13, 14, 15,
+		16, 17, 18, 19,
+	}
+
+	// sha256(test_salt || \0 || test_passwd43)
+	test_hash = []byte{
+		158, 12, 93, 16, 25, 218, 22, 166,
+		180, 214, 152, 89, 65, 25, 79, 249,
+		139, 230, 218, 218, 113, 223, 17, 234,
+		218, 244, 16, 18, 182, 214, 1, 185,
+	}
+)
+
+var test_elem = newElement(test_id, test_name, newStr43Authenticator(test_salt, test_hash), map[string]interface{}{test_attr: test_pds})
 
 // test_elem が保存されていることが前提。
 func testDb(t *testing.T, db Db) {
-	if elem, err := db.Get(test_id); err != nil {
-		t.Error(err)
-	} else if elem == nil {
-		t.Error("no element")
-	} else if elem.Id() != test_id {
-		t.Error(elem.Id())
-		t.Error(test_id)
-	} else if elem.Name() != test_name {
-		t.Error(elem.Name())
-		t.Error(test_name)
-	} else if !reflect.DeepEqual(elem.Attribute(test_attr), test_pds) {
-		t.Error(elem.Attribute(test_attr))
-		t.Error(test_pds)
+	if elem, err := db.Get(test_elem.Id() + "a"); err != nil {
+		t.Fatal(err)
+	} else if elem != nil {
+		t.Fatal(elem)
+	} else if elem, err := db.Get(test_elem.Id()); err != nil {
+		t.Fatal(err)
+	} else if !reflect.DeepEqual(elem, test_elem) {
+		t.Error(elem)
+		t.Fatal(test_elem)
+	} else if elem, err := db.GetByName(test_elem.Name() + "a"); err != nil {
+		t.Fatal(err)
+	} else if elem != nil {
+		t.Fatal(elem)
+	} else if elem, err := db.GetByName(test_elem.Name()); err != nil {
+		t.Fatal(err)
+	} else if !reflect.DeepEqual(elem, test_elem) {
+		t.Error(elem)
+		t.Fatal(test_elem)
 	}
 }

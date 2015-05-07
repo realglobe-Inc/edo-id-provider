@@ -15,26 +15,36 @@
 package pairwise
 
 import (
-	"reflect"
+	"gopkg.in/mgo.v2"
+	"strconv"
 	"testing"
+	"time"
 )
 
-func testDb(t *testing.T, db Db) {
-	if elem, err := db.GetByPairwise(test_sect, test_pwAcnt); err != nil {
-		t.Fatal(err)
-	} else if elem != nil {
-		t.Fatal(elem)
+// テストするなら、mongodb を立てる必要あり。
+// 立ってなかったらテストはスキップ。
+var monPool *mgo.Session
+
+func init() {
+	if monPool == nil {
+		monPool, _ = mgo.DialWithTimeout("localhost", time.Second)
+	}
+}
+
+var test_db = "test-db-" + strconv.FormatInt(time.Now().UnixNano(), 16)
+
+const (
+	test_coll = "test-collection"
+)
+
+func TestMongoDb(t *testing.T) {
+	if monPool == nil {
+		t.SkipNow()
 	}
 
-	elem := New(test_acnt, test_sect, test_pwAcnt)
-	if err := db.Save(elem); err != nil {
-		t.Fatal(err)
-	} else if elem2, err := db.GetByPairwise(elem.Sector(), elem.Pairwise()); err != nil {
-		t.Fatal(err)
-	} else if elem2 == nil {
-		t.Fatal("no element")
-	} else if !reflect.DeepEqual(elem2, elem) {
-		t.Error(elem2)
-		t.Fatal(elem)
-	}
+	conn := monPool.New()
+	defer conn.Close()
+	defer conn.DB(test_db).DropDatabase()
+
+	testDb(t, NewMongoDb(monPool, test_db, test_coll))
 }

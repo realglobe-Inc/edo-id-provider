@@ -20,26 +20,26 @@ import (
 
 // メモリ上の認可コード情報の格納庫。
 type memoryDb struct {
-	lock         sync.Mutex
-	taToPwToElem map[string]map[string]*Element
+	lock           sync.Mutex
+	sectToPwToElem map[string]map[string]*Element
 }
 
 func NewMemoryDb() Db {
 	return &memoryDb{
-		taToPwToElem: map[string]map[string]*Element{},
+		sectToPwToElem: map[string]map[string]*Element{},
 	}
 }
 
-// TA 固有のアカウント ID による取得。
-func (this *memoryDb) GetByPairwise(ta, pwAcnt string) (*Element, error) {
+// セクタ固有のアカウント ID による取得。
+func (this *memoryDb) GetByPairwise(sect, pw string) (*Element, error) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
-	pwToElem := this.taToPwToElem[ta]
+	pwToElem := this.sectToPwToElem[sect]
 	if pwToElem == nil {
 		return nil, nil
 	}
-	return pwToElem[pwAcnt], nil
+	return pwToElem[pw], nil
 }
 
 // 保存。
@@ -47,11 +47,11 @@ func (this *memoryDb) Save(elem *Element) error {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
-	pwToElem := this.taToPwToElem[elem.Ta()]
+	pwToElem := this.sectToPwToElem[elem.Sector()]
 	if pwToElem == nil {
 		pwToElem = map[string]*Element{}
-		this.taToPwToElem[elem.Ta()] = pwToElem
+		this.sectToPwToElem[elem.Sector()] = pwToElem
 	}
-	pwToElem[elem.PairwiseAccount()] = elem
+	pwToElem[elem.Pairwise()] = elem
 	return nil
 }

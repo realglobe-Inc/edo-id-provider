@@ -18,10 +18,10 @@ import ()
 
 // バックエンドのデータもこのプログラム専用の前提。
 
-// TA 固有のアカウント ID の情報の格納庫。
+// セクタ固有のアカウント ID の情報の格納庫。
 type Db interface {
-	// TA 固有のアカウント ID による取得。
-	GetByPairwise(ta, pwAcnt string) (*Element, error)
+	// セクタ固有のアカウント ID による取得。
+	GetByPairwise(sect, pw string) (*Element, error)
 
 	// 保存。
 	Save(elem *Element) error

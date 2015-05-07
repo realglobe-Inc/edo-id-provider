@@ -17,23 +17,25 @@ package pairwise
 import (
 	"crypto/sha256"
 	"github.com/realglobe-Inc/edo-lib/base64url"
+	"github.com/realglobe-Inc/go-lib/erro"
+	"gopkg.in/mgo.v2/bson"
 )
 
-// TA 固有のアカウント ID の情報。
+// セクタ固有のアカウント ID の情報。
 type Element struct {
 	// 真のアカウント ID。
 	acnt string
-	// TA の ID。
-	ta string
-	// TA 固有のアカウント ID。
-	pwAcnt string
+	// TA のセクタ ID。
+	sect string
+	// セクタ固有のアカウント ID。
+	pw string
 }
 
-func New(acnt, ta, pwAcnt string) *Element {
+func New(acnt, sect, pw string) *Element {
 	return &Element{
-		acnt:   acnt,
-		ta:     ta,
-		pwAcnt: pwAcnt,
+		acnt: acnt,
+		sect: sect,
+		pw:   pw,
 	}
 }
 
@@ -42,22 +44,57 @@ func (this *Element) Account() string {
 	return this.acnt
 }
 
-// TA の ID を返す。
-func (this *Element) Ta() string {
-	return this.ta
+// TA のセクタ ID を返す。
+func (this *Element) Sector() string {
+	return this.sect
 }
 
-// TA 固有のアカウント ID を返す。
-func (this *Element) PairwiseAccount() string {
-	return this.pwAcnt
+// セクタ固有のアカウント ID を返す。
+func (this *Element) Pairwise() string {
+	return this.pw
 }
 
-// TA 固有のアカウントを計算する。
-func Generate(acnt, ta string) *Element {
+// セクタ固有のアカウントを計算する。
+func Generate(acnt, sect string, salt []byte) *Element {
 	h := sha256.New()
-	h.Write([]byte(ta))
-	h.Write([]byte{0})
 	h.Write([]byte(acnt))
-	pwAcnt := base64url.EncodeToString(h.Sum(nil))
-	return New(acnt, ta, pwAcnt)
+	h.Write([]byte{0})
+	h.Write([]byte(sect))
+	h.Write([]byte{0})
+	h.Write(salt)
+	pw := base64url.EncodeToString(h.Sum(nil))
+	return New(acnt, sect, pw)
+}
+
+//  {
+//      "account": <アカウント ID>,
+//      "sector": <セクタ ID>,
+//      "pairwise": <セクタ固有のアカウント ID>
+//  }
+func (this *Element) GetBSON() (interface{}, error) {
+	if this == nil {
+		return nil, nil
+	}
+
+	return map[string]interface{}{
+		"account":  this.acnt,
+		"sector":   this.sect,
+		"pairwise": this.pw,
+	}, nil
+}
+
+func (this *Element) SetBSON(raw bson.Raw) error {
+	var buff struct {
+		Acnt string `bson:"account"`
+		Sect string `bson:"sector"`
+		Pw   string `bson:"pairwise"`
+	}
+	if err := raw.Unmarshal(&buff); err != nil {
+		return erro.Wrap(err)
+	}
+
+	this.acnt = buff.Acnt
+	this.sect = buff.Sect
+	this.pw = buff.Pw
+	return nil
 }

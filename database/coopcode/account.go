@@ -14,7 +14,9 @@
 
 package coopcode
 
-import ()
+import (
+	"encoding/json"
+)
 
 // 仲介コードに付属させるアカウント情報。
 type Account struct {
@@ -38,4 +40,28 @@ func (this *Account) Id() string {
 // アカウントタグを返す。
 func (this *Account) Tag() string {
 	return this.tag
+}
+
+//  {
+//      "id": <ID>,
+//      "tag": <アカウントタグ>
+//  }
+func (this *Account) MarshalJSON() (data []byte, err error) {
+	return json.Marshal(map[string]string{
+		"id":  this.id,
+		"tag": this.tag,
+	})
+}
+
+func (this *Account) UnmarshalJSON(data []byte) error {
+	var buff struct {
+		Id  string `json:"id"`
+		Tag string `json:"tag"`
+	}
+	if err := json.Unmarshal(data, &buff); err != nil {
+		return err
+	}
+	this.id = buff.Id
+	this.tag = buff.Tag
+	return nil
 }

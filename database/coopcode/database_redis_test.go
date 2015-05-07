@@ -15,22 +15,22 @@
 package coopcode
 
 import (
+	"github.com/realglobe-Inc/edo-lib/test"
 	"testing"
 )
 
 const (
-	test_acntId  = "ZkTPOdBdh_bS2PqWnb1r8A3DqeKGCC"
-	test_acntTag = "self"
+	test_tag = "edo-test"
 )
 
-func TestAccount(t *testing.T) {
-	acnt := NewAccount(test_acntId, test_acntTag)
-
-	if acnt.Id() != test_acntId {
-		t.Error(acnt.Id())
-		t.Fatal(test_acntId)
-	} else if acnt.Tag() != test_acntTag {
-		t.Error(acnt.Tag())
-		t.Fatal(test_acntTag)
+func TestRedisDb(t *testing.T) {
+	red, err := test.NewRedisServer()
+	if err != nil {
+		t.Fatal(err)
+	} else if red == nil {
+		t.SkipNow()
 	}
+	defer red.Close()
+
+	testDb(t, NewRedisDb(red.Pool(), test_tag))
 }

@@ -38,54 +38,44 @@ func TestElement(t *testing.T) {
 
 	if elem.Id() != test_id {
 		t.Error(elem.Id())
-		t.Error(test_id)
-		return
+		t.Fatal(test_id)
 	} else if elem.Invalid() {
-		t.Error("invalid")
-		return
-	} else if !elem.ExpiresIn().Equal(exp) {
-		t.Error(elem.ExpiresIn())
-		t.Error(exp)
-		return
+		t.Fatal("invalid")
+	} else if !elem.Expires().Equal(exp) {
+		t.Error(elem.Expires())
+		t.Fatal(exp)
 	} else if elem.Account() != test_acnt {
 		t.Error(elem.Account())
-		t.Error(test_acnt)
-		return
+		t.Fatal(test_acnt)
 	} else if !reflect.DeepEqual(elem.Scope(), test_scop) {
 		t.Error(elem.Scope())
-		t.Error(test_scop)
-		return
+		t.Fatal(test_scop)
 	} else if !reflect.DeepEqual(elem.Attributes(), test_attrs) {
 		t.Error(elem.Attributes())
-		t.Error(test_attrs)
-		return
+		t.Fatal(test_attrs)
 	} else if elem.Ta() != test_ta {
 		t.Error(elem.Ta())
-		t.Error(test_ta)
-		return
+		t.Fatal(test_ta)
 	} else if len(elem.Tokens()) > 0 {
-		t.Error(elem.Tokens())
-		return
+		t.Fatal(elem.Tokens())
 	}
 
 	date := elem.Date()
 	elem.AddToken(test_tok)
 	if !reflect.DeepEqual(elem.Tokens(), map[string]bool{test_tok: true}) {
 		t.Error(elem.Tokens())
-		t.Error(map[string]bool{test_tok: true})
-		return
+		t.Fatal(map[string]bool{test_tok: true})
 	} else if elem.Date().Before(date) {
 		t.Error(elem.Date())
-		t.Error(date)
-		return
+		t.Fatal(date)
 	}
 
 	date = elem.Date()
 	elem.Invalidate()
 	if !elem.Invalid() {
-		t.Error("valid after invalidate")
+		t.Fatal("valid after invalidate")
 	} else if elem.Date().Before(date) {
 		t.Error(elem.Date())
-		t.Error(date)
+		t.Fatal(date)
 	}
 }

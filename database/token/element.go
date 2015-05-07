@@ -15,6 +15,9 @@
 package token
 
 import (
+	"encoding/json"
+	"github.com/realglobe-Inc/edo-lib/strset"
+	"github.com/realglobe-Inc/go-lib/erro"
 	"time"
 )
 
@@ -41,14 +44,18 @@ type Element struct {
 }
 
 func New(id string, exp time.Time, acnt string, scop, attrs map[string]bool, ta string) *Element {
+	return newElement(id, false, exp, acnt, scop, attrs, ta, time.Now())
+}
+func newElement(id string, inv bool, exp time.Time, acnt string, scop, attrs map[string]bool, ta string, date time.Time) *Element {
 	return &Element{
+		inv:   inv,
 		id:    id,
 		exp:   exp,
 		acnt:  acnt,
 		scop:  scop,
 		attrs: attrs,
 		ta:    ta,
-		date:  time.Now(),
+		date:  date,
 	}
 }
 
@@ -69,7 +76,7 @@ func (this *Element) Invalidate() {
 }
 
 // 有効期限を返す。
-func (this *Element) ExpiresIn() time.Time {
+func (this *Element) Expires() time.Time {
 	return this.exp
 }
 
@@ -110,4 +117,66 @@ func (this *Element) AddToken(tok string) {
 // 更新日時を返す。
 func (this *Element) Date() time.Time {
 	return this.date
+}
+
+//  {
+//      "id": <ID>,
+//      "invalid": <無効か>,
+//      "expires": <有効期限>,
+//      "account": <アカウント ID>,
+//      "scope": [
+//          <許可スコープ>,
+//          ...
+//      ],
+//      "attributes": [
+//          <許可属性>,
+//          ...
+//      ],
+//      "client_id": <TA の ID>,
+//      "tokens": [
+//          <アクセストークン>,
+//          ...
+//      ],
+//      "date": <更新日時>
+//  }
+func (this *Element) MarshalJSON() (data []byte, err error) {
+	return json.Marshal(map[string]interface{}{
+		"id":         this.id,
+		"invalid":    this.inv,
+		"expires":    this.exp,
+		"account":    this.acnt,
+		"scope":      strset.Set(this.scop),
+		"attributes": strset.Set(this.attrs),
+		"client_id":  this.ta,
+		"tokens":     strset.Set(this.toks),
+		"date":       this.date,
+	})
+}
+
+func (this *Element) UnmarshalJSON(data []byte) error {
+	var buff struct {
+		Id    string     `json:"id"`
+		Inv   bool       `json:"invalid"`
+		Exp   time.Time  `json:"expires"`
+		Acnt  string     `json:"account"`
+		Scop  strset.Set `json:"scope"`
+		Attrs strset.Set `json:"attributes"`
+		Ta    string     `json:"client_id"`
+		Toks  strset.Set `json:"tokens"`
+		Date  time.Time  `json:"date"`
+	}
+	if err := json.Unmarshal(data, &buff); err != nil {
+		return erro.Wrap(err)
+	}
+
+	this.id = buff.Id
+	this.inv = buff.Inv
+	this.exp = buff.Exp
+	this.acnt = buff.Acnt
+	this.scop = buff.Scop
+	this.attrs = buff.Attrs
+	this.ta = buff.Ta
+	this.toks = buff.Toks
+	this.date = buff.Date
+	return nil
 }

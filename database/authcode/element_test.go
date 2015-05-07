@@ -15,82 +15,70 @@
 package authcode
 
 import (
-	"net/url"
 	"reflect"
 	"testing"
 	"time"
 )
 
 const (
-	test_id   = "ZkTPOdBdh_bS2PqWnb1r8A3DqeKGCC"
-	test_acnt = "EYClXo4mQKwSgPel"
-	test_ta   = "https://ta.example.org"
-	test_nonc = "Wjj1_YUOlR"
-	test_tok  = "TM4CmjXyWQeqtasbRDqwSN80n26vuV"
+	test_id      = "ZkTPOdBdh_bS2PqWnb1r8A3DqeKGCC"
+	test_acnt    = "EYClXo4mQKwSgPel"
+	test_ta      = "https://ta.example.org"
+	test_rediUri = "https://ta.example.org/callback"
+	test_nonc    = "Wjj1_YUOlR"
+	test_tok     = "TM4CmjXyWQeqtasbRDqwSN80n26vuV"
 )
 
 var (
-	test_scop     = map[string]bool{"openid": true, "email": true}
-	test_attrs    = map[string]bool{"pds": true}
-	test_redi_uri *url.URL
+	test_scop      = map[string]bool{"openid": true, "email": true}
+	test_acntAttrs = map[string]bool{"pds": true}
 )
 
-func init() {
-	var err error
-	test_redi_uri, err = url.Parse("https://ta.example.org/return")
-	if err != nil {
-		panic(err)
-	}
-}
-
 func TestElement(t *testing.T) {
+	lgin := time.Now()
 	exp := time.Now().Add(time.Second)
-	elem := New(test_id, exp, test_acnt, test_scop, test_attrs, test_ta, test_redi_uri, test_nonc)
+	elem := New(test_id, exp, test_acnt, lgin, test_scop, nil, test_acntAttrs, test_ta, test_rediUri, test_nonc)
 
 	if elem.Id() != test_id {
 		t.Error(elem.Id())
-		t.Error(test_id)
-		return
-	} else if !elem.ExpiresIn().Equal(exp) {
-		t.Error(elem.ExpiresIn())
-		t.Error(exp)
-		return
+		t.Fatal(test_id)
+	} else if !elem.Expires().Equal(exp) {
+		t.Error(elem.Expires())
+		t.Fatal(exp)
 	} else if elem.Account() != test_acnt {
 		t.Error(elem.Account())
-		t.Error(test_acnt)
-		return
+		t.Fatal(test_acnt)
 	} else if !reflect.DeepEqual(elem.Scope(), test_scop) {
 		t.Error(elem.Scope())
-		t.Error(test_scop)
-		return
-	} else if !reflect.DeepEqual(elem.Attributes(), test_attrs) {
-		t.Error(elem.Attributes())
-		t.Error(test_attrs)
-		return
+		t.Fatal(test_scop)
+	} else if !elem.LoginDate().Equal(lgin) {
+		t.Error(elem.LoginDate())
+		t.Fatal(lgin)
+	} else if elem.IdTokenAttributes() != nil {
+		t.Fatal(elem.IdTokenAttributes())
+	} else if !reflect.DeepEqual(elem.AccountAttributes(), test_acntAttrs) {
+		t.Error(elem.AccountAttributes())
+		t.Fatal(test_acntAttrs)
 	} else if elem.Ta() != test_ta {
 		t.Error(elem.Ta())
-		t.Error(test_ta)
-		return
-	} else if !reflect.DeepEqual(elem.RedirectUri(), test_redi_uri) {
+		t.Fatal(test_ta)
+	} else if !reflect.DeepEqual(elem.RedirectUri(), test_rediUri) {
 		t.Error(elem.RedirectUri())
-		t.Error(test_redi_uri)
-		return
+		t.Fatal(test_rediUri)
 	} else if elem.Nonce() != test_nonc {
 		t.Error(elem.Nonce())
-		t.Error(test_nonc)
-		return
+		t.Fatal(test_nonc)
 	} else if elem.Token() != "" {
-		t.Error(elem.Token())
-		return
+		t.Fatal(elem.Token())
 	}
 
 	date := elem.Date()
 	elem.SetToken(test_tok)
 	if elem.Token() != test_tok {
 		t.Error(elem.Token())
-		t.Error(test_tok)
+		t.Fatal(test_tok)
 	} else if elem.Date().Before(date) {
 		t.Error(elem.Date())
-		t.Error(date)
+		t.Fatal(date)
 	}
 }

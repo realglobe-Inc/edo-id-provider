@@ -15,31 +15,36 @@
 package consent
 
 import (
-	"reflect"
+	"gopkg.in/mgo.v2"
+	"strconv"
 	"testing"
+	"time"
 )
 
-func testDb(t *testing.T, db Db) {
-	if el, err := db.Get(test_acnt, test_ta); err != nil {
-		t.Fatal(err)
-	} else if el != nil {
-		t.Fatal(el)
+// テストするなら、mongodb を立てる必要あり。
+// 立ってなかったらテストはスキップ。
+var monPool *mgo.Session
+
+func init() {
+	if monPool == nil {
+		monPool, _ = mgo.DialWithTimeout("localhost", time.Second)
+	}
+}
+
+var test_db = "test-db-" + strconv.FormatInt(time.Now().UnixNano(), 16)
+
+const (
+	test_coll = "test-collection"
+)
+
+func TestMongoDb(t *testing.T) {
+	if monPool == nil {
+		t.SkipNow()
 	}
 
-	elem := New(test_acnt, test_ta)
-	elem.AllowScope(test_scop)
+	conn := monPool.New()
+	defer conn.Close()
+	defer conn.DB(test_db).DropDatabase()
 
-	if err := db.Save(elem); err != nil {
-		t.Fatal(err)
-	}
-
-	elem2, err := db.Get(elem.Account(), elem.Ta())
-	if err != nil {
-		t.Fatal(err)
-	} else if elem2 == nil {
-		t.Fatal("no element")
-	} else if !reflect.DeepEqual(elem2, elem) {
-		t.Error(elem2)
-		t.Fatal(elem)
-	}
+	testDb(t, NewMongoDb(monPool, test_db, test_coll))
 }

@@ -28,38 +28,30 @@ const (
 func TestElement(t *testing.T) {
 	a := New(test_acnt, test_ta)
 	if a.Account() != test_acnt {
-		t.Error(a.Account())
-		return
+		t.Fatal(a.Account())
 	} else if a.Ta() != test_ta {
-		t.Error(a.Ta())
-		return
+		t.Fatal(a.Ta())
 	}
 
 	if a.ScopeAllowed(test_scop) {
-		t.Error(a)
-		return
+		t.Fatal(a)
 	} else if a.AttributeAllowed(test_attr) {
-		t.Error(a)
-		return
+		t.Fatal(a)
 	}
 
 	a.AllowScope(test_scop)
 	a.AllowAttribute(test_attr)
 	if !a.ScopeAllowed(test_scop) {
-		t.Error(a)
-		return
+		t.Fatal(a)
 	} else if !a.AttributeAllowed(test_attr) {
-		t.Error(a)
-		return
+		t.Fatal(a)
 	}
 
 	a.DenyScope(test_scop)
 	a.DenyAttribute(test_attr)
 	if a.ScopeAllowed(test_scop) {
-		t.Error(a)
-		return
+		t.Fatal(a)
 	} else if a.AttributeAllowed(test_attr) {
-		t.Error(a)
-		return
+		t.Fatal(a)
 	}
 }

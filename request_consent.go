@@ -19,25 +19,22 @@ import (
 )
 
 type consentRequest struct {
-	*browserRequest
-
-	tic       string
-	scops     map[string]bool
-	clms      map[string]bool
-	denyScops map[string]bool
-	denyClms  map[string]bool
-	loc       string
+	tic        string
+	allowScop  map[string]bool
+	allowAttrs map[string]bool
+	denyScop   map[string]bool
+	denyAttrs  map[string]bool
+	lang       string
 }
 
 func newConsentRequest(r *http.Request) *consentRequest {
 	return &consentRequest{
-		browserRequest: newBrowserRequest(r),
-		tic:            r.FormValue(formConsTic),
-		scops:          stripUnknownScopes(formValueSet(r, formConsScops)),
-		clms:           formValueSet(r, formConsClms),
-		denyScops:      stripUnknownScopes(formValueSet(r, formDenyScops)),
-		denyClms:       formValueSet(r, formDenyClms),
-		loc:            r.FormValue(formLoc),
+		tic:        r.FormValue(formTicket),
+		allowScop:  formValueSet(r.FormValue(formAllowed_scope)),
+		allowAttrs: formValueSet(r.FormValue(formAllowed_claims)),
+		denyScop:   formValueSet(r.FormValue(formDenied_scope)),
+		denyAttrs:  formValueSet(r.FormValue(formDenied_claims)),
+		lang:       r.FormValue(formLocale),
 	}
 }
 
@@ -45,22 +42,22 @@ func (this *consentRequest) ticket() string {
 	return this.tic
 }
 
-func (this *consentRequest) consentInfo() (scops, clms, denyScops, denyClms map[string]bool) {
-	if this.scops == nil {
-		this.scops = map[string]bool{}
-	}
-	if this.clms == nil {
-		this.clms = map[string]bool{}
-	}
-	if this.denyScops == nil {
-		this.denyScops = map[string]bool{}
-	}
-	if this.denyClms == nil {
-		this.denyClms = map[string]bool{}
-	}
-	return this.scops, this.clms, this.denyScops, this.denyClms
+func (this *consentRequest) allowedScope() map[string]bool {
+	return this.allowScop
 }
 
-func (this *consentRequest) locale() string {
-	return this.loc
+func (this *consentRequest) allowedAttributes() map[string]bool {
+	return this.allowAttrs
+}
+
+func (this *consentRequest) deniedScope() map[string]bool {
+	return this.denyScop
+}
+
+func (this *consentRequest) deniedAttributes() map[string]bool {
+	return this.denyAttrs
+}
+
+func (this *consentRequest) language() string {
+	return this.lang
 }

@@ -14,19 +14,26 @@
 
 package main
 
-import (
-	"github.com/realglobe-Inc/go-lib/rglog"
-)
+import ()
 
-var log = rglog.Logger("github.com/realglobe-Inc/edo-id-provider")
+// 認証情報。
+type passInfo interface {
+	password() string
+	params() []interface{}
+}
 
-const mosaicThres = 10
+type passwordOnly struct {
+	passwd string
+}
 
-// ログにそのまま書くのが憚られるので隠す。
-func mosaic(str string) string {
-	if len(str) <= mosaicThres {
-		return str
-	} else {
-		return str[:mosaicThres] + "..."
-	}
+func newPasswordOnly(passwd string) *passwordOnly {
+	return &passwordOnly{passwd}
+}
+
+func (this *passwordOnly) password() string {
+	return this.passwd
+}
+
+func (this *passwordOnly) params() []interface{} {
+	return []interface{}{}
 }

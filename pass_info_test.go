@@ -15,18 +15,16 @@
 package main
 
 import (
-	"github.com/realglobe-Inc/go-lib/rglog"
+	"testing"
 )
 
-var log = rglog.Logger("github.com/realglobe-Inc/edo-id-provider")
-
-const mosaicThres = 10
-
-// ログにそのまま書くのが憚られるので隠す。
-func mosaic(str string) string {
-	if len(str) <= mosaicThres {
-		return str
-	} else {
-		return str[:mosaicThres] + "..."
+func TestPasswordOnly(t *testing.T) {
+	passwd := "ltFq9kclPgMK4ilaOF7fNlx2TE9OYFiyrX4x9gwCc9n"
+	pass := newPasswordOnly(passwd)
+	if pass.password() != passwd {
+		t.Error(pass.password())
+		t.Fatal(passwd)
+	} else if len(pass.params()) > 0 {
+		t.Fatal(pass.params())
 	}
 }

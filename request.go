@@ -15,52 +15,22 @@
 package main
 
 import (
-	"github.com/realglobe-Inc/edo-lib/strset"
-	"github.com/realglobe-Inc/go-lib/erro"
-	"net/http"
-	"strings"
+	"github.com/realglobe-Inc/edo-id-provider/database/session"
 )
 
-// ブラウザからのリクエスト。
-type browserRequest struct {
-	sess string
+// リクエスト解析用関数。
+
+// "openid email" みたいな文字列を
+// {"openid": true, "email": true} みたいな集合にする。
+func formValueSet(s string) map[string]bool {
+	return session.StringsToSet(session.SplitBySpace(s))
 }
 
-func newBrowserRequest(r *http.Request) *browserRequest {
-	var sess string
-	if cook, err := r.Cookie(cookSess); err != nil {
-		if err != http.ErrNoCookie {
-			err = erro.Wrap(err)
-			log.Err(erro.Unwrap(err))
-			log.Debug(err)
-		}
-	} else {
-		sess = cook.Value
-	}
-	return &browserRequest{sess: sess}
-}
-
-func (this *browserRequest) session() string {
-	return this.sess
-}
-
-// スペース区切りのフォーム値を集合にして返す。
-func formValueSet(r *http.Request, key string) map[string]bool {
-	s := r.FormValue(key)
-	if s == "" {
-		return nil
-	}
-	return strset.FromSlice(strings.Split(s, " "))
-}
-
-// フォーム値用にスペース区切りにして返す。
-func valueSetToForm(m map[string]bool) string {
+// {"openid": true, "email": true} みたいな集合を
+// "openid email" みたいな文字列にする
+func valueSetForm(m map[string]bool) string {
 	buff := ""
-	for v, ok := range m {
-		if !ok || v == "" {
-			continue
-		}
-
+	for v := range m {
 		if len(buff) > 0 {
 			buff += " "
 		}
@@ -69,23 +39,15 @@ func valueSetToForm(m map[string]bool) string {
 	return buff
 }
 
-// スペース区切りのフォーム値を配列にして返す。
-func formValues(r *http.Request, key string) []string {
-	s := r.FormValue(key)
-	if s == "" {
-		return nil
-	}
-	return strings.Split(s, " ")
-}
+// "openid email" みたいな文字列を
+// {"openid", "email"} みたいな配列にする。
+var formValues = session.SplitBySpace
 
-// フォーム値用にスペース区切りにして返す。
-func valuesToForm(s []string) string {
+// {"openid", "email"} みたいな配列を
+// "openid email" みたいな文字列にする
+func valuesForm(a []string) string {
 	buff := ""
-	for _, v := range s {
-		if v == "" {
-			continue
-		}
-
+	for _, v := range a {
 		if len(buff) > 0 {
 			buff += " "
 		}

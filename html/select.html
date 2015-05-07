@@ -19,12 +19,22 @@ limitations under the License.
   <head>
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
     <meta http-equiv="Content-Script-Type" content="text/javascript">
-    <title>選択</title>
-    <script type="text/javascript" src="/html/select.js"></script>
+    <title>アカウント選択</title>
+    <script type="text/javascript" src="/ui/query.js"></script>
+    <script type="text/javascript" src="/ui/select.js"></script>
   </head>
 
   <body>
-    <H1>選択</H1>
+    <h1>アカウント選択</h1>
+    <p>
+      <script type="text/javascript">display()</script>
+    </p>
+    <p>
+      <form method="post" name="form" action="/auth/select">
+        アカウント: <input type="text" name="username" size="20" />
+        <input type="submit" value="選択" />
+      </form>
+    </p>
     <script type="text/javascript">select()</script>
   </body>
 </html>

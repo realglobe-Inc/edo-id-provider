@@ -16,71 +16,76 @@ package main
 
 import ()
 
+// コンパイル時に打ち間違いを検知するため。それ以上ではない。
+
 // HTTP の URL クエリや application/json, application/x-www-form-urlencoded で使うパラメータ名。
 const (
 	// OAuth と OpenID Connect で定義されているパラメータ。
-	formScop      = "scope"
-	formTaId      = "client_id"
-	formTaScrt    = "client_secret"
-	formPrmpt     = "prompt"
-	formRediUri   = "redirect_uri"
-	formRespType  = "response_type"
-	formStat      = "state"
-	formNonc      = "nonce"
-	formCod       = "code"
-	formGrntType  = "grant_type"
-	formTaAssType = "client_assertion_type"
-	formTaAss     = "client_assertion"
-	formTokId     = "access_token"
-	formTokType   = "token_type"
-	formExpi      = "expires_in"
-	formRefTok    = "refresh_token"
-	formIdTok     = "id_token"
-	formErr       = "error"
-	formErrDesc   = "error_description"
-	formClm       = "claim"
-	formDisp      = "display"
-	formMaxAge    = "max_age"
-	formUiLocs    = "ui_locales"
-	formClms      = "claims"
-	formReq       = "request"
+	formAccess_token          = "access_token"
+	formClaim                 = "claim"
+	formClaims                = "claims"
+	formClient_assertion      = "client_assertion"
+	formClient_assertion_type = "client_assertion_type"
+	formClient_id             = "client_id"
+	formClient_secret         = "client_secret"
+	formCode                  = "code"
+	formDisplay               = "display"
+	formError                 = "error"
+	formError_description     = "error_description"
+	formExpires_in            = "expires_in"
+	formGrant_type            = "grant_type"
+	formId_token              = "id_token"
+	formMax_age               = "max_age"
+	formNonce                 = "nonce"
+	formPrompt                = "prompt"
+	formRedirect_uri          = "redirect_uri"
+	formRefresh_token         = "refresh_token"
+	formRequest               = "request"
+	formRequest_uri           = "request_uri"
+	formResponse_type         = "response_type"
+	formScope                 = "scope"
+	formState                 = "state"
+	formToken_type            = "token_type"
+	formUi_locales            = "ui_locales"
 
 	// 独自。
-	formAccName   = "username"
-	formPasswd    = "password"
-	formAccNames  = "usernames"
-	formHint      = "hint"
-	formLoginTic  = "ticket"
-	formTaNam     = "client_name"
-	formConsTic   = "ticket"
-	formConsScops = "consented_scope"
-	formConsClms  = "consented_claim"
-	formDenyScops = "denied_scope"
-	formDenyClms  = "denied_claim"
-	formSelTic    = "ticket"
-	formLocs      = "locales"
-	formLoc       = "locale"
+	formAllowed_claims  = "allowed_claims"
+	formAllowed_scope   = "allowed_scope"
+	formDenied_claims   = "denied_claims"
+	formDenied_scope    = "denied_scope"
+	formIssuer          = "issuer"
+	formLocale          = "locale"
+	formLocales         = "locales"
+	formMessage         = "message"
+	formOptional_claims = "optional_claims"
+	formPass_type       = "pass_type"
+	formPassword        = "password"
+	formTicket          = "ticket"
+	formUsername        = "username"
+	formUsernames       = "usernames"
 )
 
 // Cookie 中にセッション識別子。
-const cookSess = "X-Edo-Idp-Session"
+const sessLabel = "Id-Provider"
 
 // scope の値。
 const (
-	scopOpId = "openid"
+	scopOpenid         = "openid"
+	scopOffline_access = "offline_access"
 )
 
 // response_type の値。
 const (
-	respTypeCod = "code"
+	respTypeCode     = "code"
+	respTypeId_token = "id_token"
 )
 
 // prompt の値。
 const (
-	prmptSelAcc = "select_account"
-	prmptLogin  = "login"
-	prmptCons   = "consent"
-	prmptNone   = "none"
+	prmptConsent        = "consent"
+	prmptLogin          = "login"
+	prmptNone           = "none"
+	prmptSelect_account = "select_account"
 )
 
 // client_assertion_type の値。
@@ -90,19 +95,16 @@ const (
 
 // クレーム名。
 const (
-	clmIss     = "iss"
-	clmSub     = "sub"
-	clmAud     = "aud"
-	clmJti     = "jti"
-	clmExp     = "exp"
-	clmIat     = "iat"
-	clmAuthTim = "auth_time"
-	clmNonc    = "nonce"
-	clmAtHash  = "at_hash"
-
-	// プライベートクレーム。
-	clmCod = "code"
-	clmTok = "access_token"
+	clmAt_hash   = "at_hash"
+	clmAud       = "aud"
+	clmAuth_time = "auth_time"
+	clmC_hash    = "at_hash"
+	clmExp       = "exp"
+	clmIat       = "iat"
+	clmIss       = "iss"
+	clmJti       = "jti"
+	clmNonce     = "nonce"
+	clmSub       = "sub"
 )
 
 // JWT のヘッダパラメータ名。
@@ -118,59 +120,21 @@ const (
 
 // grant_type の値。
 const (
-	grntTypeCod = "authorization_code"
+	grntTypeAuthorization_code = "authorization_code"
 )
 
 // token_type の値。
 const (
-	tokTypeBear = "Bearer"
+	tokTypeBearer = "Bearer"
 )
 
 // HTTP ヘッダ名。
 const (
-	headAuth = "Authorization"
+	headAuthorization   = "Authorization"
+	headX_forwarded_for = "X-Forwarded-For"
 )
 
 // HTTP の Authorization の方式名。
 const (
-	scBear = "Bearer"
-)
-
-// error の値。
-const (
-	errInvReq         = "invalid_request"
-	errAccDeny        = "access_denied"
-	errUnsuppRespType = "unsupported_response_type"
-	errInvScop        = "invalid_scope"
-	errServErr        = "server_error"
-	errInteractReq    = "interaction_required"
-	errLoginReq       = "login_required"
-	errAccSelReq      = "account_selection_required"
-	errConsReq        = "consent_required"
-	errReqNotSupp     = "request_not_supported"
-	errReqUriNotSupp  = "request_uri_not_supported"
-	errRegNotSupp     = "registration_not_supported"
-	errUnsuppGrntType = "unsupported_grant_type"
-	errInvGrnt        = "invalid_grant"
-	errInvTa          = "invalid_client"
-	// OpenID Connect の仕様ではサンプルとしてしか登場しない。
-	errInvTok = "invalid_token"
-)
-
-// URL パス。
-const (
-	authPath   = "/auth"
-	loginPath  = "/auth/login"
-	selPath    = "/auth/select"
-	consPath   = "/auth/consent"
-	tokPath    = "/token"
-	accInfPath = "/userinfo"
-	okPath     = "/ok"
-)
-
-// HTML ファイル名。
-const (
-	selHtml   = "select.html"
-	loginHtml = "login.html"
-	consHtml  = "consent.html"
+	scmBearer = "Bearer"
 )

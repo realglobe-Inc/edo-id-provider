@@ -16,38 +16,42 @@ package main
 
 import (
 	"encoding/json"
+	jtidb "github.com/realglobe-Inc/edo-id-provider/database/jti"
+	"github.com/realglobe-Inc/edo-id-provider/database/token"
+	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
 	"github.com/realglobe-Inc/edo-lib/base64url"
 	"github.com/realglobe-Inc/edo-lib/jwt"
 	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"net/http"
+	"reflect"
 	"strconv"
 	"time"
 )
 
-func responseToken(w http.ResponseWriter, tok *token) error {
+func responseToken(w http.ResponseWriter, tok *token.Element, refTok, idTok string) error {
 	m := map[string]interface{}{
-		formTokId:   tok.id(),
-		formTokType: tokTypeBear,
+		formAccess_token: tok.Id(),
+		formToken_type:   tokTypeBearer,
 	}
-	if !tok.expirationDate().IsZero() {
-		m[formExpi] = int64(tok.expirationDate().Sub(time.Now()).Seconds())
+	if !tok.Expires().IsZero() {
+		m[formExpires_in] = int64(tok.Expires().Sub(time.Now()).Seconds())
 	}
-	if tok.refreshToken() != "" {
-		m[formRefTok] = tok.refreshToken()
-	}
-	if len(tok.scopes()) > 0 {
+	if len(tok.Scope()) > 0 {
 		var buff string
-		for scop := range tok.scopes() {
+		for scop := range tok.Scope() {
 			if len(buff) > 0 {
 				buff += " "
 			}
 			buff += scop
 		}
-		m[formScop] = buff
+		m[formScope] = buff
 	}
-	if tok.idToken() != "" {
-		m[formIdTok] = tok.idToken()
+	if refTok != "" {
+		m[formRefresh_token] = refTok
+	}
+	if idTok != "" {
+		m[formId_token] = idTok
 	}
 	buff, err := json.Marshal(m)
 	if err != nil {
@@ -66,161 +70,146 @@ func responseToken(w http.ResponseWriter, tok *token) error {
 	return nil
 }
 
-func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
+func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {
 	if r.Method != "POST" {
-		return newIdpError(errInvReq, r.Method+" is not supported", http.StatusMethodNotAllowed, nil)
+		return idperr.New(idperr.Invalid_request, r.Method+" is not supported", http.StatusMethodNotAllowed, nil)
 	}
 
 	req := newTokenRequest(r)
 	// 重複パラメータが無いか検査。
 	for k, v := range r.Form {
 		if len(v) > 1 {
-			return newIdpError(errInvReq, k+" is overlapped", http.StatusBadRequest, nil)
+			return idperr.New(idperr.Invalid_request, k+" is overlapped", http.StatusBadRequest, nil)
 		}
 	}
 
 	if grntType := req.grantType(); grntType == "" {
-		return newIdpError(errInvReq, "no "+formGrntType, http.StatusBadRequest, nil)
-	} else if grntType != grntTypeCod {
-		return newIdpError(errUnsuppGrntType, grntType+" is not supported", http.StatusBadRequest, nil)
+		return idperr.New(idperr.Invalid_request, "no "+formGrant_type, http.StatusBadRequest, nil)
+	} else if grntType != grntTypeAuthorization_code {
+		return idperr.New(idperr.Unsupported_grant_type, grntType+" is not supported", http.StatusBadRequest, nil)
 	}
 
-	log.Debug("Grant type is " + grntTypeCod)
+	log.Debug("Grant type is " + grntTypeAuthorization_code)
 
-	rawCod := req.code()
-	if rawCod == "" {
-		return newIdpError(errInvReq, "no "+formCod, http.StatusBadRequest, nil)
-	}
-
-	var codId string
-	if codJt, err := jwt.Parse(rawCod, nil, nil); err != nil {
-		// JWS から抜き出した ID だけ送られてきた。
-		codId = rawCod
-		rawCod = ""
-	} else {
-		// JWS のまま送られてきた。
-		log.Debug("Raw code " + mosaic(rawCod) + " is declared")
-		codId, _ = codJt.Claim(clmJti).(string)
+	codId := req.code()
+	if codId == "" {
+		return idperr.New(idperr.Invalid_request, "no "+formCode, http.StatusBadRequest, nil)
 	}
 
 	log.Debug("Code " + mosaic(codId) + " is declared")
 
-	cod, codTic, err := sys.codCont.getAndSetEntry(codId)
+	now := time.Now()
+
+	cod, err := sys.acodDb.Get(codId)
 	if err != nil {
 		return erro.Wrap(err)
 	} else if cod == nil {
-		return newIdpError(errInvGrnt, "code "+mosaic(codId)+" is not exist", http.StatusBadRequest, nil)
-	} else if !cod.valid() {
+		return idperr.New(idperr.Invalid_grant, "code "+mosaic(codId)+" is not exist", http.StatusBadRequest, nil)
+	} else if cod.Expires().Before(now) {
+		return idperr.New(idperr.Invalid_grant, "code "+mosaic(codId)+" is expired", http.StatusBadRequest, nil)
+	} else if cod.Token() != "" {
 		disposeCode(sys, codId)
-		return newIdpError(errInvGrnt, "code "+mosaic(codId)+" is invalid", http.StatusBadRequest, nil)
+		return idperr.New(idperr.Invalid_grant, "code "+mosaic(codId)+" is invalid", http.StatusBadRequest, nil)
 	}
 
 	log.Debug("Code " + mosaic(codId) + " is exist")
+	savedCodDate := cod.Date()
 
-	// 認可コードを使用済みにする。
-	cod.disable()
-
-	log.Debug("Code " + mosaic(codId) + " was disabled")
-
-	taId := req.taId()
-	if taId == "" {
-		return newIdpError(errInvReq, "no "+formTaId, http.StatusBadRequest, nil)
-	} else if taId != cod.taId() {
-		return newIdpError(errInvGrnt, "you are not code holder", http.StatusBadRequest, nil)
+	if req.ta() == "" {
+		return idperr.New(idperr.Invalid_request, "no "+formClient_id, http.StatusBadRequest, nil)
+	} else if req.ta() != cod.Ta() {
+		return idperr.New(idperr.Invalid_grant, "you are not code holder", http.StatusBadRequest, nil)
 	} else {
-		log.Debug("TA ID " + taId + " is declared")
+		log.Debug("TA ID " + req.ta() + " is declared")
 	}
 
 	rediUri := req.redirectUri()
 	if rediUri == "" {
-		return newIdpError(errInvReq, "no "+formRediUri, http.StatusBadRequest, nil)
-	} else if rediUri != cod.redirectUri() {
-		return newIdpError(errInvGrnt, "invalid "+formRediUri, http.StatusBadRequest, nil)
+		return idperr.New(idperr.Invalid_request, "no "+formRedirect_uri, http.StatusBadRequest, nil)
+	} else if !reflect.DeepEqual(rediUri, cod.RedirectUri()) {
+		return idperr.New(idperr.Invalid_grant, "invalid "+formRedirect_uri, http.StatusBadRequest, nil)
 	}
 
-	log.Debug(formRediUri + " matches that of code")
+	log.Debug(formRedirect_uri + " matches that of code")
 
 	if taAssType := req.taAssertionType(); taAssType == "" {
-		return newIdpError(errInvTa, "no "+formTaAssType, http.StatusBadRequest, nil)
+		return idperr.New(idperr.Invalid_client, "no "+formClient_assertion_type, http.StatusBadRequest, nil)
 	} else if taAssType != taAssTypeJwt {
-		return newIdpError(errInvTa, taAssType+" is not supported", http.StatusBadRequest, nil)
+		return idperr.New(idperr.Invalid_client, taAssType+" is not supported", http.StatusBadRequest, nil)
 	}
 
-	log.Debug(formTaAssType + " is " + taAssTypeJwt)
+	log.Debug(formClient_assertion_type + " is " + taAssTypeJwt)
 
 	taAss := req.taAssertion()
-	if taAss == "" {
-		return newIdpError(errInvTa, "no "+formTaAss, http.StatusBadRequest, nil)
+	if taAss == nil {
+		return idperr.New(idperr.Invalid_client, "no "+formClient_assertion, http.StatusBadRequest, nil)
 	}
 
-	log.Debug(formTaAss + " is found")
+	log.Debug(formClient_assertion + " is found")
 
 	// Authorization ヘッダと client_secret パラメータも認識はする。
-	if r.Header.Get(headAuth) != "" || r.FormValue(formTaScrt) != "" {
-		return newIdpError(errInvReq, "multi client authentication algorithms are exist", http.StatusBadRequest, nil)
+	if r.Header.Get(headAuthorization) != "" || r.FormValue(formClient_secret) != "" {
+		return idperr.New(idperr.Invalid_request, "multi client authentication algorithms are exist", http.StatusBadRequest, nil)
 	}
 
 	// クライアント認証する。
-	ta, err := sys.taCont.get(taId)
+	ta, err := sys.taDb.Get(req.ta())
 	if err != nil {
 		return erro.Wrap(err)
 	}
 
-	assJt, err := jwt.Parse(taAss, ta.keys(), nil)
+	assJt, err := jwt.Parse(taAss)
 	if err != nil {
-		err = erro.Wrap(err)
-		return newIdpError(errInvTa, erro.Unwrap(err).Error(), http.StatusBadRequest, err)
+		return idperr.New(idperr.Invalid_client, erro.Unwrap(err).Error(), http.StatusBadRequest, erro.Wrap(err))
 	} else if assJt.Header(jwtAlg) == algNone {
-		return newIdpError(errInvTa, "asserion "+jwtAlg+" must not be "+algNone, http.StatusBadRequest, nil)
+		return idperr.New(idperr.Invalid_client, "asserion "+jwtAlg+" must not be "+algNone, http.StatusBadRequest, nil)
+	} else if err := assJt.Verify(ta.Keys()); err != nil {
+		return idperr.New(idperr.Invalid_client, erro.Unwrap(err).Error(), http.StatusBadRequest, erro.Wrap(err))
 	}
 
-	now := time.Now()
-	if assJt.Claim(clmIss) != taId {
-		return newIdpError(errInvTa, "assertion "+clmIss+" is not "+taId, http.StatusBadRequest, nil)
-	} else if assJt.Claim(clmSub) != taId {
-		return newIdpError(errInvTa, "assertion "+clmSub+" is not "+taId, http.StatusBadRequest, nil)
-	} else if jti := assJt.Claim(clmJti); jti == nil || jti == "" {
-		return newIdpError(errInvTa, "no assertion "+clmJti, http.StatusBadRequest, nil)
-	} else if exp, _ := assJt.Claim(clmExp).(float64); exp == 0 {
-		return newIdpError(errInvTa, "no assertion "+clmExp, http.StatusBadRequest, nil)
-	} else if intExp := int64(exp); exp != float64(intExp) {
-		return newIdpError(errInvTa, "assertion "+clmExp+" is not integer", http.StatusBadRequest, nil)
-	} else if intExp < now.Unix() {
-		return newIdpError(errInvTa, "assertion expired", http.StatusBadRequest, nil)
+	if assJt.Claim(clmIss) != req.ta() {
+		return idperr.New(idperr.Invalid_client, "JWT issuer is not "+req.ta(), http.StatusBadRequest, nil)
+	} else if jti, _ := assJt.Claim(clmJti).(string); jti == "" {
+		return idperr.New(idperr.Invalid_client, "no JWT ID", http.StatusBadRequest, nil)
+	} else if rawExp, _ := assJt.Claim(clmExp).(float64); rawExp == 0 {
+		return idperr.New(idperr.Invalid_client, "no expiration date", http.StatusBadRequest, nil)
+	} else if exp := time.Unix(int64(rawExp), 0); now.After(exp) {
+		return idperr.New(idperr.Invalid_client, "assertion expired", http.StatusBadRequest, nil)
+	} else if ok, err := sys.jtiDb.SaveIfAbsent(jtidb.New(req.ta(), jti, exp)); err != nil {
+		return erro.Wrap(err)
+	} else if !ok {
+		return idperr.New(idperr.Invalid_client, "overlapped JWT ID", http.StatusBadRequest, nil)
+	} else if assJt.Claim(clmSub) != req.ta() {
+		return idperr.New(idperr.Invalid_client, "JWT subject is not "+req.ta(), http.StatusBadRequest, nil)
 	} else if aud := assJt.Claim(clmAud); aud == nil {
-		return newIdpError(errInvTa, "no assertion "+clmAud, http.StatusBadRequest, nil)
-	} else if !audienceHas(aud, sys.selfId+tokPath) {
-		return newIdpError(errInvTa, "assertion "+clmAud+" does not contain "+sys.selfId+tokPath, http.StatusBadRequest, nil)
-	} else if c := assJt.Claim(clmCod); !((rawCod != "" || c == rawCod) || c == codId) {
-		return newIdpError(errInvTa, "invalid assertion "+clmCod, http.StatusBadRequest, nil)
+		return idperr.New(idperr.Invalid_client, "no assertion "+clmAud, http.StatusBadRequest, nil)
+	} else if !audienceHas(aud, sys.selfId+sys.pathTok) {
+		return idperr.New(idperr.Invalid_client, "assertion "+clmAud+" does not contain "+sys.selfId+sys.pathTok, http.StatusBadRequest, nil)
 	}
 
 	// クライアント認証できた。
-	log.Debug(taId + " is authenticated")
+	log.Debug(req.ta() + " is authenticated")
 
-	tokId, err := sys.tokCont.newId()
-	if err != nil {
-		return erro.Wrap(err)
-	}
+	tokId := newId(sys.tokLen)
 
 	// アクセストークンが決まった。
 	log.Debug("Token " + mosaic(tokId) + " was generated")
 
-	idTokJt := jwt.New()
-	idTokJt.SetHeader(jwtAlg, sys.sigAlg)
-	if sys.sigKid != "" {
-		idTokJt.SetHeader(jwtKid, sys.sigKid)
+	// ID トークンの作成。
+	acnt, err := sys.acntDb.Get(cod.Account())
+	if err != nil {
+		return erro.Wrap(err)
+	} else if acnt == nil {
+		// アカウントが無い。
+		return idperr.New(idperr.Invalid_request, "accout "+mosaic(cod.Account())+" was not found", http.StatusBadRequest, nil)
 	}
-	idTokJt.SetClaim(clmIss, sys.selfId)
-	idTokJt.SetClaim(clmSub, cod.accountId())
-	idTokJt.SetClaim(clmAud, cod.taId())
-	idTokJt.SetClaim(clmExp, now.Add(sys.idTokExpiDur).Unix())
-	idTokJt.SetClaim(clmIat, now.Unix())
-	if !cod.authenticationDate().IsZero() {
-		idTokJt.SetClaim(clmAuthTim, cod.authenticationDate().Unix())
+
+	clms := map[string]interface{}{}
+	if !cod.LoginDate().IsZero() {
+		clms[clmAuth_time] = cod.LoginDate().Unix()
 	}
-	if cod.nonce() != "" {
-		idTokJt.SetClaim(clmNonc, cod.nonce())
+	if cod.Nonce() != "" {
+		clms[clmNonce] = cod.Nonce()
 	}
 	if hGen, err := jwt.HashFunction(sys.sigAlg); err != nil {
 		return erro.Wrap(err)
@@ -228,48 +217,44 @@ func tokenApi(w http.ResponseWriter, r *http.Request, sys *system) error {
 		h := hGen.New()
 		h.Write([]byte(tokId))
 		sum := h.Sum(nil)
-		idTokJt.SetClaim(clmAtHash, base64url.EncodeToString(sum[:len(sum)/2]))
+		clms[clmAt_hash] = base64url.EncodeToString(sum[:len(sum)/2])
 	}
-	buff, err := idTokJt.Encode(map[string]interface{}{sys.sigKid: sys.sigKey}, nil)
+	idTok, err := sys.newIdToken(ta, acnt, cod.IdTokenAttributes(), clms)
 	if err != nil {
 		return erro.Wrap(err)
 	}
-	idTok := string(buff)
 
 	// ID トークンができた。
 	log.Debug("ID token was generated")
 
-	tok := newToken(
+	tok := token.New(
 		tokId,
-		cod.accountId(),
-		cod.taId(),
-		cod.id(),
-		"",
-		now.Add(cod.expirationDuration()),
-		cod.scopes(),
-		cod.claims(),
-		idTok,
+		now.Add(sys.tokExpIn),
+		cod.Account(),
+		cod.Scope(),
+		cod.AccountAttributes(),
+		cod.Ta(),
 	)
 
 	// アクセストークンを認可コードに結びつける。
-	cod.addToken(tokId)
-	if ok, err := sys.codCont.putIfEntered(cod, codTic); err != nil {
-		return newIdpError(errServErr, erro.Unwrap(err).Error(), http.StatusBadRequest, erro.Wrap(err))
+	cod.SetToken(tokId)
+	if ok, err := sys.acodDb.Replace(cod, savedCodDate); err != nil {
+		return idperr.New(idperr.Server_error, erro.Unwrap(err).Error(), http.StatusBadRequest, erro.Wrap(err))
 	} else if !ok {
 		disposeCode(sys, codId)
-		return newIdpError(errInvGrnt, "code "+mosaic(codId)+" is used by others", http.StatusBadRequest, nil)
+		return idperr.New(idperr.Invalid_grant, "code "+mosaic(codId)+" is used by others", http.StatusBadRequest, nil)
 	}
 
-	log.Debug("Token " + mosaic(tok.id()) + " was linked to code " + mosaic(cod.id()))
+	log.Debug("Token " + mosaic(tok.Id()) + " was linked to code " + mosaic(cod.Id()))
 
 	// アクセストークンを保存する。
-	if err := sys.tokCont.put(tok); err != nil {
+	if err := sys.tokDb.Save(tok, now.Add(sys.tokDbExpIn)); err != nil {
 		return erro.Wrap(err)
 	}
 
-	log.Debug("Token " + mosaic(tok.id()) + " was registerd")
+	log.Debug("Token " + mosaic(tok.Id()) + " was registerd")
 
-	return responseToken(w, tok)
+	return responseToken(w, tok, "", idTok)
 }
 
 // aud クレーム値が tgt を含むかどうか検査。
@@ -292,7 +277,7 @@ func audienceHas(aud interface{}, tgt string) bool {
 
 // 認可コードを廃棄処分する。
 func disposeCode(sys *system, codId string) {
-	cod, codTic, err := sys.codCont.getAndSetEntry(codId)
+	cod, err := sys.acodDb.Get(codId)
 	if err != nil {
 		// 何もできない。
 		err = erro.Wrap(err)
@@ -303,42 +288,36 @@ func disposeCode(sys *system, codId string) {
 		return
 	}
 
-	for tokId := range cod.tokens() {
-		disposeToken(sys, tokId)
-	}
-
-	if !cod.valid() {
+	if cod.Token() == "" {
 		return
 	}
-
-	cod.disable()
-	if _, err := sys.codCont.putIfEntered(cod, codTic); err != nil {
-		err = erro.Wrap(err)
-		log.Err(erro.Unwrap(err))
-		log.Debug(err)
-		return
-	}
+	disposeToken(sys, cod.Token())
 }
 
 // アクセストークンを廃棄処分する。
 func disposeToken(sys *system, tokId string) {
-	tok, err := sys.tokCont.get(tokId)
-	if err != nil {
-		err = erro.Wrap(err)
-		log.Err(erro.Unwrap(err))
-		log.Debug(err)
-		return
-	} else if tok == nil {
-		return
-	} else if !tok.valid() {
-		return
-	}
+	for {
+		tok, err := sys.tokDb.Get(tokId)
+		if err != nil {
+			err = erro.Wrap(err)
+			log.Err(erro.Unwrap(err))
+			log.Debug(err)
+			return
+		} else if tok == nil {
+			return
+		} else if tok.Invalid() {
+			return
+		}
+		savedDate := tok.Date()
 
-	tok.disable()
-	if err := sys.tokCont.put(tok); err != nil {
-		err = erro.Wrap(err)
-		log.Err(erro.Unwrap(err))
-		log.Debug(err)
-		return
+		tok.Invalidate()
+		if ok, err := sys.tokDb.Replace(tok, savedDate); err != nil {
+			err = erro.Wrap(err)
+			log.Err(erro.Unwrap(err))
+			log.Debug(err)
+			return
+		} else if ok {
+			return
+		}
 	}
 }

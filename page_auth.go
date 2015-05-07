@@ -15,200 +15,172 @@
 package main
 
 import (
-	"github.com/realglobe-Inc/edo-lib/jwt"
+	"fmt"
+	"github.com/realglobe-Inc/edo-id-provider/database/session"
+	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"net/http"
 	"time"
 )
 
-// 認可コード発行。
-func publishCode(w http.ResponseWriter, r *http.Request, sys *system, sess *session) error {
+func (sys *system) returnErrorBeforeParseRequest(w http.ResponseWriter, r *http.Request, req *session.Request, reqErr error, sess *session.Element) error {
+	// リダイレクトエンドポイントが正しければ、リダイレクトでエラーを返す。
 
-	authReq := sess.request() // commit すると消えるので取っとく。
-
-	consScops, consClms, denyScops, denyClms := sess.commit()
-
-	if !consScops[scopOpId] {
-		// openid すら許されなかった。
-		return redirectError(w, r, sys, sess, authReq, newIdpError(errAccDeny, "user denied openid", 0, nil))
+	if req == nil || req.Ta() == "" || req.RedirectUri() == "" {
+		return sys.returnError(w, r, reqErr, sess)
 	}
 
-	codId, err := sys.codCont.newId()
+	// TA とリダイレクトエンドポイントが指定されてる。
+
+	ta, err := sys.taDb.Get(req.Ta())
 	if err != nil {
-		return redirectError(w, r, sys, sess, authReq, erro.Wrap(err))
-	}
-	cod := newCode(
-		codId,
-		sess.currentAccount(),
-		authReq.ta(),
-		authReq.redirectUri().String(),
-		time.Now().Add(sys.codExpiDur),
-		sys.tokExpiDur,
-		consScops,
-		consClms,
-		authReq.nonce(),
-		sess.currentAccountDate(),
-	)
-	log.Debug("Code " + mosaic(cod.id()) + " was generated.")
-
-	if err := sys.codCont.put(cod); err != nil {
-		return redirectError(w, r, sys, sess, authReq, erro.Wrap(err))
-	}
-
-	// 認可コードを発行した。
-	log.Debug("Code " + mosaic(cod.id()) + " was published")
-
-	if sess.id() == "" {
-		id, err := sys.sessCont.newId()
-		if err != nil {
-			return redirectError(w, r, sys, sess, authReq, erro.Wrap(err))
-		}
-		sess.setId(id)
-	}
-	sess.setExpirationDate(time.Now().Add(sys.sessExpiDur))
-	if err := sys.sessCont.put(sess); err != nil {
-		return redirectError(w, r, sys, sess, authReq, erro.Wrap(err))
-	}
-
-	log.Debug("Session " + mosaic(sess.id()) + " was registered")
-
-	if err := sys.consCont.put(sess.currentAccount(), authReq.ta(), consScops, consClms, denyScops, denyClms); err != nil {
-		return redirectError(w, r, sys, sess, authReq, erro.Wrap(err))
-	}
-
-	// 認可コードを IdP の ID を含んだ JWS にする。
-	jt := jwt.New()
-	jt.SetHeader(jwtAlg, algNone)
-	jt.SetClaim(clmJti, cod.id())
-	jt.SetClaim(clmIss, sys.selfId)
-	buff, err := jt.Encode(nil, nil)
-	if err != nil {
-		return redirectError(w, r, sys, sess, authReq, erro.Wrap(err))
-	}
-	encCod := string(buff)
-
-	q := authReq.redirectUri().Query()
-	q.Set(formCod, encCod)
-	if stat := authReq.state(); stat != "" {
-		q.Set(formStat, stat)
-	}
-	authReq.redirectUri().RawQuery = q.Encode()
-	http.SetCookie(w, &http.Cookie{
-		Name:     cookSess,
-		Value:    sess.id(),
-		Path:     "/",
-		Expires:  sess.expirationDate(),
-		Secure:   sys.secCook,
-		HttpOnly: true})
-	w.Header().Add("Cache-Control", "no-store")
-	w.Header().Add("Pragma", "no-cache")
-	http.Redirect(w, r, authReq.redirectUri().String(), http.StatusFound)
-	return nil
-}
-
-// ユーザー認証・認可開始ページ。
-func authPage(w http.ResponseWriter, r *http.Request, sys *system) error {
-	req, err := newAuthRequest(r)
-	if err != nil {
-		return erro.Wrap(err)
-	}
-
-	if req.ta() == "" {
-		return newIdpError(errInvReq, "no "+formTaId, http.StatusBadRequest, nil)
-	}
-
-	// TA が指定されてる。
-	log.Debug("TA " + req.ta() + " is declared")
-
-	t, err := sys.taCont.get(req.ta())
-	if err != nil {
-		return erro.Wrap(err)
-	} else if t == nil {
-		return newIdpError(errInvReq, "invalid TA "+req.ta(), http.StatusBadRequest, nil)
+		log.Err(erro.Wrap(err))
+		return sys.returnError(w, r, reqErr, sess)
+	} else if ta == nil {
+		log.Warn("Declared TA " + req.Ta() + " is not exist")
+		return sys.returnError(w, r, reqErr, sess)
 	}
 
 	// TA は存在する。
-	log.Debug("TA " + t.id() + " is exist")
-	req.setTaName(t.name())
 
-	if req.rawRequest() != "" {
-		if err := req.parseRequest(t.keys(), map[string]interface{}{sys.sigKid: sys.sigKey}); err != nil {
-			return newIdpError(errInvReq, erro.Unwrap(err).Error(), http.StatusBadRequest, erro.Wrap(err))
+	if !ta.RedirectUris()[req.RedirectUri()] {
+		log.Warn("Declared redirect URI " + req.RedirectUri() + " is not registered")
+		return sys.returnError(w, r, reqErr, sess)
+	}
+
+	// リダイレクトエンドポイントも正しい。
+
+	sess.SetRequest(req)
+	return sys.redirectError(w, r, reqErr, sess)
+}
+
+// ユーザー認証開始。
+func (sys *system) authPage(w http.ResponseWriter, r *http.Request) (err error) {
+
+	var sess *session.Element
+	baseReq := newBaseRequest(r)
+	if sessId := baseReq.session(); sessId != "" {
+		// セッションが通知された。
+		log.Debug("Session " + mosaic(sessId) + " is declared")
+
+		if sess, err = sys.sessDb.Get(sessId); err != nil {
+			log.Err(erro.Wrap(err))
+			// 新規発行すれば動くので諦めない。
+		} else if sess == nil {
+			// セッションが無かった。
+			log.Warn("Declared session " + mosaic(sessId) + " is not exist")
+		} else {
+			// セッションがあった。
+			log.Debug("Declared session " + mosaic(sessId) + " is exist")
 		}
 	}
 
-	if req.rawRedirectUri() == "" {
-		return newIdpError(errInvReq, "no "+formRediUri, http.StatusBadRequest, nil)
-	} else if !t.redirectUris()[req.rawRedirectUri()] {
-		return newIdpError(errInvReq, formRediUri+" "+req.rawRedirectUri()+" is not registered", http.StatusBadRequest, nil)
-	} else if err := req.parseRedirectUri(); err != nil {
-		return newIdpError(errInvReq, erro.Unwrap(err).Error(), http.StatusBadRequest, erro.Wrap(err))
+	now := time.Now()
+	if sess == nil {
+		// セッションを新規発行。
+		sess = session.New(newId(sys.sessLen), now.Add(sys.sessExpIn))
+		log.Info("New session " + mosaic(sess.Id()) + " was generated but not yet saved")
+	} else if now.After(sess.Expires().Add(-sys.sessRefDelay)) {
+		// セッションを更新。
+		old := sess
+		sess = sess.New(newId(sys.sessLen), now.Add(sys.sessExpIn))
+		log.Info("Session " + mosaic(old.Id()) + " was refreshed to " + mosaic(sess.Id()) + " but not yet saved")
 	}
 
-	// リダイレクト先には問題無い。
-	log.Debug("Redirect URI " + req.rawRedirectUri() + " is OK")
+	// セッションは決まった。
 
-	if !req.scopes()[scopOpId] {
-		return redirectError(w, r, sys, nil, req, newIdpError(errInvReq, formScop+" has no "+scopOpId, 0, nil))
+	req, err := session.ParseRequest(r)
+	if err != nil {
+		return sys.returnErrorBeforeParseRequest(w, r, req, idperr.New(idperr.Invalid_request, erro.Unwrap(err).Error(), http.StatusBadRequest, erro.Wrap(err)), sess)
 	}
+
+	if req.Ta() == "" {
+		return sys.returnError(w, r, idperr.New(idperr.Invalid_request, "no TA is declared", http.StatusBadRequest, nil), sess)
+	}
+
+	// TA が指定されてる。
+	log.Debug("TA " + req.Ta() + " is declared")
+
+	ta, err := sys.taDb.Get(req.Ta())
+	if err != nil {
+		return sys.returnError(w, r, erro.Wrap(err), sess)
+	} else if ta == nil {
+		return sys.returnError(w, r, idperr.New(idperr.Invalid_request, "declared TA "+req.Ta()+" is not exist", http.StatusBadRequest, nil), sess)
+	}
+
+	// TA は存在する。
+	log.Debug("Declared TA " + ta.Id() + " is exist")
+
+	// request と request_uri パラメータの読み込み。
+	if req.Request() != nil {
+		if req.RequestUri() != "" {
+			return sys.returnErrorBeforeParseRequest(w, r, req, idperr.New(idperr.Invalid_request, "cannot use "+formRequest+" and "+formRequest_uri+" together", http.StatusBadRequest, nil), sess)
+		} else if keys, err := sys.keyDb.Get(); err != nil {
+			return sys.returnErrorBeforeParseRequest(w, r, req, erro.Wrap(err), sess)
+		} else if err := req.ParseRequest(req.Request(), keys, ta.Keys()); err != nil {
+			return sys.returnErrorBeforeParseRequest(w, r, req, idperr.New(idperr.Invalid_request, erro.Unwrap(err).Error(), http.StatusBadRequest, erro.Wrap(err)), sess)
+		}
+	} else if req.RequestUri() != "" {
+		if webElem, err := sys.webDb.Get(req.RequestUri()); err != nil {
+			return sys.returnErrorBeforeParseRequest(w, r, req, erro.Wrap(err), sess)
+		} else if keys, err := sys.keyDb.Get(); err != nil {
+			return sys.returnErrorBeforeParseRequest(w, r, req, erro.Wrap(err), sess)
+		} else if err := req.ParseRequest(webElem.Data(), keys, ta.Keys()); err != nil {
+			return sys.returnErrorBeforeParseRequest(w, r, req, idperr.New(idperr.Invalid_request, erro.Unwrap(err).Error(), http.StatusBadRequest, erro.Wrap(err)), sess)
+		}
+	}
+
+	if req.RedirectUri() == "" {
+		return sys.returnError(w, r, idperr.New(idperr.Invalid_request, "no redirect URI is declared", http.StatusBadRequest, nil), sess)
+	} else if !ta.RedirectUris()[req.RedirectUri()] {
+		return sys.returnError(w, r, idperr.New(idperr.Invalid_request, "declared redirect URI "+req.RedirectUri()+" is not registered", http.StatusBadRequest, nil), sess)
+	}
+
+	// リダイレクトエンドポイントも正しい。
+	log.Debug("Declared redirect URI " + req.RedirectUri() + " is registered")
+
+	sess.SetRequest(req)
+
+	// リクエストの解析は終了。
+	log.Info("Authentication request " + mosaic(sess.Id()) + " reached from " + baseReq.source())
 
 	// 重複パラメータが無いか検査。
 	for k, v := range r.Form {
 		if len(v) > 1 {
-			return redirectError(w, r, sys, nil, req, newIdpError(errInvReq, k+" is overlapped", 0, nil))
+			return sys.redirectError(w, r, newErrorForRedirect(idperr.Invalid_request, "parameter "+k+" is overlapped", nil), sess)
 		}
+	}
+
+	if !req.Scope()[scopOpenid] {
+		return sys.redirectError(w, r, newErrorForRedirect(idperr.Invalid_request, "scope does not have "+scopOpenid, nil), sess)
 	}
 
 	// scope には問題無い。
-	log.Debug("Scope has " + scopOpId)
+	log.Debug("Declared scope has " + scopOpenid)
 
-	if l := len(req.responseType()); l == 0 {
-		return redirectError(w, r, sys, nil, req, newIdpError(errInvReq, "no "+formRespType, 0, nil))
-	} else if l != 1 || !req.responseType()[respTypeCod] {
-		return redirectError(w, r, sys, nil, req, newIdpError(errUnsuppRespType, formRespType+" is not "+respTypeCod, 0, nil))
+	switch respTypes := req.ResponseType(); len(respTypes) {
+	case 0:
+		return sys.redirectError(w, r, newErrorForRedirect(idperr.Invalid_request, "no response type", nil), sess)
+	case 1:
+		if !respTypes[respTypeCode] {
+			return sys.redirectError(w, r, newErrorForRedirect(idperr.Unsupported_response_type, fmt.Sprint("response type ", respTypes, " is not supported"), nil), sess)
+		}
+	case 2:
+		if !respTypes[respTypeCode] || !respTypes[respTypeId_token] {
+			return sys.redirectError(w, r, newErrorForRedirect(idperr.Unsupported_response_type, fmt.Sprint("response type ", respTypes, " is not supported"), nil), sess)
+		}
 	}
 
 	// response_type には問題無い。
-	log.Debug("Response type is " + respTypeCod)
+	log.Debug("Response type is ", req.ResponseType())
 
-	if err := req.parse(); err != nil {
-		return redirectError(w, r, sys, nil, req, newIdpError(errInvReq, erro.Unwrap(err).Error(), 0, erro.Wrap(err)))
-	}
-
-	// リクエストの文法には問題無い。
-	log.Debug("Authentication request is OK")
-
-	var sess *session
-	if sessId := newBrowserRequest(r).session(); sessId != "" {
-		// セッションが通知された。
-		log.Debug("Session " + mosaic(sessId) + " is declared")
-
-		var err error
-		sess, err = sys.sessCont.get(sessId)
-		if err != nil {
-			return redirectError(w, r, sys, nil, req, erro.Wrap(err))
-		} else if sess == nil {
-			// セッションなんて無かった。
-			log.Warn("Session " + mosaic(sessId) + " is not exist")
-		} else {
-			// セッションがあった。
-			log.Debug("Session " + mosaic(sessId) + " is exist")
-		}
-	}
-
-	if sess == nil {
-		sess = newSession()
-		log.Debug("New session was generated but not yet registered")
-	}
-	sess.startRequest(req)
-
-	if req.prompts()[prmptSelAcc] {
-		if req.prompts()[prmptNone] {
-			return redirectError(w, r, sys, nil, req, newIdpError(errAccSelReq, "cannot select account without UI", 0, nil))
+	if req.Prompt()[prmptSelect_account] {
+		if req.Prompt()[prmptNone] {
+			return sys.redirectError(w, r, newErrorForRedirect(idperr.Account_selection_required, "cannot select account without UI", nil), sess)
 		}
 
-		return redirectSelectUi(w, r, sys, sess, "")
+		return sys.redirectToSelectUi(w, r, sess, "Please select your account")
 	}
 
-	return afterSelect(w, r, sys, sess)
+	return sys.afterSelect(w, r, sess, ta, nil)
 }

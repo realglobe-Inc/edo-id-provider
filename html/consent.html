@@ -20,11 +20,24 @@ limitations under the License.
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
     <meta http-equiv="Content-Script-Type" content="text/javascript">
     <title>確認</title>
-    <script type="text/javascript" src="/html/consent.js"></script>
+    <script type="text/javascript" src="/ui/query.js"></script>
+    <script type="text/javascript" src="/ui/consent.js"></script>
   </head>
 
   <body>
-    <H1>確認</H1>
+    <h1>確認</h1>
+    <p>
+      <script type="text/javascript">display()</script>
+    </p>
+    <p>
+      <form method="post" name="form" action="/auth/consent">
+        許可するスコープ: <input type="text" name="allowed_scope" size="50" /><br/>
+        許可する属性: <input type="text" name="allowed_claims" size="50" /><br/>
+        拒否するスコープ: <input type="text" name="denied_scope" size="50" /><br/>
+        拒否する属性: <input type="text" name="denied_claims" size="50" /><br/>
+        <input type="submit" value="確認" />
+      </form>
+    </p>
     <script type="text/javascript">consent()</script>
   </body>
 </html>

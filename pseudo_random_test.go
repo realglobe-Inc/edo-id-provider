@@ -17,13 +17,16 @@ package main
 import (
 	"encoding/base64"
 	"testing"
+	"time"
 )
 
-func TestNewId(t *testing.T) {
+func TestPseudoRandomString(t *testing.T) {
+	prand := newPseudoRandom(time.Millisecond)
+
 	m := map[string]bool{}
 	for j := 0; j < 100; j++ {
 		for i := 100; i < 200; i++ {
-			id := newId(i)
+			id := prand.string(i)
 			if m[id] {
 				t.Fatal("overlap " + id)
 			} else if len(id) != i {
@@ -36,11 +39,13 @@ func TestNewId(t *testing.T) {
 	}
 }
 
-func TestNewIdBytes(t *testing.T) {
+func TestPseudoRandomBytes(t *testing.T) {
+	prand := newPseudoRandom(time.Millisecond)
+
 	m := map[string]bool{}
 	for j := 0; j < 100; j++ {
 		for i := 100; i < 200; i++ {
-			id := newIdBytes(i)
+			id := prand.bytes(i)
 			label := base64.StdEncoding.EncodeToString(id)
 			if m[label] {
 				t.Fatal("overlap " + label)

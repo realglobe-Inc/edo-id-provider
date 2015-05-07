@@ -15,25 +15,33 @@
 package main
 
 import (
+	"github.com/realglobe-Inc/edo-id-provider/database/account"
 	"net/http"
 )
 
 type loginRequest struct {
-	*browserRequest
-
-	tic     string
-	accName string
-	passwd  string
-	loc     string
+	tic      string
+	acntName string
+	psType   string
+	pass     passInfo
+	lang     string
 }
 
 func newLoginRequest(r *http.Request) *loginRequest {
+	psType := r.FormValue(formPass_type)
+
+	var pass passInfo
+	switch psType {
+	case account.AuthTypeStr43:
+		pass = newPasswordOnly(r.FormValue(formPassword))
+	}
+
 	return &loginRequest{
-		browserRequest: newBrowserRequest(r),
-		tic:            r.FormValue(formLoginTic),
-		accName:        r.FormValue(formAccName),
-		passwd:         r.FormValue(formPasswd),
-		loc:            r.FormValue(formLoc),
+		tic:      r.FormValue(formTicket),
+		acntName: r.FormValue(formUsername),
+		psType:   psType,
+		pass:     pass,
+		lang:     r.FormValue(formLocale),
 	}
 }
 
@@ -41,10 +49,18 @@ func (this *loginRequest) ticket() string {
 	return this.tic
 }
 
-func (this *loginRequest) loginInfo() (accName, passwd string) {
-	return this.accName, this.passwd
+func (this *loginRequest) accountName() string {
+	return this.acntName
 }
 
-func (this *loginRequest) locale() string {
-	return this.loc
+func (this *loginRequest) passType() string {
+	return this.psType
+}
+
+func (this *loginRequest) passInfo() passInfo {
+	return this.pass
+}
+
+func (this *loginRequest) language() string {
+	return this.lang
 }

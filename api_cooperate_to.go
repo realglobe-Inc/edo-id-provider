@@ -15,18 +15,9 @@
 package main
 
 import (
-	"github.com/realglobe-Inc/go-lib/rglog"
+	"net/http"
 )
 
-var log = rglog.Logger("github.com/realglobe-Inc/edo-id-provider")
-
-const mosaicThres = 10
-
-// ログにそのまま書くのが憚られるので隠す。
-func mosaic(str string) string {
-	if len(str) <= mosaicThres {
-		return str
-	} else {
-		return str[:mosaicThres] + "..."
-	}
+func (sys *system) cooperateToApi(w http.ResponseWriter, r *http.Request) error {
+	panic("not yet implemented")
 }

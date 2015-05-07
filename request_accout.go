@@ -16,30 +16,39 @@ package main
 
 import (
 	"net/http"
+	"strings"
 )
 
-type selectRequest struct {
-	tic      string
-	acntName string
-	lang     string
+// アカウント情報リクエスト。
+type accountRequest struct {
+	scm string
+	tok string
 }
 
-func newSelectRequest(r *http.Request) *selectRequest {
-	return &selectRequest{
-		tic:      r.FormValue(formTicket),
-		acntName: r.FormValue(formUsername),
-		lang:     r.FormValue(formLocale),
+func newAccountRequest(r *http.Request) *accountRequest {
+	scm, tok := parseAuthorizationToken(r.Header.Get(headAuthorization))
+	return &accountRequest{
+		scm: scm,
+		tok: tok,
 	}
 }
 
-func (this *selectRequest) ticket() string {
-	return this.tic
+func (this *accountRequest) scheme() string {
+	return this.scm
 }
 
-func (this *selectRequest) accountName() (accName string) {
-	return this.acntName
+func (this *accountRequest) token() string {
+	return this.tok
 }
 
-func (this *selectRequest) language() string {
-	return this.lang
+func parseAuthorizationToken(line string) (scm, tok string) {
+	parts := strings.SplitN(line, " ", 2)
+	switch len(parts) {
+	case 0:
+		return "", ""
+	case 1:
+		return "", parts[0]
+	default:
+		return parts[0], parts[1]
+	}
 }

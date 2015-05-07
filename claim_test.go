@@ -16,27 +16,47 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
-	"reflect"
+	"github.com/realglobe-Inc/edo-id-provider/database/account"
+	"github.com/realglobe-Inc/edo-id-provider/database/session"
 	"testing"
 )
 
-func TestClaimRequest(t *testing.T) {
-	req := claimRequest{
-		"name":     {"ja": {true, nil, nil}},
-		"nickname": {"": {false, nil, nil}},
+func TestCheckContradiction(t *testing.T) {
+	var reqClm session.Claim
+	if err := json.Unmarshal([]byte(`{
+    "id_token": {
+        "email": {
+            "value": "tester@example.org"
+        }
+    },
+    "userinfo": {
+        "pds": {
+            "essential": true
+        }
+    }
+}`), &reqClm); err != nil {
+		t.Fatal(err)
 	}
 
-	buff, err := json.Marshal(req)
-	if err != nil {
+	if err := checkContradiction(account.New("EYClXo4mQKwSgPel", "edo-id-provider-tester", nil, map[string]interface{}{
+		"email": "tester@example.org",
+		"pds": map[string]interface{}{
+			"type": "single",
+			"uri":  "https://pds.example.org",
+		},
+	}), &reqClm); err != nil {
 		t.Fatal(err)
-	}
-	var req2 claimRequest
-	if err := json.Unmarshal(buff, &req2); err != nil {
-		t.Fatal(err)
-	} else if !reflect.DeepEqual(req2, req) {
-		t.Error(fmt.Sprintf("%#v", req2))
-		t.Error(fmt.Sprintf("%#v", req))
-		t.Error(string(buff))
+	} else if err := checkContradiction(account.New("EYClXo4mQKwSgPel", "edo-id-provider-tester", nil, map[string]interface{}{
+		"email": "tester2@example.org",
+		"pds": map[string]interface{}{
+			"type": "single",
+			"uri":  "https://pds.example.org",
+		},
+	}), &reqClm); err == nil {
+		t.Fatal("cannot detect email.value contradiction")
+	} else if err := checkContradiction(account.New("EYClXo4mQKwSgPel", "edo-id-provider-tester", nil, map[string]interface{}{
+		"email": "tester@example.org",
+	}), &reqClm); err == nil {
+		t.Fatal("cannot detect lack of essential")
 	}
 }

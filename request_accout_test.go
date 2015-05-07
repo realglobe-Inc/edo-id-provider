@@ -15,18 +15,25 @@
 package main
 
 import (
-	"github.com/realglobe-Inc/go-lib/rglog"
+	"net/http"
+	"testing"
 )
 
-var log = rglog.Logger("github.com/realglobe-Inc/edo-id-provider")
+func TestAccountRequest(t *testing.T) {
+	token := "ZkTPOdBdh_bS2PqWnb1r8A3DqeKGCC"
 
-const mosaicThres = 10
+	r, err := http.NewRequest("GET", "https://idp.example.org/api/info/account", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Header.Set("Authorization", "Bearer "+token)
 
-// ログにそのまま書くのが憚られるので隠す。
-func mosaic(str string) string {
-	if len(str) <= mosaicThres {
-		return str
-	} else {
-		return str[:mosaicThres] + "..."
+	req := newAccountRequest(r)
+	if req.scheme() != "Bearer" {
+		t.Error(req.scheme())
+		t.Fatal("Bearer")
+	} else if req.token() != token {
+		t.Error(req.token())
+		t.Fatal(token)
 	}
 }

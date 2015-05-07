@@ -40,7 +40,7 @@ func (this *memoryDb) SaveIfAbsent(elem *Element) (ok bool, err error) {
 	if idToElem == nil {
 		idToElem = map[string]*Element{}
 		this.issToIdToElem[elem.Issuer()] = idToElem
-	} else if saved := idToElem[elem.Id()]; saved != nil || !time.Now().After(saved.ExpiresIn()) {
+	} else if saved := idToElem[elem.Id()]; saved != nil || !time.Now().After(saved.Expires()) {
 		return false, nil
 	}
 

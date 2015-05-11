@@ -29,6 +29,7 @@ import (
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
 	webdb "github.com/realglobe-Inc/edo-idp-selector/database/web"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
+	"github.com/realglobe-Inc/edo-lib/driver"
 	logutil "github.com/realglobe-Inc/edo-lib/log"
 	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/go-lib/erro"
@@ -80,10 +81,10 @@ func serve(param *parameters) (err error) {
 
 	// バックエンドの準備。
 
-	redPools := newRedisPoolSet(param.redTimeout, param.redPoolSize, param.redPoolExpIn)
-	defer redPools.close()
-	monPools := newMongoPoolSet(param.monTimeout)
-	defer monPools.close()
+	redPools := driver.NewRedisPoolSet(param.redTimeout, param.redPoolSize, param.redPoolExpIn)
+	defer redPools.Close()
+	monPools := driver.NewMongoPoolSet(param.monTimeout)
+	defer monPools.Close()
 
 	// 鍵。
 	var keyDb keydb.Db
@@ -92,7 +93,7 @@ func serve(param *parameters) (err error) {
 		keyDb = keydb.NewFileDb(param.keyDbPath)
 		log.Info("Use keys in directory " + param.keyDbPath)
 	case "redis":
-		keyDb = keydb.NewRedisCache(keydb.NewFileDb(param.keyDbPath), redPools.get(param.keyDbAddr), param.keyDbTag, param.keyDbExpIn)
+		keyDb = keydb.NewRedisCache(keydb.NewFileDb(param.keyDbPath), redPools.Get(param.keyDbAddr), param.keyDbTag, param.keyDbExpIn)
 		log.Info("Use keys in directory " + param.keyDbPath + " with redis " + param.keyDbAddr + ": " + param.keyDbTag)
 	default:
 		return erro.New("invalid key DB type " + param.keyDbType)
@@ -102,7 +103,7 @@ func serve(param *parameters) (err error) {
 	var acntDb account.Db
 	switch param.acntDbType {
 	case "mongo":
-		pool, err := monPools.get(param.acntDbAddr)
+		pool, err := monPools.Get(param.acntDbAddr)
 		if err != nil {
 			return erro.Wrap(err)
 		}
@@ -119,7 +120,7 @@ func serve(param *parameters) (err error) {
 		consDb = consent.NewMemoryDb()
 		log.Info("Save consent info in memory")
 	case "mongo":
-		pool, err := monPools.get(param.consDbAddr)
+		pool, err := monPools.Get(param.consDbAddr)
 		if err != nil {
 			return erro.Wrap(err)
 		}
@@ -136,7 +137,7 @@ func serve(param *parameters) (err error) {
 		webDb = webdb.NewDirectDb()
 		log.Info("Get web data directly")
 	case "redis":
-		webDb = webdb.NewRedisCache(webdb.NewDirectDb(), redPools.get(param.webDbAddr), param.webDbTag, param.webDbExpIn)
+		webDb = webdb.NewRedisCache(webdb.NewDirectDb(), redPools.Get(param.webDbAddr), param.webDbTag, param.webDbExpIn)
 		log.Info("Get web data with redis " + param.webDbAddr + ": " + param.webDbTag)
 	default:
 		return erro.New("invalid web data DB type " + param.webDbType)
@@ -146,7 +147,7 @@ func serve(param *parameters) (err error) {
 	var taDb tadb.Db
 	switch param.taDbType {
 	case "mongo":
-		pool, err := monPools.get(param.taDbAddr)
+		pool, err := monPools.Get(param.taDbAddr)
 		if err != nil {
 			return erro.Wrap(err)
 		}
@@ -163,7 +164,7 @@ func serve(param *parameters) (err error) {
 		sectDb = sector.NewMemoryDb()
 		log.Info("Save pairwise account ID calculation info in memory")
 	case "mongo":
-		pool, err := monPools.get(param.sectDbAddr)
+		pool, err := monPools.Get(param.sectDbAddr)
 		if err != nil {
 			return erro.Wrap(err)
 		}
@@ -180,7 +181,7 @@ func serve(param *parameters) (err error) {
 		pwDb = pairwise.NewMemoryDb()
 		log.Info("Save pairwise account IDs in memory")
 	case "mongo":
-		pool, err := monPools.get(param.pwDbAddr)
+		pool, err := monPools.Get(param.pwDbAddr)
 		if err != nil {
 			return erro.Wrap(err)
 		}
@@ -194,7 +195,7 @@ func serve(param *parameters) (err error) {
 	var idpDb idpdb.Db
 	switch param.idpDbType {
 	case "mongo":
-		pool, err := monPools.get(param.idpDbAddr)
+		pool, err := monPools.Get(param.idpDbAddr)
 		if err != nil {
 			return erro.Wrap(err)
 		}
@@ -211,7 +212,7 @@ func serve(param *parameters) (err error) {
 		sessDb = session.NewMemoryDb()
 		log.Info("Save sessions in memory")
 	case "redis":
-		sessDb = session.NewRedisDb(redPools.get(param.sessDbAddr), param.sessDbTag)
+		sessDb = session.NewRedisDb(redPools.Get(param.sessDbAddr), param.sessDbTag)
 		log.Info("Save sessions in redis " + param.sessDbAddr + ": " + param.sessDbTag)
 	default:
 		return erro.New("invalid session DB type " + param.sessDbType)
@@ -224,7 +225,7 @@ func serve(param *parameters) (err error) {
 		acodDb = authcode.NewMemoryDb()
 		log.Info("Save authorization codes in memory")
 	case "redis":
-		acodDb = authcode.NewRedisDb(redPools.get(param.acodDbAddr), param.acodDbTag)
+		acodDb = authcode.NewRedisDb(redPools.Get(param.acodDbAddr), param.acodDbTag)
 		log.Info("Save authorization codes in redis " + param.acodDbAddr + ": " + param.acodDbTag)
 	default:
 		return erro.New("invalid authorization code DB type " + param.acodDbType)
@@ -237,7 +238,7 @@ func serve(param *parameters) (err error) {
 		tokDb = token.NewMemoryDb()
 		log.Info("Save access tokens in memory")
 	case "redis":
-		tokDb = token.NewRedisDb(redPools.get(param.tokDbAddr), param.tokDbTag)
+		tokDb = token.NewRedisDb(redPools.Get(param.tokDbAddr), param.tokDbTag)
 		log.Info("Save access tokens in redis " + param.tokDbAddr + ": " + param.tokDbTag)
 	default:
 		return erro.New("invalid access token DB type " + param.tokDbType)
@@ -250,7 +251,7 @@ func serve(param *parameters) (err error) {
 		ccodDb = coopcode.NewMemoryDb()
 		log.Info("Save cooperation codes in memory")
 	case "redis":
-		ccodDb = coopcode.NewRedisDb(redPools.get(param.ccodDbAddr), param.ccodDbTag)
+		ccodDb = coopcode.NewRedisDb(redPools.Get(param.ccodDbAddr), param.ccodDbTag)
 		log.Info("Save cooperation codes in redis " + param.ccodDbAddr + ": " + param.ccodDbTag)
 	default:
 		return erro.New("invalid cooperation code DB type " + param.ccodDbType)
@@ -263,7 +264,7 @@ func serve(param *parameters) (err error) {
 		jtiDb = jtidb.NewMemoryDb()
 		log.Info("Save JWT IDs in memory")
 	case "redis":
-		jtiDb = jtidb.NewRedisDb(redPools.get(param.jtiDbAddr), param.jtiDbTag)
+		jtiDb = jtidb.NewRedisDb(redPools.Get(param.jtiDbAddr), param.jtiDbTag)
 		log.Info("Save JWT IDs in redis " + param.jtiDbAddr + ": " + param.jtiDbTag)
 	default:
 		return erro.New("invalid JWT ID DB type " + param.jtiDbType)

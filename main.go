@@ -301,6 +301,7 @@ func serve(param *parameters) (err error) {
 		param.ticLen,
 
 		keyDb,
+		webDb,
 		acntDb,
 		consDb,
 		taDb,
@@ -312,7 +313,6 @@ func serve(param *parameters) (err error) {
 		tokDb,
 		ccodDb,
 		jtiDb,
-		webDb,
 
 		param.cookPath,
 		param.cookSec,

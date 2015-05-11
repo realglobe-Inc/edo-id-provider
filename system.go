@@ -67,6 +67,7 @@ type system struct {
 	ticLen       int
 
 	keyDb  keydb.Db
+	webDb  webdb.Db
 	acntDb account.Db
 	consDb consent.Db
 	taDb   tadb.Db
@@ -78,7 +79,6 @@ type system struct {
 	tokDb  token.Db
 	ccodDb coopcode.Db
 	jtiDb  jtidb.Db
-	webDb  webdb.Db
 
 	cookPath string
 	cookSec  bool

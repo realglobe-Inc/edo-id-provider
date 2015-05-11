@@ -118,6 +118,12 @@ type parameters struct {
 	keyDbTag   string
 	keyDbExpIn time.Duration
 
+	// web データ DB。
+	webDbType  string
+	webDbAddr  string
+	webDbTag   string
+	webDbExpIn time.Duration
+
 	// アカウント情報 DB。
 	acntDbType string
 	acntDbAddr string
@@ -178,12 +184,6 @@ type parameters struct {
 	jtiDbType string
 	jtiDbAddr string
 	jtiDbTag  string
-
-	// web データ DB。
-	webDbType  string
-	webDbAddr  string
-	webDbTag   string
-	webDbExpIn time.Duration
 
 	// その他のオプション。
 
@@ -272,6 +272,11 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.StringVar(&param.keyDbTag, "keyDbTag", "keys", "Key DB tag")
 	flags.DurationVar(&param.keyDbExpIn, "keyDbExpIn", 5*time.Minute, "Key DB expiration duration")
 
+	flags.StringVar(&param.webDbType, "webDbType", "redis", "Web data DB type")
+	flags.StringVar(&param.webDbAddr, "webDbAddr", "localhost:6379", "Web data DB address")
+	flags.StringVar(&param.webDbTag, "webDbTag", "webuest", "Web data DB tag")
+	flags.DurationVar(&param.webDbExpIn, "webDbExpIn", 7*24*time.Hour, "Web data keep duration")
+
 	flags.StringVar(&param.acntDbType, "acntDbType", "mongo", "Account DB type")
 	flags.StringVar(&param.acntDbAddr, "acntDbAddr", "localhost", "Account DB address")
 	flags.StringVar(&param.acntDbTag, "acntDbTag", "edo", "Account DB tag")
@@ -321,11 +326,6 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.StringVar(&param.jtiDbType, "jtiDbType", "redis", "JWT ID DB type")
 	flags.StringVar(&param.jtiDbAddr, "jtiDbAddr", "localhost:6379", "JWT ID DB address")
 	flags.StringVar(&param.jtiDbTag, "jtiDbTag", "jti", "JWT ID DB tag")
-
-	flags.StringVar(&param.webDbType, "webDbType", "redis", "Web data DB type")
-	flags.StringVar(&param.webDbAddr, "webDbAddr", "localhost:6379", "Web data DB address")
-	flags.StringVar(&param.webDbTag, "webDbTag", "webuest", "Web data DB tag")
-	flags.DurationVar(&param.webDbExpIn, "webDbExpIn", 7*24*time.Hour, "Web data keep duration")
 
 	flags.StringVar(&param.cookPath, "cookPath", "/", "Path in Set-Cookie")
 	flags.BoolVar(&param.cookSec, "cookSec", true, "Secure flag in Set-Cookie")

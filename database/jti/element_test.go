@@ -29,12 +29,12 @@ func TestElement(t *testing.T) {
 
 	if elem := New(test_iss, test_id, exp); elem.Issuer() != test_iss {
 		t.Error(elem.Issuer())
-		t.Error(test_iss)
+		t.Fatal(test_iss)
 	} else if elem.Id() != test_id {
 		t.Error(elem.Id())
-		t.Error(test_id)
-	} else if !elem.ExpiresIn().Equal(exp) {
-		t.Error(elem.ExpiresIn())
-		t.Error(exp)
+		t.Fatal(test_id)
+	} else if !elem.Expires().Equal(exp) {
+		t.Error(elem.Expires())
+		t.Fatal(exp)
 	}
 }

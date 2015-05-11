@@ -15,72 +15,156 @@
 package main
 
 import (
-	"crypto"
-	"crypto/ecdsa"
-	"crypto/rsa"
-	"github.com/realglobe-Inc/edo-lib/secrand"
+	"github.com/realglobe-Inc/edo-id-provider/database/account"
+	"github.com/realglobe-Inc/edo-id-provider/database/authcode"
+	"github.com/realglobe-Inc/edo-id-provider/database/consent"
+	"github.com/realglobe-Inc/edo-id-provider/database/coopcode"
+	jtidb "github.com/realglobe-Inc/edo-id-provider/database/jti"
+	keydb "github.com/realglobe-Inc/edo-id-provider/database/key"
+	"github.com/realglobe-Inc/edo-id-provider/database/pairwise"
+	"github.com/realglobe-Inc/edo-id-provider/database/sector"
+	"github.com/realglobe-Inc/edo-id-provider/database/session"
+	"github.com/realglobe-Inc/edo-id-provider/database/token"
+	taapi "github.com/realglobe-Inc/edo-idp-selector/api/ta"
+	idpdb "github.com/realglobe-Inc/edo-idp-selector/database/idp"
+	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
+	webdb "github.com/realglobe-Inc/edo-idp-selector/database/web"
+	"github.com/realglobe-Inc/edo-lib/jwt"
 	"github.com/realglobe-Inc/go-lib/erro"
+	"net/http"
 	"time"
 )
 
-// 便宜的に集めただけ。
 type system struct {
 	selfId string
-
-	secCook    bool
-	selCodLen  int
-	consCodLen int
-
-	uiUri  string
-	uiPath string
-
-	taCont   taContainer
-	accCont  accountContainer
-	consCont consentContainer
-	sessCont sessionContainer
-	codCont  codeContainer
-	tokCont  tokenContainer
-
-	codExpiDur   time.Duration
-	tokExpiDur   time.Duration
-	idTokExpiDur time.Duration
-
-	sessExpiDur time.Duration
-
 	sigAlg string
 	sigKid string
-	sigKey interface{}
+
+	pathTok    string
+	pathTa     string
+	pathSelUi  string
+	pathLginUi string
+	pathConsUi string
+	pathErrUi  string
+
+	pwSaltLen    int
+	sessLen      int
+	sessExpIn    time.Duration
+	sessRefDelay time.Duration
+	sessDbExpIn  time.Duration
+	acodLen      int
+	acodExpIn    time.Duration
+	acodDbExpIn  time.Duration
+	tokLen       int
+	tokExpIn     time.Duration
+	tokDbExpIn   time.Duration
+	ccodLen      int
+	ccodExpIn    time.Duration
+	ccodDbExpIn  time.Duration
+	jtiLen       int
+	jtiExpIn     time.Duration
+	jtiDbExpIn   time.Duration
+	ticLen       int
+
+	keyDb  keydb.Db
+	acntDb account.Db
+	consDb consent.Db
+	taDb   tadb.Db
+	sectDb sector.Db
+	pwDb   pairwise.Db
+	idpDb  idpdb.Db
+	sessDb session.Db
+	acodDb authcode.Db
+	tokDb  token.Db
+	ccodDb coopcode.Db
+	jtiDb  jtidb.Db
+	webDb  webdb.Db
+
+	cookPath string
+	cookSec  bool
 }
 
-func (sys *system) newTicket() (string, error) {
-	log.Warn("Incomplete implementation")
-	return secrand.String(10)
+func (sys *system) newCookie(sess *session.Element) *http.Cookie {
+	return &http.Cookie{
+		Name:     sessLabel,
+		Value:    sess.Id(),
+		Path:     sys.cookPath,
+		Expires:  sess.Expires(),
+		Secure:   sys.cookSec,
+		HttpOnly: true,
+	}
 }
 
-func (sys *system) close() error {
-	if err := sys.taCont.close(); err != nil {
+// ID トークンの sub クレームとして TA に通知するアカウント ID を設定する。
+func (sys *system) setSub(acnt account.Element, ta tadb.Element) error {
+	if acnt.Attribute(clmSub) != nil {
+		return nil
+	} else if !ta.Pairwise() {
+		acnt.SetAttribute(clmSub, acnt.Id())
+		return nil
+	}
+
+	// セクタ固有のアカウント ID を計算。
+	sect, err := sys.sectDb.Get(ta.Sector())
+	if err != nil {
 		return erro.Wrap(err)
-	} else if err := sys.accCont.close(); err != nil {
-		return erro.Wrap(err)
-	} else if err := sys.consCont.close(); err != nil {
-		return erro.Wrap(err)
-	} else if err := sys.sessCont.close(); err != nil {
-		return erro.Wrap(err)
-	} else if err := sys.codCont.close(); err != nil {
-		return erro.Wrap(err)
-	} else if err := sys.tokCont.close(); err != nil {
+	} else if sect == nil {
+		sect = sector.New(ta.Sector(), newIdBytes(sys.pwSaltLen))
+		if existing, err := sys.sectDb.SaveIfAbsent(sect); err != nil {
+			return erro.Wrap(err)
+		} else if existing != nil {
+			sect = existing
+		}
+	}
+	pw := pairwise.Generate(acnt.Id(), sect.Id(), sect.Salt())
+
+	// TA 間連携で逆引きが必要になるので、セクタ固有のアカウント ID を保存。
+	if err := sys.pwDb.Save(pw); err != nil {
 		return erro.Wrap(err)
 	}
+
+	acnt.SetAttribute(clmSub, pw.Pairwise())
 	return nil
 }
 
-func (sys *system) verifyKey() crypto.PublicKey {
-	switch key := sys.sigKey.(type) {
-	case *rsa.PrivateKey:
-		return &key.PublicKey
-	case *ecdsa.PrivateKey:
-		return &key.PublicKey
-	default:
-		return nil
+// ta に渡す acnt の ID トークンをつくる。
+func (sys *system) newIdToken(ta tadb.Element, acnt account.Element, attrs map[string]bool, clms map[string]interface{}) (string, error) {
+	if err := sys.setSub(acnt, ta); err != nil {
+		return "", erro.Wrap(err)
 	}
+	keys, err := sys.keyDb.Get()
+	if err != nil {
+		return "", erro.Wrap(err)
+	}
+
+	now := time.Now()
+	idTok := jwt.New()
+	idTok.SetHeader(jwtAlg, sys.sigAlg)
+	if sys.sigKid != "" {
+		idTok.SetHeader(jwtKid, sys.sigKid)
+	}
+	idTok.SetClaim(clmIss, sys.selfId)
+	idTok.SetClaim(clmSub, acnt.Attribute(clmSub))
+	idTok.SetClaim(clmAud, ta.Id())
+	idTok.SetClaim(clmExp, now.Add(sys.jtiExpIn).Unix())
+	idTok.SetClaim(clmIat, now.Unix())
+	for k := range attrs {
+		idTok.SetClaim(k, acnt.Attribute(k))
+	}
+	for k, v := range clms {
+		idTok.SetClaim(k, v)
+	}
+
+	if err := idTok.Sign(keys); err != nil {
+		return "", erro.Wrap(err)
+	}
+	buff, err := idTok.Encode()
+	if err != nil {
+		return "", erro.Wrap(err)
+	}
+	return string(buff), nil
+}
+
+func (sys *system) taApiHandler() *taapi.Handler {
+	return taapi.NewHandler(sys.pathTa, sys.taDb)
 }

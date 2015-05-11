@@ -16,9 +16,13 @@ package session
 
 import (
 	"encoding/json"
+	"github.com/realglobe-Inc/edo-lib/duration"
+	"github.com/realglobe-Inc/edo-lib/jwk"
+	"github.com/realglobe-Inc/edo-lib/jwt"
+	"github.com/realglobe-Inc/edo-lib/strset"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"net/http"
-	"net/url"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -41,19 +45,27 @@ const (
 	labelRequest_uri   = "request_uri"
 )
 
+const (
+	tagCty = "cty"
+)
+
+const (
+	ctyJwt = "JWT"
+)
+
 // セッションに付属させる認証リクエスト。
 type Request struct {
 	// scope
 	scop map[string]bool
 	// response_type
-	respTyp map[string]bool
-	// client_id。
+	respType map[string]bool
+	// client_id
 	ta string
 	// redirect_uri
-	rediUri *url.URL
+	rediUri string
 	// state
 	stat string
-	// nonc
+	// nonce
 	nonc string
 	// display
 	disp string
@@ -66,11 +78,11 @@ type Request struct {
 	// id_token_hint
 	hint string
 	// claims
-	clms *Claim
+	reqClm *Claim
 	// request
-	req string
+	req []byte
 	// request_uri
-	reqUri *url.URL
+	reqUri string
 }
 
 // 途中で失敗したら error と共にそこまでの結果も返す。
@@ -79,30 +91,26 @@ func ParseRequest(r *http.Request) (*Request, error) {
 
 	req := &Request{}
 
-	req.scop = toSet(splitBySpace(r.FormValue(labelScope)))
-	req.respTyp = toSet(splitBySpace(r.FormValue(labelResponse_type)))
+	req.scop = stringsToSet(splitBySpace(r.FormValue(labelScope)))
+	req.respType = stringsToSet(splitBySpace(r.FormValue(labelResponse_type)))
 	req.ta = r.FormValue(labelClient_id)
-	if req.rediUri, err = url.ParseRequestURI(r.FormValue(labelRedirect_uri)); err != nil {
-		return req, erro.Wrap(err)
-	}
+	req.rediUri = r.FormValue(labelRedirect_uri)
 	req.stat = r.FormValue(labelState)
 	req.nonc = r.FormValue(labelNonce)
 	req.disp = r.FormValue(labelDisplay)
-	req.prmpt = toSet(splitBySpace(r.FormValue(labelPrompt)))
+	req.prmpt = stringsToSet(splitBySpace(r.FormValue(labelPrompt)))
 	if req.maxAge, err = parseMaxAge(r.FormValue(labelMax_age)); err != nil {
 		return req, erro.Wrap(err)
 	}
 	req.langs = splitBySpace(r.FormValue(labelUi_locales))
 	req.hint = r.FormValue(labelId_token_hint)
-	if req.clms, err = parseClaims(r.FormValue(labelClaims)); err != nil {
+	if req.reqClm, err = parseClaims(r.FormValue(labelClaims)); err != nil {
 		return req, erro.Wrap(err)
 	}
-	req.req = r.FormValue(labelRequest)
-	if reqUri := r.FormValue(labelRequest_uri); reqUri != "" {
-		if req.reqUri, err = url.ParseRequestURI(reqUri); err != nil {
-			return req, erro.Wrap(err)
-		}
+	if reqObj := r.FormValue(labelRequest); reqObj != "" {
+		req.req = []byte(reqObj)
 	}
+	req.reqUri = r.FormValue(labelRequest_uri)
 
 	return req, nil
 }
@@ -114,7 +122,7 @@ func (this *Request) Scope() map[string]bool {
 
 // response_type を返す。
 func (this *Request) ResponseType() map[string]bool {
-	return this.respTyp
+	return this.respType
 }
 
 // client_id を返す。
@@ -123,7 +131,7 @@ func (this *Request) Ta() string {
 }
 
 // redirect_uri を返す。
-func (this *Request) RedirectUri() *url.URL {
+func (this *Request) RedirectUri() string {
 	return this.rediUri
 }
 
@@ -165,20 +173,118 @@ func (this *Request) IdTokenHint() string {
 
 // claims を返す。
 func (this *Request) Claims() *Claim {
-	return this.clms
+	return this.reqClm
 }
 
 // request を返す。
-func (this *Request) Request() string {
+func (this *Request) Request() []byte {
 	return this.req
 }
 
 // request_uri を返す。
-func (this *Request) RequestUri() *url.URL {
+func (this *Request) RequestUri() string {
 	return this.reqUri
 }
 
-func toSet(a []string) map[string]bool {
+// requst や request_uri から取得したリクエストオブジェクトから読み込む。
+func (this *Request) ParseRequest(req []byte, selfKeys, taKeys []jwk.Key) (err error) {
+	var jt *jwt.Jwt
+	for raw := req; ; {
+		// 復号と検証。
+
+		jt, err = jwt.Parse(raw)
+		if err != nil {
+			return erro.Wrap(err)
+		}
+
+		if jt.IsEncrypted() {
+			if err := jt.Decrypt(selfKeys); err != nil {
+				return erro.Wrap(err)
+			}
+			cty, _ := jt.Header(tagCty).(string)
+			if cty == ctyJwt {
+				raw = jt.RawBody()
+				continue
+			}
+		}
+
+		if jt.IsSigned() {
+			if err := jt.Verify(taKeys); err != nil {
+				return erro.Wrap(err)
+			}
+		}
+
+		break
+	}
+
+	var buff struct {
+		Scop     string           `json:"scope"`
+		RespType string           `json:"response_type"`
+		Ta       string           `json:"client_id"`
+		RediUri  string           `json:"redirect_uri"`
+		Stat     string           `json:"state"`
+		Nonc     string           `json:"nonce"`
+		Disp     string           `json:"display"`
+		Prmpt    string           `json:"prompt"`
+		MaxAge   *json.RawMessage `json:"max_age"`
+		Langs    string           `json:"ui_locales"`
+		Hint     string           `json:"id_token_hint"`
+		ReqClm   *Claim           `json:"claims"`
+		Req      string           `json:"request"`
+		ReqUri   string           `json:"request_uri"`
+	}
+	if err := json.Unmarshal(jt.RawBody(), &buff); err != nil {
+		return erro.Wrap(err)
+	}
+
+	if buff.Req != "" {
+		return erro.New(labelRequest + " in request object")
+	} else if buff.ReqUri != "" {
+		return erro.New(labelRequest_uri + " in request object")
+	} else if buff.RespType != "" && !reflect.DeepEqual(stringsToSet(splitBySpace(buff.RespType)), this.respType) {
+		return erro.New("not same response type")
+	} else if buff.Ta != "" && buff.Ta != this.ta {
+		return erro.New("not same TA")
+	}
+
+	if buff.Scop != "" {
+		this.scop = stringsToSet(splitBySpace(buff.Scop))
+	}
+	if buff.RediUri != "" {
+		this.rediUri = buff.RediUri
+	}
+	if buff.Stat != "" {
+		this.stat = buff.Stat
+	}
+	if buff.Nonc != "" {
+		this.nonc = buff.Nonc
+	}
+	if buff.Disp != "" {
+		this.disp = buff.Disp
+	}
+	if buff.Prmpt != "" {
+		this.prmpt = stringsToSet(splitBySpace(buff.Prmpt))
+	}
+	if buff.MaxAge != nil {
+		this.maxAge, err = parseMaxAge(string(*buff.MaxAge))
+		if err != nil {
+			return erro.Wrap(err)
+		}
+	}
+	if buff.Langs != "" {
+		this.langs = splitBySpace(buff.Langs)
+	}
+	if buff.Hint != "" {
+		this.hint = buff.Hint
+	}
+	if buff.ReqClm != nil {
+		this.reqClm = buff.ReqClm
+	}
+
+	return nil
+}
+
+func stringsToSet(a []string) map[string]bool {
 	m := map[string]bool{}
 	for _, s := range a {
 		m[s] = true
@@ -210,9 +316,64 @@ func parseClaims(s string) (*Claim, error) {
 	if s == "" {
 		return nil, nil
 	}
-	var clms Claim
-	if err := json.Unmarshal([]byte(s), &clms); err != nil {
+	var reqClm Claim
+	if err := json.Unmarshal([]byte(s), &reqClm); err != nil {
 		return nil, erro.Wrap(err)
 	}
-	return &clms, nil
+	return &reqClm, nil
+}
+
+func SplitBySpace(s string) []string          { return splitBySpace(s) }
+func StringsToSet(a []string) map[string]bool { return stringsToSet(a) }
+
+func (this *Request) MarshalJSON() (data []byte, err error) {
+	return json.Marshal(map[string]interface{}{
+		"scope":         strset.Set(this.scop),
+		"response_type": strset.Set(this.respType),
+		"client_id":     this.ta,
+		"redirect_uri":  this.rediUri,
+		"state":         this.stat,
+		"nonce":         this.nonc,
+		"display":       this.disp,
+		"prompt":        strset.Set(this.prmpt),
+		"max_age":       duration.Duration(this.maxAge),
+		"ui_locales":    this.langs,
+		"id_token_hint": string(this.hint),
+		"claims":        this.reqClm,
+		// request と request_uri は使い切り。
+	})
+}
+
+func (this *Request) UnmarshalJSON(data []byte) error {
+	var buff struct {
+		Scop    strset.Set        `json:"scope"`
+		RespTyp strset.Set        `json:"response_type"`
+		Ta      string            `json:"client_id"`
+		RediUri string            `json:"redirect_uri"`
+		Stat    string            `json:"state"`
+		Nonc    string            `json:"nonce"`
+		Disp    string            `json:"display"`
+		Prmpt   strset.Set        `json:"prompt"`
+		MaxAge  duration.Duration `json:"max_age"`
+		Langs   []string          `json:"ui_locales"`
+		Hint    string            `json:"id_token_hint"`
+		ReqClm  *Claim            `json:"claims"`
+	}
+	if err := json.Unmarshal(data, &buff); err != nil {
+		return erro.Wrap(err)
+	}
+
+	this.scop = buff.Scop
+	this.respType = buff.RespTyp
+	this.ta = buff.Ta
+	this.rediUri = buff.RediUri
+	this.stat = buff.Stat
+	this.nonc = buff.Nonc
+	this.disp = buff.Disp
+	this.prmpt = buff.Prmpt
+	this.maxAge = time.Duration(buff.MaxAge)
+	this.langs = buff.Langs
+	this.hint = buff.Hint
+	this.reqClm = buff.ReqClm
+	return nil
 }

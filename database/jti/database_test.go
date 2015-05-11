@@ -21,20 +21,15 @@ import (
 
 func testDb(t *testing.T, db Db) {
 	elem := New(test_iss, test_id, time.Now().Add(time.Minute))
-	if ok, err := db.SaveIfAbsent(elem); err != nil {
-		t.Error(err)
-		return
-	} else if !ok {
-		t.Error("saving failed")
-		return
-	}
-
 	elem2 := New(test_iss, test_id, time.Now().Add(time.Minute))
-	if ok, err := db.SaveIfAbsent(elem2); err != nil {
-		t.Error(err)
-		return
+
+	if ok, err := db.SaveIfAbsent(elem); err != nil {
+		t.Fatal(err)
+	} else if !ok {
+		t.Fatal("saving failed")
+	} else if ok, err := db.SaveIfAbsent(elem2); err != nil {
+		t.Fatal(err)
 	} else if ok {
-		t.Error("saving passed")
-		return
+		t.Fatal("saving passed")
 	}
 }

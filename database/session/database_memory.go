@@ -48,7 +48,9 @@ func (this *memoryDb) Get(id string) (*Element, error) {
 	}
 
 	// 防御的コピー。
-	return elem.copy(), nil
+	elem = elem.copy()
+	elem.setSaved()
+	return elem, nil
 }
 
 // 保存。

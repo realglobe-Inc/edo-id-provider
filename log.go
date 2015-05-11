@@ -20,12 +20,13 @@ import (
 
 var log = rglog.Logger("github.com/realglobe-Inc/edo-id-provider")
 
+const mosaicThres = 10
+
 // ログにそのまま書くのが憚られるので隠す。
 func mosaic(str string) string {
-	const thres = 10
-	if len(str) <= thres {
+	if len(str) <= mosaicThres {
 		return str
 	} else {
-		return str[:thres] + "..."
+		return str[:mosaicThres] + "..."
 	}
 }

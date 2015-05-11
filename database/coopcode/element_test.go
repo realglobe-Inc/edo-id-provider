@@ -21,68 +21,59 @@ import (
 )
 
 const (
-	test_id      = "1SblzkyNc6O867zqdZYPM0T-a7g1n5"
-	test_ta_from = "https://from.example.org"
-	test_ta_to   = "https://to.example.org"
+	test_id       = "1SblzkyNc6O867zqdZYPM0T-a7g1n5"
+	test_tokExpIn = time.Minute
+	test_taFr     = "https://from.example.org"
+	test_taTo     = "https://to.example.org"
 
 	test_tok = "TM4CmjXyWQeqtasbRDqwSN80n26vuV"
 )
 
 var (
-	test_acnt      = NewAccount(test_acnt_id, test_acnt_tag)
-	test_scop      = map[string]bool{"openid": true, "email": true}
-	test_rel_acnts = []*Account{NewAccount("76q83UV-ENtUESsw", "enemy")}
+	test_acnt     = NewAccount(test_acntId, test_acntTag)
+	test_scop     = map[string]bool{"openid": true, "email": true}
+	test_relAcnts = []*Account{NewAccount("76q83UV-ENtUESsw", "enemy")}
 )
 
 func TestElement(t *testing.T) {
 	exp := time.Now().Add(time.Second)
-	tok_exp := exp.Add(time.Hour)
-	elem := New(test_id, exp, test_acnt, test_scop, tok_exp, test_rel_acnts, test_ta_from, test_ta_to)
+	elem := New(test_id, exp, test_acnt, test_scop, test_tokExpIn, test_relAcnts, test_taFr, test_taTo)
 
 	if elem.Id() != test_id {
 		t.Error(elem.Id())
-		t.Error(test_id)
-		return
-	} else if !elem.ExpiresIn().Equal(exp) {
-		t.Error(elem.ExpiresIn())
-		t.Error(exp)
-		return
+		t.Fatal(test_id)
+	} else if !elem.Expires().Equal(exp) {
+		t.Error(elem.Expires())
+		t.Fatal(exp)
 	} else if !reflect.DeepEqual(elem.Account(), test_acnt) {
 		t.Error(elem.Account())
-		t.Error(test_acnt)
-		return
+		t.Fatal(test_acnt)
 	} else if !reflect.DeepEqual(elem.Scope(), test_scop) {
 		t.Error(elem.Scope())
-		t.Error(test_scop)
-		return
-	} else if !elem.TokenExpiresIn().Equal(tok_exp) {
+		t.Fatal(test_scop)
+	} else if elem.TokenExpiresIn() != test_tokExpIn {
 		t.Error(elem.TokenExpiresIn())
-		t.Error(tok_exp)
-		return
-	} else if !reflect.DeepEqual(elem.RelatedAccounts(), test_rel_acnts) {
+		t.Fatal(test_tokExpIn)
+	} else if !reflect.DeepEqual(elem.RelatedAccounts(), test_relAcnts) {
 		t.Error(elem.RelatedAccounts())
-		t.Error(test_rel_acnts)
-		return
-	} else if elem.TaFrom() != test_ta_from {
+		t.Fatal(test_relAcnts)
+	} else if elem.TaFrom() != test_taFr {
 		t.Error(elem.TaFrom())
-		t.Error(test_ta_from)
-		return
-	} else if elem.TaTo() != test_ta_to {
+		t.Fatal(test_taFr)
+	} else if elem.TaTo() != test_taTo {
 		t.Error(elem.TaTo())
-		t.Error(test_ta_to)
-		return
+		t.Fatal(test_taTo)
 	} else if elem.Token() != "" {
-		t.Error(elem.Token())
-		return
+		t.Fatal(elem.Token())
 	}
 
 	date := elem.Date()
 	elem.SetToken(test_tok)
 	if elem.Token() != test_tok {
 		t.Error(elem.Token())
-		t.Error(test_tok)
+		t.Fatal(test_tok)
 	} else if elem.Date().Before(date) {
 		t.Error(elem.Date())
-		t.Error(date)
+		t.Fatal(date)
 	}
 }

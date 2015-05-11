@@ -19,18 +19,18 @@ import (
 )
 
 const (
-	test_acnt_id  = "ZkTPOdBdh_bS2PqWnb1r8A3DqeKGCC"
-	test_acnt_tag = "self"
+	test_acntId  = "ZkTPOdBdh_bS2PqWnb1r8A3DqeKGCC"
+	test_acntTag = "self"
 )
 
 func TestAccount(t *testing.T) {
-	acnt := NewAccount(test_acnt_id, test_acnt_tag)
+	acnt := NewAccount(test_acntId, test_acntTag)
 
-	if acnt.Id() != test_acnt_id {
+	if acnt.Id() != test_acntId {
 		t.Error(acnt.Id())
-		t.Error(test_acnt_id)
-	} else if acnt.Tag() != test_acnt_tag {
+		t.Fatal(test_acntId)
+	} else if acnt.Tag() != test_acntTag {
 		t.Error(acnt.Tag())
-		t.Error(test_acnt_tag)
+		t.Fatal(test_acntTag)
 	}
 }

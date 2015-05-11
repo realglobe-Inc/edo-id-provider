@@ -15,17 +15,27 @@
 package main
 
 import (
-	"github.com/garyburd/redigo/redis"
-	"github.com/realglobe-Inc/edo-lib/crypto"
-	"github.com/realglobe-Inc/edo-lib/driver"
+	"github.com/realglobe-Inc/edo-id-provider/database/account"
+	"github.com/realglobe-Inc/edo-id-provider/database/authcode"
+	"github.com/realglobe-Inc/edo-id-provider/database/consent"
+	"github.com/realglobe-Inc/edo-id-provider/database/coopcode"
+	jtidb "github.com/realglobe-Inc/edo-id-provider/database/jti"
+	keydb "github.com/realglobe-Inc/edo-id-provider/database/key"
+	"github.com/realglobe-Inc/edo-id-provider/database/pairwise"
+	"github.com/realglobe-Inc/edo-id-provider/database/sector"
+	"github.com/realglobe-Inc/edo-id-provider/database/session"
+	"github.com/realglobe-Inc/edo-id-provider/database/token"
+	idpdb "github.com/realglobe-Inc/edo-idp-selector/database/idp"
+	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
+	webdb "github.com/realglobe-Inc/edo-idp-selector/database/web"
+	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
 	logutil "github.com/realglobe-Inc/edo-lib/log"
 	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"github.com/realglobe-Inc/go-lib/rglog"
-	"gopkg.in/mgo.v2"
 	"net/http"
 	"os"
-	"time"
+	"strings"
 )
 
 func main() {
@@ -43,7 +53,7 @@ func main() {
 	param, err := parseParameters(os.Args...)
 	if err != nil {
 		log.Err(erro.Unwrap(err))
-		log.Debug(err)
+		log.Debug(erro.Wrap(err))
 		exitCode = 1
 		return
 	}
@@ -51,214 +61,298 @@ func main() {
 	logutil.SetupConsole("github.com/realglobe-Inc", param.consLv)
 	if err := logutil.Setup("github.com/realglobe-Inc", param.logType, param.logLv, param); err != nil {
 		log.Err(erro.Unwrap(err))
-		log.Debug(err)
+		log.Debug(erro.Wrap(err))
 		exitCode = 1
 		return
 	}
 
-	if err := mainCore(param); err != nil {
-		err = erro.Wrap(err)
+	if err := serve(param); err != nil {
 		log.Err(erro.Unwrap(err))
-		log.Debug(err)
+		log.Debug(erro.Wrap(err))
 		exitCode = 1
 		return
 	}
 
-	log.Info("Shut down.")
+	log.Info("Shut down")
 }
 
-// system を準備する。
-func mainCore(param *parameters) error {
-	key, err := crypto.ReadPem(param.keyPath)
-	if err != nil {
-		return erro.Wrap(err)
-	}
+func serve(param *parameters) (err error) {
 
-	const (
-		connNum = 5
-		idlDur  = 10 * time.Minute
-	)
-	redPools := map[string]*redis.Pool{} // 同じ redis-server ならコネクションプールを共有する。
+	// バックエンドの準備。
 
-	mgoPools := map[string]*mgo.Session{} // 同じ mongodb ならコネクションプールを共有する。
+	redPools := newRedisPoolSet(param.redTimeout, param.redPoolSize, param.redPoolExpIn)
+	defer redPools.close()
+	monPools := newMongoPoolSet(param.monTimeout)
+	defer monPools.close()
 
-	var taCont taContainer
-	switch param.taContType {
+	// 鍵。
+	var keyDb keydb.Db
+	switch param.keyDbType {
 	case "file":
-		taCont = newFileTaContainer(param.taContPath, param.caStaleDur, param.caExpiDur)
-		log.Info("Use file TA container " + param.taContPath)
-	case "mongo":
-		if mgoPools[param.taContUrl] == nil {
-			mgoPools[param.taContUrl], err = mgo.Dial(param.taContUrl)
-			if err != nil {
-				return erro.Wrap(err)
-			}
-			defer mgoPools[param.taContUrl].Close()
-		}
-		taCont = newMongoTaContainer(mgoPools[param.taContUrl], param.taContDb, param.taContColl, param.caStaleDur, param.caExpiDur)
-		log.Info("Use mongodb TA container " + param.taContUrl)
-	default:
-		return erro.New("invalid TA container type " + param.taContType)
-	}
-
-	var accCont accountContainer
-	switch param.accContType {
-	case "file":
-		accCont = newFileAccountContainer(param.accContPath, param.accNameContPath, param.caStaleDur, param.caExpiDur)
-		log.Info("Use file account container " + param.accContPath + "," + param.accNameContPath)
-	case "mongo":
-		if mgoPools[param.accContUrl] == nil {
-			mgoPools[param.accContUrl], err = mgo.Dial(param.accContUrl)
-			if err != nil {
-				return erro.Wrap(err)
-			}
-			defer mgoPools[param.accContUrl].Close()
-		}
-		accCont = newMongoAccountContainer(mgoPools[param.accContUrl], param.accContDb, param.accContColl, param.caStaleDur, param.caExpiDur)
-		log.Info("Use mongodb account container " + param.accContUrl)
-	default:
-		return erro.New("invalid account container type " + param.accContType)
-	}
-
-	var consCont consentContainer
-	switch param.consContType {
-	case "file":
-		consCont = newFileConsentContainer(param.consContPath, param.caStaleDur, param.caExpiDur)
-		log.Info("Use file consent container " + param.consContPath)
-	case "mongo":
-		if mgoPools[param.consContUrl] == nil {
-			mgoPools[param.consContUrl], err = mgo.Dial(param.consContUrl)
-			if err != nil {
-				return erro.Wrap(err)
-			}
-			defer mgoPools[param.consContUrl].Close()
-		}
-		consCont = newMongoConsentContainer(mgoPools[param.consContUrl], param.consContDb, param.consContColl, param.caStaleDur, param.caExpiDur)
-		log.Info("Use mongodb consent container " + param.consContUrl)
-	default:
-		return erro.New("invalid consent container type " + param.consContType)
-	}
-
-	var sessCont sessionContainer
-	switch param.sessContType {
-	case "memory":
-		sessCont = newMemorySessionContainer(param.sessIdLen, param.procId, param.caStaleDur, param.caExpiDur)
-		log.Info("Use memory session container.")
-	case "file":
-		sessCont = newFileSessionContainer(param.sessIdLen, param.procId, param.sessContPath, param.sessExpiContPath, param.caStaleDur, param.caExpiDur)
-		log.Info("Use file session container " + param.sessContPath + "," + param.sessExpiContPath)
+		keyDb = keydb.NewFileDb(param.keyDbPath)
+		log.Info("Use keys in directory " + param.keyDbPath)
 	case "redis":
-		if redPools[param.sessContUrl] == nil {
-			redPools[param.sessContUrl] = driver.NewRedisPool(param.sessContUrl, connNum, idlDur)
-			defer redPools[param.sessContUrl].Close()
-		}
-		sessCont = newRedisSessionContainer(param.sessIdLen, param.procId, redPools[param.sessContUrl], param.sessContPrefix, param.caStaleDur, param.caExpiDur)
-		log.Info("Use redis session container " + param.sessContUrl)
+		keyDb = keydb.NewRedisCache(keydb.NewFileDb(param.keyDbPath), redPools.get(param.keyDbAddr), param.keyDbTag, param.keyDbExpIn)
+		log.Info("Use keys in directory " + param.keyDbPath + " with redis " + param.keyDbAddr + ": " + param.keyDbTag)
 	default:
-		return erro.New("invalid session container type " + param.sessContType)
+		return erro.New("invalid key DB type " + param.keyDbType)
 	}
 
-	var codCont codeContainer
-	switch param.codContType {
-	case "memory":
-		codCont = newMemoryCodeContainer(param.codIdLen, param.procId, param.codTicExpDur, param.codSavDur, param.caStaleDur, param.caExpiDur)
-		log.Info("Use memory code container.")
-	case "file":
-		codCont = newFileCodeContainer(param.codIdLen, param.procId, param.codTicExpDur, param.codSavDur, param.codContPath, param.codExpiContPath, param.caStaleDur, param.caExpiDur)
-		log.Info("Use file code container " + param.codContPath + "," + param.codExpiContPath)
-	case "redis":
-		if redPools[param.codContUrl] == nil {
-			redPools[param.codContUrl] = driver.NewRedisPool(param.codContUrl, connNum, idlDur)
-			defer redPools[param.sessContUrl].Close()
+	// アカウント情報。
+	var acntDb account.Db
+	switch param.acntDbType {
+	case "mongo":
+		pool, err := monPools.get(param.acntDbAddr)
+		if err != nil {
+			return erro.Wrap(err)
 		}
-		codCont = newRedisCodeContainer(param.codIdLen, param.procId, param.codTicExpDur, param.codSavDur, redPools[param.codContUrl], param.codContPrefix, param.caStaleDur, param.caExpiDur)
-		log.Info("Use redis code container " + param.codContUrl)
+		acntDb = account.NewMongoDb(pool, param.acntDbTag, param.acntDbTag2)
+		log.Info("Use account info in mongodb " + param.acntDbAddr + ": " + param.acntDbTag + "." + param.acntDbTag2)
 	default:
-		return erro.New("invalid code container type " + param.codContType)
+		return erro.New("invalid account DB type " + param.acntDbType)
 	}
 
-	var tokCont tokenContainer
-	switch param.tokContType {
+	// スコープ・属性許可情報。
+	var consDb consent.Db
+	switch param.consDbType {
 	case "memory":
-		tokCont = newMemoryTokenContainer(param.tokIdLen, param.procId, param.tokSavDur, param.caStaleDur, param.caExpiDur)
-		log.Info("Use memory token container.")
-	case "file":
-		tokCont = newFileTokenContainer(param.tokIdLen, param.procId, param.tokSavDur, param.tokContPath, param.tokExpiContPath, param.caStaleDur, param.caExpiDur)
-		log.Info("Use file token container " + param.tokContPath + "," + param.tokExpiContPath)
-	case "redis":
-		if redPools[param.tokContUrl] == nil {
-			redPools[param.tokContUrl] = driver.NewRedisPool(param.tokContUrl, connNum, idlDur)
-			defer redPools[param.sessContUrl].Close()
+		consDb = consent.NewMemoryDb()
+		log.Info("Save consent info in memory")
+	case "mongo":
+		pool, err := monPools.get(param.consDbAddr)
+		if err != nil {
+			return erro.Wrap(err)
 		}
-		tokCont = newRedisTokenContainer(param.tokIdLen, param.procId, param.tokSavDur, redPools[param.tokContUrl], param.tokContPrefix, param.caStaleDur, param.caExpiDur)
-		log.Info("Use redis token container " + param.tokContUrl)
+		consDb = consent.NewMongoDb(pool, param.consDbTag, param.consDbTag2)
+		log.Info("Save consent info in mongodb " + param.consDbAddr + ": " + param.consDbTag + "." + param.consDbTag2)
 	default:
-		return erro.New("invalid token container type " + param.tokContType)
+		return erro.New("invalid consent DB type " + param.consDbType)
+	}
+
+	// web データ。
+	var webDb webdb.Db
+	switch param.webDbType {
+	case "direct":
+		webDb = webdb.NewDirectDb()
+		log.Info("Get web data directly")
+	case "redis":
+		webDb = webdb.NewRedisCache(webdb.NewDirectDb(), redPools.get(param.webDbAddr), param.webDbTag, param.webDbExpIn)
+		log.Info("Get web data with redis " + param.webDbAddr + ": " + param.webDbTag)
+	default:
+		return erro.New("invalid web data DB type " + param.webDbType)
+	}
+
+	// TA 情報。
+	var taDb tadb.Db
+	switch param.taDbType {
+	case "mongo":
+		pool, err := monPools.get(param.taDbAddr)
+		if err != nil {
+			return erro.Wrap(err)
+		}
+		taDb = tadb.NewMongoDb(pool, param.taDbTag, param.taDbTag2, webDb)
+		log.Info("Use TA info in mongodb " + param.taDbAddr + ": " + param.taDbTag + "." + param.taDbTag2)
+	default:
+		return erro.New("invalid TA DB type " + param.taDbType)
+	}
+
+	// セクタ固有のアカウント ID の計算に使う情報。
+	var sectDb sector.Db
+	switch param.sectDbType {
+	case "memory":
+		sectDb = sector.NewMemoryDb()
+		log.Info("Save pairwise account ID calculation info in memory")
+	case "mongo":
+		pool, err := monPools.get(param.sectDbAddr)
+		if err != nil {
+			return erro.Wrap(err)
+		}
+		sectDb = sector.NewMongoDb(pool, param.sectDbTag, param.sectDbTag2)
+		log.Info("Save pairwise account ID calculation info in mongodb " + param.sectDbAddr + ": " + param.sectDbTag + "." + param.sectDbTag2)
+	default:
+		return erro.New("invalid pairwise account ID calculation info DB type " + param.sectDbType)
+	}
+
+	// セクタ固有のアカウント ID 情報。
+	var pwDb pairwise.Db
+	switch param.pwDbType {
+	case "memory":
+		pwDb = pairwise.NewMemoryDb()
+		log.Info("Save pairwise account IDs in memory")
+	case "mongo":
+		pool, err := monPools.get(param.pwDbAddr)
+		if err != nil {
+			return erro.Wrap(err)
+		}
+		pwDb = pairwise.NewMongoDb(pool, param.pwDbTag, param.pwDbTag2)
+		log.Info("Save pairwise account IDs in mongodb " + param.pwDbAddr + ": " + param.pwDbTag + "." + param.pwDbTag2)
+	default:
+		return erro.New("invalid pairwise account ID DB type " + param.pwDbType)
+	}
+
+	// IdP 情報。
+	var idpDb idpdb.Db
+	switch param.idpDbType {
+	case "mongo":
+		pool, err := monPools.get(param.idpDbAddr)
+		if err != nil {
+			return erro.Wrap(err)
+		}
+		idpDb = idpdb.NewMongoDb(pool, param.idpDbTag, param.idpDbTag2, webDb)
+		log.Info("Use IdP info in mongodb " + param.idpDbAddr + ": " + param.idpDbTag + "." + param.idpDbTag2)
+	default:
+		return erro.New("invalid IdP DB type " + param.idpDbType)
+	}
+
+	// セッション。
+	var sessDb session.Db
+	switch param.sessDbType {
+	case "memory":
+		sessDb = session.NewMemoryDb()
+		log.Info("Save sessions in memory")
+	case "redis":
+		sessDb = session.NewRedisDb(redPools.get(param.sessDbAddr), param.sessDbTag)
+		log.Info("Save sessions in redis " + param.sessDbAddr + ": " + param.sessDbTag)
+	default:
+		return erro.New("invalid session DB type " + param.sessDbType)
+	}
+
+	// 認可コード。
+	var acodDb authcode.Db
+	switch param.acodDbType {
+	case "memory":
+		acodDb = authcode.NewMemoryDb()
+		log.Info("Save authorization codes in memory")
+	case "redis":
+		acodDb = authcode.NewRedisDb(redPools.get(param.acodDbAddr), param.acodDbTag)
+		log.Info("Save authorization codes in redis " + param.acodDbAddr + ": " + param.acodDbTag)
+	default:
+		return erro.New("invalid authorization code DB type " + param.acodDbType)
+	}
+
+	// アクセストークン。
+	var tokDb token.Db
+	switch param.tokDbType {
+	case "memory":
+		tokDb = token.NewMemoryDb()
+		log.Info("Save access tokens in memory")
+	case "redis":
+		tokDb = token.NewRedisDb(redPools.get(param.tokDbAddr), param.tokDbTag)
+		log.Info("Save access tokens in redis " + param.tokDbAddr + ": " + param.tokDbTag)
+	default:
+		return erro.New("invalid access token DB type " + param.tokDbType)
+	}
+
+	// 仲介コード。
+	var ccodDb coopcode.Db
+	switch param.ccodDbType {
+	case "memory":
+		ccodDb = coopcode.NewMemoryDb()
+		log.Info("Save cooperation codes in memory")
+	case "redis":
+		ccodDb = coopcode.NewRedisDb(redPools.get(param.ccodDbAddr), param.ccodDbTag)
+		log.Info("Save cooperation codes in redis " + param.ccodDbAddr + ": " + param.ccodDbTag)
+	default:
+		return erro.New("invalid cooperation code DB type " + param.ccodDbType)
+	}
+
+	// JWT の ID。
+	var jtiDb jtidb.Db
+	switch param.jtiDbType {
+	case "memory":
+		jtiDb = jtidb.NewMemoryDb()
+		log.Info("Save JWT IDs in memory")
+	case "redis":
+		jtiDb = jtidb.NewRedisDb(redPools.get(param.jtiDbAddr), param.jtiDbTag)
+		log.Info("Save JWT IDs in redis " + param.jtiDbAddr + ": " + param.jtiDbTag)
+	default:
+		return erro.New("invalid JWT ID DB type " + param.jtiDbType)
 	}
 
 	sys := &system{
 		param.selfId,
-		param.secCook,
-		param.codIdLen / 2,
-		param.codIdLen / 2,
-		param.uiUri,
-		param.uiPath,
-		taCont,
-		accCont,
-		consCont,
-		sessCont,
-		codCont,
-		tokCont,
-		param.codExpiDur,
-		param.tokExpiDur,
-		param.idTokExpiDur,
-		param.sessExpiDur,
 		param.sigAlg,
-		param.kid,
-		key,
-	}
-	return serve(sys, param.socType, param.socPath, param.socPort, param.protType, nil)
-}
+		param.sigKid,
 
-// 振り分ける。
-func serve(sys *system, socType, socPath string, socPort int, protType string, shutCh chan struct{}) error {
-	routes := map[string]server.HandlerFunc{
-		authPath: func(w http.ResponseWriter, r *http.Request) error {
-			return authPage(w, r, sys)
-		},
-		loginPath: func(w http.ResponseWriter, r *http.Request) error {
-			return loginPage(w, r, sys)
-		},
-		selPath: func(w http.ResponseWriter, r *http.Request) error {
-			return selectPage(w, r, sys)
-		},
-		consPath: func(w http.ResponseWriter, r *http.Request) error {
-			return consentPage(w, r, sys)
-		},
-		tokPath: func(w http.ResponseWriter, r *http.Request) error {
-			return tokenApi(w, r, sys)
-		},
-		accInfPath: func(w http.ResponseWriter, r *http.Request) error {
-			return accountInfoApi(w, r, sys)
-		},
-		okPath: func(w http.ResponseWriter, r *http.Request) error {
-			return nil
-		},
+		param.pathTok,
+		param.pathTa,
+		param.pathSelUi,
+		param.pathLginUi,
+		param.pathConsUi,
+		param.pathErrUi,
+
+		param.pwSaltLen,
+		param.sessLen,
+		param.sessExpIn,
+		param.sessRefDelay,
+		param.sessDbExpIn,
+		param.acodLen,
+		param.acodExpIn,
+		param.acodDbExpIn,
+		param.tokLen,
+		param.tokExpIn,
+		param.tokDbExpIn,
+		param.ccodLen,
+		param.ccodExpIn,
+		param.ccodDbExpIn,
+		param.jtiLen,
+		param.jtiExpIn,
+		param.jtiDbExpIn,
+		param.ticLen,
+
+		keyDb,
+		acntDb,
+		consDb,
+		taDb,
+		sectDb,
+		pwDb,
+		idpDb,
+		sessDb,
+		acodDb,
+		tokDb,
+		ccodDb,
+		jtiDb,
+		webDb,
+
+		param.cookPath,
+		param.cookSec,
 	}
-	if routes["/"] == nil {
-		routes["/"] = func(w http.ResponseWriter, r *http.Request) error {
-			return newIdpError(errInvReq, "invalid endpoint", http.StatusNotFound, nil)
+
+	// バックエンドの準備完了。
+
+	s := server.NewStopper()
+	defer func() {
+		// 処理の終了待ち。
+		s.Lock()
+		defer s.Unlock()
+		for s.Stopped() {
+			s.Wait()
 		}
-	}
-	if sys.uiPath != "" {
+	}()
+
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/", panicErrorWrapper(s, func(w http.ResponseWriter, r *http.Request) error {
+		return idperr.New(idperr.Invalid_request, "invalid endpoint", http.StatusNotFound, nil)
+	}))
+	mux.HandleFunc(param.pathOk, panicErrorWrapper(s, func(w http.ResponseWriter, r *http.Request) error {
+		return nil
+	}))
+	mux.HandleFunc(param.pathAuth, panicErrorWrapper(s, sys.authPage))
+	mux.HandleFunc(param.pathSel, panicErrorWrapper(s, sys.selectPage))
+	mux.HandleFunc(param.pathLgin, panicErrorWrapper(s, sys.lginPage))
+	mux.HandleFunc(param.pathCons, panicErrorWrapper(s, sys.consentPage))
+	mux.HandleFunc(param.pathTa, panicErrorWrapper(s, sys.taApiHandler().ServeHTTP))
+	mux.HandleFunc(param.pathTok, panicErrorWrapper(s, sys.tokenApi))
+	mux.HandleFunc(param.pathAcnt, panicErrorWrapper(s, sys.accountApi))
+	mux.HandleFunc(param.pathCoopFr, panicErrorWrapper(s, sys.cooperateFromApi))
+	mux.HandleFunc(param.pathCoopTo, panicErrorWrapper(s, sys.cooperateToApi))
+	if param.uiDir != "" {
 		// ファイル配信も自前でやる。
-		fileHndl := http.StripPrefix(sys.uiUri, http.FileServer(http.Dir(sys.uiPath)))
-		for _, uri := range []string{sys.uiUri, sys.uiUri + "/"} {
-			routes[uri] = func(w http.ResponseWriter, r *http.Request) error {
-				fileHndl.ServeHTTP(w, r)
-				return nil
-			}
-		}
+		pathUi := strings.TrimRight(param.pathUi, "/") + "/"
+		filer := http.StripPrefix(pathUi, http.FileServer(http.Dir(param.uiDir)))
+		mux.Handle(pathUi, filer)
 	}
-	return server.TerminableServe(socType, socPath, socPort, protType, routes, shutCh, panicErrorWrapper)
+
+	return server.Serve(param, mux)
 }

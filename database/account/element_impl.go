@@ -14,7 +14,10 @@
 
 package account
 
-import ()
+import (
+	"github.com/realglobe-Inc/go-lib/erro"
+	"gopkg.in/mgo.v2/bson"
+)
 
 // アカウント情報の実装。
 type element struct {
@@ -22,6 +25,11 @@ type element struct {
 	name  string
 	auth  Authenticator
 	attrs map[string]interface{}
+}
+
+// 主にテスト用。
+func New(id, name string, auth Authenticator, attrs map[string]interface{}) Element {
+	return newElement(id, name, auth, attrs)
 }
 
 func newElement(id, name string, auth Authenticator, attrs map[string]interface{}) *element {
@@ -42,4 +50,38 @@ func (this *element) Authenticator() Authenticator {
 
 func (this *element) Attribute(attrName string) interface{} {
 	return this.attrs[attrName]
+}
+
+func (this *element) SetAttribute(attrName string, attr interface{}) {
+	this.attrs[attrName] = attr
+}
+
+//  {
+//      "id": <ID>,
+//      "username": <ログイン名>,
+//      "authenticator": <認証器>,
+//      <属性名>: <属性値>,
+//      ...
+//  }
+func (this *element) SetBSON(raw bson.Raw) error {
+	var buff struct {
+		Id    string                 `bson:"id"`
+		Name  string                 `bson:"username"`
+		Auth  map[string]interface{} `bson:"authenticator"`
+		Attrs map[string]interface{} `bson:",inline"`
+	}
+	if err := raw.Unmarshal(&buff); err != nil {
+		return erro.Wrap(err)
+	}
+
+	auth, err := authenticatorFromMap(buff.Auth)
+	if err != nil {
+		return erro.Wrap(err)
+	}
+
+	this.id = buff.Id
+	this.name = buff.Name
+	this.auth = auth
+	this.attrs = buff.Attrs
+	return nil
 }

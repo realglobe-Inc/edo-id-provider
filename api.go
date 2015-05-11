@@ -16,62 +16,71 @@ package main
 
 import (
 	"encoding/json"
+	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
 	jsonutil "github.com/realglobe-Inc/edo-lib/json"
 	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"github.com/realglobe-Inc/go-lib/rglog/level"
 	"net/http"
-	"strconv"
 )
 
-func responseError(w http.ResponseWriter, err error) {
-	// リダイレクトでエラーを返す時のように認証経過を廃棄する必要は無い。
-	// 認証が始まって経過が記録されているなら、既にリダイレクト先が分かっているので、
-	// リダイレクトでエラーを返す。
-
-	var stat int
-	m := map[string]string{}
-	switch e := erro.Unwrap(err).(type) {
-	case *idpError:
-		log.Err(e.errorDescription())
-		log.Debug(e)
-		stat = e.status()
-		m[formErr] = e.errorCode()
-		m[formErrDesc] = e.errorDescription()
-	default:
-		log.Err(e)
-		log.Debug(err)
-		stat = http.StatusInternalServerError
-		m[formErr] = errServErr
-		m[formErrDesc] = e.Error()
+// JSON で何かを返す。
+func response(w http.ResponseWriter, params map[string]interface{}) error {
+	buff, err := json.Marshal(params)
+	if err != nil {
+		return erro.Wrap(err)
 	}
 
-	buff, err := json.Marshal(m)
+	w.Header().Add("Content-Type", server.ContentTypeJson)
+	w.Header().Add("Cache-Control", "no-store")
+	w.Header().Add("Pragma", "no-cache")
+	if _, err := w.Write(buff); err != nil {
+		log.Err(erro.Wrap(err))
+	}
+	return nil
+}
+
+// エラーを返す。
+func responseError(w http.ResponseWriter, origErr error) error {
+	// リダイレクトでエラーを返す時のように認証経過を廃棄する必要は無い。
+	// 認証が始まって経過が記録されているなら、既にリダイレクト先が
+	// 分かっているので、リダイレクトでエラーを返すため。
+
+	e := idperr.From(erro.Unwrap(origErr))
+	log.Err(e.ErrorDescription())
+	log.Debug(origErr)
+
+	buff, err := json.Marshal(map[string]string{
+		formError:             e.ErrorCode(),
+		formError_description: e.ErrorDescription(),
+	})
 	if err != nil {
 		err = erro.Wrap(err)
 		log.Err(erro.Unwrap(err))
 		log.Debug(err)
 		// 最後の手段。たぶん正しい変換。
-		buff = []byte(`{` + formErr + `="` + jsonutil.StringEscape(m[formErr]) +
-			`",` + formErrDesc + `="` + jsonutil.StringEscape(m[formErrDesc]) + `"}`)
+		buff = []byte(`{` +
+			formError + `="` + jsonutil.StringEscape(e.ErrorCode()) + `",` +
+			formError_description + `="` + jsonutil.StringEscape(e.ErrorDescription()) +
+			`"}`)
 	}
 
 	w.Header().Set("Content-Type", server.ContentTypeJson)
-	w.Header().Set("Content-Length", strconv.Itoa(len(buff)))
 	w.Header().Add("Cache-Control", "no-store")
 	w.Header().Add("Pragma", "no-cache")
-	w.WriteHeader(stat)
+	w.WriteHeader(e.Status())
 	if _, err := w.Write(buff); err != nil {
-		err = erro.Wrap(err)
-		log.Err(erro.Unwrap(err))
-		log.Debug(err)
+		log.Err(erro.Wrap(err))
 	}
-	return
+	return nil
 }
 
 // パニックとエラーの処理をまとめる。
-func panicErrorWrapper(hndl server.HandlerFunc) http.HandlerFunc {
+func panicErrorWrapper(s *server.Stopper, f server.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		s.Stop()
+		defer s.Unstop()
+
 		// panic時にプロセス終了しないようにrecoverする
 		defer func() {
 			if rcv := recover(); rcv != nil {
@@ -84,7 +93,7 @@ func panicErrorWrapper(hndl server.HandlerFunc) http.HandlerFunc {
 		server.LogRequest(level.DEBUG, r, true)
 		//////////////////////////////
 
-		if err := hndl(w, r); err != nil {
+		if err := f(w, r); err != nil {
 			responseError(w, erro.Wrap(err))
 			return
 		}

@@ -21,20 +21,25 @@ import (
 type tokenRequest struct {
 	grntType  string
 	cod       string
-	taid      string
+	ta_       string
 	rediUri   string
 	taAssType string
-	taAss     string
+	taAss     []byte
 }
 
 func newTokenRequest(r *http.Request) *tokenRequest {
+	var taAss []byte
+	if strTaAss := r.FormValue(formClient_assertion); strTaAss != "" {
+		taAss = []byte(strTaAss)
+	}
+
 	return &tokenRequest{
-		grntType:  r.FormValue(formGrntType),
-		cod:       r.FormValue(formCod),
-		taid:      r.FormValue(formTaId),
-		rediUri:   r.FormValue(formRediUri),
-		taAssType: r.FormValue(formTaAssType),
-		taAss:     r.FormValue(formTaAss),
+		grntType:  r.FormValue(formGrant_type),
+		cod:       r.FormValue(formCode),
+		ta_:       r.FormValue(formClient_id),
+		rediUri:   r.FormValue(formRedirect_uri),
+		taAssType: r.FormValue(formClient_assertion_type),
+		taAss:     taAss,
 	}
 }
 
@@ -46,8 +51,8 @@ func (this *tokenRequest) code() string {
 	return this.cod
 }
 
-func (this *tokenRequest) taId() string {
-	return this.taid
+func (this *tokenRequest) ta() string {
+	return this.ta_
 }
 
 func (this *tokenRequest) redirectUri() string {
@@ -58,6 +63,6 @@ func (this *tokenRequest) taAssertionType() string {
 	return this.taAssType
 }
 
-func (this *tokenRequest) taAssertion() string {
+func (this *tokenRequest) taAssertion() []byte {
 	return this.taAss
 }

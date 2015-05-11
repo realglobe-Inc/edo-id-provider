@@ -20,27 +20,21 @@ import (
 )
 
 func testDb(t *testing.T, db Db) {
-	if elem, err := db.GetByPairwise(test_ta, test_pw_acnt); err != nil {
-		t.Error(err)
-		return
+	if elem, err := db.GetByPairwise(test_sect, test_pwAcnt); err != nil {
+		t.Fatal(err)
 	} else if elem != nil {
-		t.Error(elem)
-		return
+		t.Fatal(elem)
 	}
 
-	elem := New(test_acnt, test_ta, test_pw_acnt)
+	elem := New(test_acnt, test_sect, test_pwAcnt)
 	if err := db.Save(elem); err != nil {
-		t.Error(err)
-		return
-	} else if elem2, err := db.GetByPairwise(elem.Ta(), elem.PairwiseAccount()); err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
+	} else if elem2, err := db.GetByPairwise(elem.Sector(), elem.Pairwise()); err != nil {
+		t.Fatal(err)
 	} else if elem2 == nil {
-		t.Error("no element")
-		return
+		t.Fatal("no element")
 	} else if !reflect.DeepEqual(elem2, elem) {
 		t.Error(elem2)
-		t.Error(elem)
-		return
+		t.Fatal(elem)
 	}
 }

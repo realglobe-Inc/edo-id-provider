@@ -41,15 +41,15 @@ func init() {
 func testElement(t *testing.T, elem Element) {
 	if elem.Id() != test_id {
 		t.Error(elem.Id())
-		t.Error(test_id)
+		t.Fatal(test_id)
 	} else if elem.Name() != test_name {
 		t.Error(elem.Name())
-		t.Error(test_name)
+		t.Fatal(test_name)
 	} else if !reflect.DeepEqual(elem.Authenticator(), test_auth) {
 		t.Error(elem.Authenticator())
-		t.Error(test_pds)
+		t.Fatal(test_pds)
 	} else if !reflect.DeepEqual(elem.Attribute(test_attr), test_pds) {
 		t.Error(elem.Attribute(test_attr))
-		t.Error(test_pds)
+		t.Fatal(test_pds)
 	}
 }

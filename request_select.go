@@ -19,19 +19,16 @@ import (
 )
 
 type selectRequest struct {
-	*browserRequest
-
-	tic     string
-	accName string
-	loc     string
+	tic      string
+	acntName string
+	lang     string
 }
 
 func newSelectRequest(r *http.Request) *selectRequest {
 	return &selectRequest{
-		browserRequest: newBrowserRequest(r),
-		tic:            r.FormValue(formSelTic),
-		accName:        r.FormValue(formAccName),
-		loc:            r.FormValue(formLoc),
+		tic:      r.FormValue(formTicket),
+		acntName: r.FormValue(formUsername),
+		lang:     r.FormValue(formLocale),
 	}
 }
 
@@ -39,10 +36,10 @@ func (this *selectRequest) ticket() string {
 	return this.tic
 }
 
-func (this *selectRequest) selectInfo() (accName string) {
-	return this.accName
+func (this *selectRequest) accountName() (accName string) {
+	return this.acntName
 }
 
-func (this *selectRequest) locale() string {
-	return this.loc
+func (this *selectRequest) language() string {
+	return this.lang
 }

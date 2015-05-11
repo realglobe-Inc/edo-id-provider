@@ -47,6 +47,6 @@ func (this *Element) Id() string {
 }
 
 // 有効期限を返す。
-func (this *Element) ExpiresIn() time.Time {
+func (this *Element) Expires() time.Time {
 	return this.exp
 }

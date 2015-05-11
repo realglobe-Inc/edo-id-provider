@@ -40,31 +40,30 @@ func TestClaimSample(t *testing.T) {
     }
   }
 `)
-	var clms Claim
-	if err := json.Unmarshal(sample, &clms); err != nil {
-		t.Error(err)
-		return
-	} else if acntInf := clms.WithAccountInfo(); acntInf == nil {
-		t.Error(clms)
+	var reqClm Claim
+	if err := json.Unmarshal(sample, &reqClm); err != nil {
+		t.Fatal(err)
+	} else if acntInf := reqClm.AccountEntries(); acntInf == nil {
+		t.Fatal(reqClm)
 	} else if v := acntInf["given_name"]; v == nil || !v.Essential() {
-		t.Error(v)
+		t.Fatal(v)
 	} else if v, ok := acntInf["nickname"]; !ok || v != nil {
-		t.Error(v, ok)
+		t.Fatal(v, ok)
 	} else if v := acntInf["email"]; v == nil || !v.Essential() {
-		t.Error(v)
+		t.Fatal(v)
 	} else if v := acntInf["email_verified"]; v == nil || !v.Essential() {
-		t.Error(v)
+		t.Fatal(v)
 	} else if v, ok := acntInf["picture"]; !ok || v != nil {
-		t.Error(v, ok)
+		t.Fatal(v, ok)
 	} else if v, ok := acntInf["http://example.info/claims/groups"]; !ok || v != nil {
-		t.Error(v, ok)
-	} else if idTok := clms.WithIdToken(); idTok == nil {
-		t.Error(clms)
+		t.Fatal(v, ok)
+	} else if idTok := reqClm.IdTokenEntries(); idTok == nil {
+		t.Fatal(reqClm)
 	} else if v := idTok["auth_time"]; v == nil || !v.Essential() {
-		t.Error(v)
+		t.Fatal(v)
 	} else if v := idTok["acr"]; v == nil ||
 		!reflect.DeepEqual(toStrings(v.Values()), []string{"urn:mace:incommon:iap:silver"}) {
-		t.Error(v)
+		t.Fatal(v)
 	}
 }
 

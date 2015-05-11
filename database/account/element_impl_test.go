@@ -19,6 +19,5 @@ import (
 )
 
 func TestElementImpl(t *testing.T) {
-	testElement(t,
-		newElement(test_id, test_name, test_auth, map[string]interface{}{test_attr: test_pds}))
+	testElement(t, newElement(test_id, test_name, test_auth, map[string]interface{}{test_attr: test_pds}))
 }

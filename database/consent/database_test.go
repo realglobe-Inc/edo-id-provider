@@ -21,31 +21,25 @@ import (
 
 func testDb(t *testing.T, db Db) {
 	if el, err := db.Get(test_acnt, test_ta); err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	} else if el != nil {
-		t.Error(el)
-		return
+		t.Fatal(el)
 	}
 
 	elem := New(test_acnt, test_ta)
 	elem.AllowScope(test_scop)
 
 	if err := db.Save(elem); err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 
 	elem2, err := db.Get(elem.Account(), elem.Ta())
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	} else if elem2 == nil {
-		t.Error("no element")
-		return
+		t.Fatal("no element")
 	} else if !reflect.DeepEqual(elem2, elem) {
 		t.Error(elem2)
-		t.Error(elem)
-		return
+		t.Fatal(elem)
 	}
 }

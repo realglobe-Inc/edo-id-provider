@@ -15,43 +15,163 @@
 package main
 
 import (
+	"github.com/realglobe-Inc/edo-id-provider/database/authcode"
+	"github.com/realglobe-Inc/edo-id-provider/database/session"
+	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
+	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/go-lib/erro"
+	"html"
 	"net/http"
+	"net/url"
+	"strconv"
+	"strings"
 )
 
-func redirectError(w http.ResponseWriter, r *http.Request, sys *system, sess *session, authReq *authRequest, err error) error {
-	if sess != nil && sess.id() != "" {
-		// 認証経過を廃棄。
-		sess.abort()
-		if err := sys.sessCont.put(sess); err != nil {
-			err = erro.Wrap(err)
-			log.Err(erro.Unwrap(err))
-			log.Debug(err)
-		} else {
-			log.Debug("Session " + mosaic(sess.id()) + " was aborted")
-		}
+// リダイレクトでエラーを返す。
+func (sys *system) redirectErrorTo(w http.ResponseWriter, r *http.Request, origErr error, uri *url.URL, queries map[string]string, sess *session.Element) error {
+	// 経過を破棄。
+	sess.Clear()
+	if err := sys.sessDb.Save(sess, sess.Expires().Add(sys.sessDbExpIn-sys.sessExpIn)); err != nil {
+		log.Err(erro.Wrap(err))
+	} else {
+		log.Debug("Session " + mosaic(sess.Id()) + " was saved")
 	}
 
-	q := authReq.redirectUri().Query()
-	switch e := erro.Unwrap(err).(type) {
-	case *idpError:
-		log.Err(e.errorDescription())
-		log.Debug(e)
-		q.Set(formErr, e.errorCode())
-		q.Set(formErrDesc, e.errorDescription())
-	default:
-		log.Err(e)
-		log.Debug(err)
-		q.Set(formErr, errServErr)
-		q.Set(formErrDesc, e.Error())
-	}
-	if authReq.state() != "" {
-		q.Set(formStat, authReq.state())
+	if !sess.Saved() {
+		http.SetCookie(w, sys.newCookie(sess))
+		log.Debug("Session " + mosaic(sess.Id()) + " will be reported")
 	}
 
-	authReq.redirectUri().RawQuery = q.Encode()
+	// エラー内容の添付。
+	e := idperr.From(erro.Unwrap(origErr))
+	log.Err(e.ErrorDescription())
+	log.Debug(origErr)
+
+	q := uri.Query()
+	q.Set(formError, e.ErrorCode())
+	q.Set(formError_description, e.ErrorDescription())
+	for k, v := range queries {
+		q.Set(k, v)
+	}
+	uri.RawQuery = q.Encode()
+
 	w.Header().Add("Cache-Control", "no-store")
 	w.Header().Add("Pragma", "no-cache")
-	http.Redirect(w, r, authReq.redirectUri().String(), http.StatusFound)
+	http.Redirect(w, r, uri.String(), http.StatusFound)
 	return nil
+}
+
+// ユーザーエージェント向けにエラーを返す。
+func (sys *system) returnError(w http.ResponseWriter, r *http.Request, origErr error, sess *session.Element) error {
+
+	if sys.pathErrUi != "" {
+		uri, err := url.Parse(sys.pathErrUi)
+		if err == nil {
+			return sys.redirectErrorTo(w, r, origErr, uri, nil, sess)
+		}
+		log.Err(erro.Wrap(err))
+	}
+
+	// 自前でユーザー向けの HTML を返さなきゃならない。
+
+	// 経過を破棄。
+	sess.Clear()
+	if err := sys.sessDb.Save(sess, sess.Expires().Add(sys.sessDbExpIn-sys.sessExpIn)); err != nil {
+		log.Err(erro.Wrap(err))
+	} else {
+		log.Debug("Session " + mosaic(sess.Id()) + " was saved")
+	}
+
+	if !sess.Saved() {
+		// 未通知セッションの通知。
+		http.SetCookie(w, sys.newCookie(sess))
+		log.Debug("Session " + mosaic(sess.Id()) + " will be reported")
+	}
+
+	e := idperr.From(erro.Unwrap(origErr))
+	log.Err(e.ErrorDescription())
+	log.Debug(origErr)
+
+	msg := `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Error</title></head><body><h1>`
+	msg += strconv.Itoa(e.Status())
+	msg += " "
+	msg += http.StatusText(e.Status())
+	msg += `</h1><p><font size="+1"><b>`
+	msg += strings.Replace(html.EscapeString(e.ErrorCode()), "\n", "<br/>", -1)
+	msg += " "
+	msg += strings.Replace(html.EscapeString(e.ErrorDescription()), "\n", "<br/>", -1)
+	msg += `:</b></font></p><p>`
+	msg += html.EscapeString(e.Error())
+	msg += `</p></body></html>`
+	buff := []byte(msg)
+
+	w.Header().Set("Content-Type", server.ContentTypeHtml)
+	w.Header().Set("Content-Length", strconv.Itoa(len(buff)))
+	w.Header().Add("Cache-Control", "no-store")
+	w.Header().Add("Pragma", "no-cache")
+	w.WriteHeader(e.Status())
+	if _, err := w.Write(buff); err != nil {
+		log.Err(erro.Wrap(err))
+	}
+	return nil
+}
+
+// TA 向けにリダイレクトでエラーを返す。
+func (sys *system) redirectError(w http.ResponseWriter, r *http.Request, origErr error, sess *session.Element) error {
+	uri, err := url.Parse(sess.Request().RedirectUri())
+	if err != nil {
+		log.Err(erro.Wrap(err))
+		return sys.returnError(w, r, origErr, sess)
+	}
+
+	var queries map[string]string
+	if stat := sess.Request().State(); stat != "" {
+		queries = map[string]string{formState: stat}
+	}
+	return sys.redirectErrorTo(w, r, origErr, uri, queries, sess)
+}
+
+// セッション処理をしてリダイレクトさせる。
+func (sys *system) redirectTo(w http.ResponseWriter, r *http.Request, uri *url.URL, sess *session.Element) error {
+	if err := sys.sessDb.Save(sess, sess.Expires().Add(sys.sessDbExpIn-sys.sessExpIn)); err != nil {
+		log.Err(erro.Wrap(err))
+	} else {
+		log.Debug("Session " + mosaic(sess.Id()) + " was saved")
+	}
+
+	if !sess.Saved() {
+		http.SetCookie(w, sys.newCookie(sess))
+		log.Debug("Session " + mosaic(sess.Id()) + " will be reported")
+	}
+
+	w.Header().Add("Cache-Control", "no-store")
+	w.Header().Add("Pragma", "no-cache")
+	http.Redirect(w, r, uri.String(), http.StatusFound)
+	return nil
+}
+
+// リダイレクトで認可コードを返す。
+func (sys *system) redirectCode(w http.ResponseWriter, r *http.Request, cod *authcode.Element, idTok string, sess *session.Element) error {
+
+	uri, err := url.Parse(sess.Request().RedirectUri())
+	if err != nil {
+		return sys.returnError(w, r, erro.Wrap(err), sess)
+	}
+
+	// 経過を破棄。
+	req := sess.Request()
+	sess.Clear()
+
+	q := uri.Query()
+	q.Set(formCode, cod.Id())
+	if idTok != "" {
+		q.Set(formId_token, idTok)
+	}
+	if req.State() != "" {
+		q.Set(formState, req.State())
+	}
+	uri.RawQuery = q.Encode()
+
+	log.Info("Redirect " + mosaic(sess.Id()) + " to TA " + req.Ta())
+	return sys.redirectTo(w, r, uri, sess)
 }

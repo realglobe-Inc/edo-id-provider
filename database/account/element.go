@@ -28,4 +28,8 @@ type Element interface {
 
 	// 属性。
 	Attribute(attrName string) interface{}
+
+	// 便宜的に属性を追加・上書きする。
+	// 一時的なもので保存されることはない。
+	SetAttribute(attrName string, attr interface{})
 }

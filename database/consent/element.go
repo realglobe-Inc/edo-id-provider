@@ -14,7 +14,11 @@
 
 package consent
 
-import ()
+import (
+	"github.com/realglobe-Inc/edo-lib/strset"
+	"github.com/realglobe-Inc/go-lib/erro"
+	"gopkg.in/mgo.v2/bson"
+)
 
 // アカウントがどの TA にどの情報の提供を許可しているかという情報。
 type Element struct {
@@ -56,6 +60,10 @@ func (this *Element) Ta() string {
 	return this.ta
 }
 
+func (this *Element) scopes() map[string]bool {
+	return this.scops
+}
+
 // スコープが許可されているかどうか。
 func (this *Element) ScopeAllowed(scop string) bool {
 	return this.scops[scop]
@@ -63,9 +71,6 @@ func (this *Element) ScopeAllowed(scop string) bool {
 
 // スコープが許可されたことを反映させる。
 func (this *Element) AllowScope(scop string) {
-	if this.scops == nil {
-		this.scops = map[string]bool{}
-	}
 	this.scops[scop] = true
 }
 
@@ -77,6 +82,10 @@ func (this *Element) DenyScope(scop string) {
 	delete(this.scops, scop)
 }
 
+func (this *Element) attributes() map[string]bool {
+	return this.attrs
+}
+
 // 属性が許可されているかどうか。
 func (this *Element) AttributeAllowed(attr string) bool {
 	return this.attrs[attr]
@@ -84,9 +93,6 @@ func (this *Element) AttributeAllowed(attr string) bool {
 
 // 属性が許可されたことを反映させる。
 func (this *Element) AllowAttribute(attr string) {
-	if this.attrs == nil {
-		this.attrs = map[string]bool{}
-	}
 	this.attrs[attr] = true
 }
 
@@ -96,4 +102,47 @@ func (this *Element) DenyAttribute(attr string) {
 		this.attrs = map[string]bool{}
 	}
 	delete(this.attrs, attr)
+}
+
+//  {
+//      "account": <アカウント ID>,
+//      "ta": <TA の ID>,
+//      "scopes": [
+//          <許可スコープ>,
+//          ...
+//      ],
+//      "attributes": [
+//          <許可属性>
+//          ...
+//      ]
+//  }
+func (this *Element) GetBSON() (interface{}, error) {
+	if this == nil {
+		return nil, nil
+	}
+
+	return map[string]interface{}{
+		"account":    this.acnt,
+		"ta":         this.ta,
+		"scopes":     strset.Set(this.scops),
+		"attributes": strset.Set(this.attrs),
+	}, nil
+}
+
+func (this *Element) SetBSON(raw bson.Raw) error {
+	var buff struct {
+		Acnt  string     `bson:"account"`
+		Ta    string     `bson:"ta"`
+		Scops strset.Set `bson:"scopes"`
+		Attrs strset.Set `bson:"attributes"`
+	}
+	if err := raw.Unmarshal(&buff); err != nil {
+		return erro.Wrap(err)
+	}
+
+	this.acnt = buff.Acnt
+	this.ta = buff.Ta
+	this.scops = buff.Scops
+	this.attrs = buff.Attrs
+	return nil
 }

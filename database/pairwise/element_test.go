@@ -20,24 +20,32 @@ import (
 )
 
 const (
-	test_acnt    = "EYClXo4mQKwSgPel"
-	test_ta      = "https://ta.example.org"
-	test_pw_acnt = "i67vMGrkZyyOF1eXNIjekXIG3_iWiFsDsIlKp1-istk"
+	test_acnt   = "EYClXo4mQKwSgPel"
+	test_sect   = "https://ta.example.org"
+	test_pwAcnt = "X4mJU00-YAQUNpuFC1sf6YejJ0ZqdagM3SkNSfOCAq8"
+)
+
+var (
+	test_salt = []byte{
+		0, 1, 2, 3, 4, 5, 6, 7,
+		8, 9, 10, 11, 12, 13, 14, 15,
+		16, 17, 18, 19,
+	}
 )
 
 func TestElement(t *testing.T) {
-	elem := New(test_acnt, test_ta, test_pw_acnt)
+	elem := New(test_acnt, test_sect, test_pwAcnt)
 	if elem.Account() != test_acnt {
 		t.Error(elem.Account())
-		t.Error(test_acnt)
-	} else if elem.Ta() != test_ta {
-		t.Error(elem.Ta())
-		t.Error(test_ta)
-	} else if elem.PairwiseAccount() != test_pw_acnt {
-		t.Error(elem.PairwiseAccount())
-		t.Error(test_pw_acnt)
-	} else if elem2 := Generate(test_acnt, test_ta); !reflect.DeepEqual(elem2, elem) {
+		t.Fatal(test_acnt)
+	} else if elem.Sector() != test_sect {
+		t.Error(elem.Sector())
+		t.Fatal(test_sect)
+	} else if elem.Pairwise() != test_pwAcnt {
+		t.Error(elem.Pairwise())
+		t.Fatal(test_pwAcnt)
+	} else if elem2 := Generate(test_acnt, test_sect, test_salt); !reflect.DeepEqual(elem2, elem) {
 		t.Error(elem2)
-		t.Error(elem)
+		t.Fatal(elem)
 	}
 }

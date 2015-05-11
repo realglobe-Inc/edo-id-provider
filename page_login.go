@@ -92,7 +92,7 @@ func (sys *system) lginPage(w http.ResponseWriter, r *http.Request) (err error) 
 	authReq := sess.Request()
 	if authReq == nil {
 		// ユーザー認証・認可処理が始まっていない。
-		return sys.returnError(w, r, idperr.New(idperr.Invalid_request, "session "+mosaic(sess.Id())+" is not in authentication process", http.StatusBadRequest, nil), sess)
+		return sys.returnError(w, r, erro.Wrap(idperr.New(idperr.Invalid_request, "session "+mosaic(sess.Id())+" is not in authentication process", http.StatusBadRequest, nil)), sess)
 	}
 
 	// ユーザー認証中。
@@ -101,10 +101,10 @@ func (sys *system) lginPage(w http.ResponseWriter, r *http.Request) (err error) 
 	req := newLoginRequest(r)
 	if sess.Ticket() == "" {
 		// ログイン中でない。
-		return sys.redirectError(w, r, newErrorForRedirect(idperr.Access_denied, "not in interactive process", nil), sess)
+		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Access_denied, "not in interactive process", nil)), sess)
 	} else if req.ticket() != sess.Ticket() {
 		// 無効なログイン券。
-		return sys.redirectError(w, r, newErrorForRedirect(idperr.Access_denied, "invalid ticket "+mosaic(req.ticket()), nil), sess)
+		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Access_denied, "invalid ticket "+mosaic(req.ticket()), nil)), sess)
 	}
 
 	// チケットが有効だった。
@@ -158,7 +158,7 @@ func (sys *system) afterLogin(w http.ResponseWriter, r *http.Request, sess *sess
 			return sys.redirectError(w, r, erro.Wrap(err), sess)
 		} else if ta == nil {
 			// アカウントが無い。
-			return sys.redirectError(w, r, newErrorForRedirect(idperr.Server_error, "TA "+mosaic(sess.Request().Ta())+" was not found", nil), sess)
+			return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Server_error, "TA "+mosaic(sess.Request().Ta())+" was not found", nil)), sess)
 		}
 	}
 	if acnt == nil {
@@ -166,7 +166,7 @@ func (sys *system) afterLogin(w http.ResponseWriter, r *http.Request, sess *sess
 			return sys.redirectError(w, r, erro.Wrap(err), sess)
 		} else if acnt == nil {
 			// アカウントが無い。
-			return sys.redirectError(w, r, newErrorForRedirect(idperr.Server_error, "accout "+mosaic(sess.Account().Id())+" was not found", nil), sess)
+			return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Server_error, "accout "+mosaic(sess.Account().Id())+" was not found", nil)), sess)
 		}
 	}
 
@@ -181,7 +181,7 @@ func (sys *system) afterLogin(w http.ResponseWriter, r *http.Request, sess *sess
 	prmpts := sess.Request().Prompt()
 	if prmpts[prmptConsent] {
 		if prmpts[prmptNone] {
-			return sys.redirectError(w, r, newErrorForRedirect(idperr.Consent_required, "cannot consent without UI", nil), sess)
+			return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Consent_required, "cannot consent without UI", nil)), sess)
 		}
 
 		return sys.redirectToConsentUi(w, r, sess, "Please allow to provide these scope and attributes")
@@ -202,7 +202,7 @@ func (sys *system) afterLogin(w http.ResponseWriter, r *http.Request, sess *sess
 	}
 
 	if prmpts[prmptNone] {
-		return sys.redirectError(w, r, newErrorForRedirect(idperr.Consent_required, "cannot consent without UI", nil), sess)
+		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Consent_required, "cannot consent without UI", nil)), sess)
 	}
 
 	return sys.redirectToConsentUi(w, r, sess, "Please allow to provide these scope and attributes")

@@ -107,7 +107,7 @@ func (sys *system) consentPage(w http.ResponseWriter, r *http.Request) (err erro
 	authReq := sess.Request()
 	if authReq == nil {
 		// ユーザー認証・認可処理が始まっていない。
-		return sys.returnError(w, r, idperr.New(idperr.Invalid_request, "session "+mosaic(sess.Id())+" is not in authentication process", http.StatusBadRequest, nil), sess)
+		return sys.returnError(w, r, erro.Wrap(idperr.New(idperr.Invalid_request, "session "+mosaic(sess.Id())+" is not in authentication process", http.StatusBadRequest, nil)), sess)
 	}
 
 	// ユーザー認証・認可処理中。
@@ -116,10 +116,10 @@ func (sys *system) consentPage(w http.ResponseWriter, r *http.Request) (err erro
 	req := newConsentRequest(r)
 	if sess.Ticket() == "" {
 		// 同意中でない。
-		return sys.redirectError(w, r, newErrorForRedirect(idperr.Access_denied, "not in interaction process", nil), sess)
+		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Access_denied, "not in interaction process", nil)), sess)
 	} else if req.ticket() != sess.Ticket() {
 		// 無効な同意券。
-		return sys.redirectError(w, r, newErrorForRedirect(idperr.Access_denied, "invalid ticket "+mosaic(req.ticket()), nil), sess)
+		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Access_denied, "invalid ticket "+mosaic(req.ticket()), nil)), sess)
 	}
 
 	// チケットが有効だった。
@@ -128,7 +128,7 @@ func (sys *system) consentPage(w http.ResponseWriter, r *http.Request) (err erro
 	ok, scop, tokAttrs, acntAttrs := satisfiable(newConsentInfo(req.allowedScope(), req.allowedAttributes()), removeUnknownScope(sess.Request().Scope()), sess.Request().Claims())
 	if !ok {
 		// 同意が足りなかった。
-		return sys.redirectError(w, r, newErrorForRedirect(idperr.Access_denied, "some essential claims were denied", nil), sess)
+		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Access_denied, "some essential claims were denied", nil)), sess)
 	}
 
 	// 同意できた。
@@ -174,7 +174,7 @@ func (sys *system) afterConsent(w http.ResponseWriter, r *http.Request, sess *se
 
 	if !scop[scopOpenid] {
 		// openid すら許されなかった。
-		return sys.redirectError(w, r, newErrorForRedirect(idperr.Access_denied, "openid scope was denied", nil), sess)
+		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Access_denied, "openid scope was denied", nil)), sess)
 	}
 
 	req := sess.Request()
@@ -201,7 +201,7 @@ func (sys *system) afterConsent(w http.ResponseWriter, r *http.Request, sess *se
 				return sys.redirectError(w, r, erro.Wrap(err), sess)
 			} else if ta == nil {
 				// TA が無い。
-				return sys.redirectError(w, r, newErrorForRedirect(idperr.Invalid_request, "TA "+sess.Request().Ta()+" was not found", nil), sess)
+				return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Invalid_request, "TA "+sess.Request().Ta()+" was not found", nil)), sess)
 			}
 		}
 		if acnt == nil {
@@ -209,7 +209,7 @@ func (sys *system) afterConsent(w http.ResponseWriter, r *http.Request, sess *se
 				return sys.redirectError(w, r, erro.Wrap(err), sess)
 			} else if acnt == nil {
 				// アカウントが無い。
-				return sys.redirectError(w, r, newErrorForRedirect(idperr.Invalid_request, "accout "+mosaic(sess.Account().Id())+" was not found", nil), sess)
+				return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Invalid_request, "accout "+mosaic(sess.Account().Id())+" was not found", nil)), sess)
 			}
 		}
 

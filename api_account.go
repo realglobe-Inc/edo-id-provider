@@ -24,13 +24,13 @@ func (sys *system) accountApi(w http.ResponseWriter, r *http.Request) error {
 	req := newAccountRequest(r)
 
 	if req.scheme() != scmBearer {
-		return idperr.New(idperr.Invalid_request, "authorization scheme "+req.scheme()+" is not supported", http.StatusBadRequest, nil)
+		return erro.Wrap(idperr.New(idperr.Invalid_request, "authorization scheme "+req.scheme()+" is not supported", http.StatusBadRequest, nil))
 	}
 
 	log.Debug("Authrization scheme " + req.scheme() + " is OK")
 
 	if req.token() == "" {
-		return idperr.New(idperr.Invalid_request, "no access token", http.StatusBadRequest, nil)
+		return erro.Wrap(idperr.New(idperr.Invalid_request, "no access token", http.StatusBadRequest, nil))
 	}
 
 	log.Debug("Access token " + mosaic(req.token()) + " is declared")
@@ -39,9 +39,9 @@ func (sys *system) accountApi(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return erro.Wrap(err)
 	} else if tok == nil {
-		return idperr.New(idperr.Invalid_token, "token "+mosaic(req.token())+" is not exist", http.StatusBadRequest, nil)
+		return erro.Wrap(idperr.New(idperr.Invalid_token, "token "+mosaic(req.token())+" is not exist", http.StatusBadRequest, nil))
 	} else if tok.Invalid() {
-		return idperr.New(idperr.Invalid_token, "token "+mosaic(req.token())+" is invalid", http.StatusBadRequest, nil)
+		return erro.Wrap(idperr.New(idperr.Invalid_token, "token "+mosaic(req.token())+" is invalid", http.StatusBadRequest, nil))
 	}
 
 	log.Debug("Declared access token " + mosaic(tok.Id()) + " is OK")
@@ -50,7 +50,7 @@ func (sys *system) accountApi(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return erro.Wrap(err)
 	} else if ta == nil {
-		return idperr.New(idperr.Invalid_token, "TA "+tok.Ta()+" is not exist", http.StatusBadRequest, nil)
+		return erro.Wrap(idperr.New(idperr.Invalid_token, "TA "+tok.Ta()+" is not exist", http.StatusBadRequest, nil))
 	}
 
 	log.Debug("TA " + ta.Id() + " is exist")
@@ -59,7 +59,7 @@ func (sys *system) accountApi(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return erro.Wrap(err)
 	} else if acnt == nil {
-		return idperr.New(idperr.Invalid_token, "account is not exist", http.StatusBadRequest, nil)
+		return erro.Wrap(idperr.New(idperr.Invalid_token, "account is not exist", http.StatusBadRequest, nil))
 	}
 
 	log.Debug("Account " + acnt.Id() + " is exist")

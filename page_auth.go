@@ -91,11 +91,11 @@ func (sys *system) authPage(w http.ResponseWriter, r *http.Request) (err error) 
 
 	req, err := session.ParseRequest(r)
 	if err != nil {
-		return sys.returnErrorBeforeParseRequest(w, r, req, idperr.New(idperr.Invalid_request, erro.Unwrap(err).Error(), http.StatusBadRequest, erro.Wrap(err)), sess)
+		return sys.returnErrorBeforeParseRequest(w, r, req, erro.Wrap(idperr.New(idperr.Invalid_request, erro.Unwrap(err).Error(), http.StatusBadRequest, err)), sess)
 	}
 
 	if req.Ta() == "" {
-		return sys.returnError(w, r, idperr.New(idperr.Invalid_request, "no TA is declared", http.StatusBadRequest, nil), sess)
+		return sys.returnError(w, r, erro.Wrap(idperr.New(idperr.Invalid_request, "no TA is declared", http.StatusBadRequest, nil)), sess)
 	}
 
 	// TA が指定されてる。
@@ -105,7 +105,7 @@ func (sys *system) authPage(w http.ResponseWriter, r *http.Request) (err error) 
 	if err != nil {
 		return sys.returnError(w, r, erro.Wrap(err), sess)
 	} else if ta == nil {
-		return sys.returnError(w, r, idperr.New(idperr.Invalid_request, "declared TA "+req.Ta()+" is not exist", http.StatusBadRequest, nil), sess)
+		return sys.returnError(w, r, erro.Wrap(idperr.New(idperr.Invalid_request, "declared TA "+req.Ta()+" is not exist", http.StatusBadRequest, nil)), sess)
 	}
 
 	// TA は存在する。
@@ -114,11 +114,11 @@ func (sys *system) authPage(w http.ResponseWriter, r *http.Request) (err error) 
 	// request と request_uri パラメータの読み込み。
 	if req.Request() != nil {
 		if req.RequestUri() != "" {
-			return sys.returnErrorBeforeParseRequest(w, r, req, idperr.New(idperr.Invalid_request, "cannot use "+formRequest+" and "+formRequest_uri+" together", http.StatusBadRequest, nil), sess)
+			return sys.returnErrorBeforeParseRequest(w, r, req, erro.Wrap(idperr.New(idperr.Invalid_request, "cannot use "+formRequest+" and "+formRequest_uri+" together", http.StatusBadRequest, nil)), sess)
 		} else if keys, err := sys.keyDb.Get(); err != nil {
 			return sys.returnErrorBeforeParseRequest(w, r, req, erro.Wrap(err), sess)
 		} else if err := req.ParseRequest(req.Request(), keys, ta.Keys()); err != nil {
-			return sys.returnErrorBeforeParseRequest(w, r, req, idperr.New(idperr.Invalid_request, erro.Unwrap(err).Error(), http.StatusBadRequest, erro.Wrap(err)), sess)
+			return sys.returnErrorBeforeParseRequest(w, r, req, erro.Wrap(idperr.New(idperr.Invalid_request, erro.Unwrap(err).Error(), http.StatusBadRequest, err)), sess)
 		}
 	} else if req.RequestUri() != "" {
 		if webElem, err := sys.webDb.Get(req.RequestUri()); err != nil {
@@ -126,14 +126,14 @@ func (sys *system) authPage(w http.ResponseWriter, r *http.Request) (err error) 
 		} else if keys, err := sys.keyDb.Get(); err != nil {
 			return sys.returnErrorBeforeParseRequest(w, r, req, erro.Wrap(err), sess)
 		} else if err := req.ParseRequest(webElem.Data(), keys, ta.Keys()); err != nil {
-			return sys.returnErrorBeforeParseRequest(w, r, req, idperr.New(idperr.Invalid_request, erro.Unwrap(err).Error(), http.StatusBadRequest, erro.Wrap(err)), sess)
+			return sys.returnErrorBeforeParseRequest(w, r, req, erro.Wrap(idperr.New(idperr.Invalid_request, erro.Unwrap(err).Error(), http.StatusBadRequest, err)), sess)
 		}
 	}
 
 	if req.RedirectUri() == "" {
-		return sys.returnError(w, r, idperr.New(idperr.Invalid_request, "no redirect URI is declared", http.StatusBadRequest, nil), sess)
+		return sys.returnError(w, r, erro.Wrap(idperr.New(idperr.Invalid_request, "no redirect URI is declared", http.StatusBadRequest, nil)), sess)
 	} else if !ta.RedirectUris()[req.RedirectUri()] {
-		return sys.returnError(w, r, idperr.New(idperr.Invalid_request, "declared redirect URI "+req.RedirectUri()+" is not registered", http.StatusBadRequest, nil), sess)
+		return sys.returnError(w, r, erro.Wrap(idperr.New(idperr.Invalid_request, "declared redirect URI "+req.RedirectUri()+" is not registered", http.StatusBadRequest, nil)), sess)
 	}
 
 	// リダイレクトエンドポイントも正しい。
@@ -147,12 +147,12 @@ func (sys *system) authPage(w http.ResponseWriter, r *http.Request) (err error) 
 	// 重複パラメータが無いか検査。
 	for k, v := range r.Form {
 		if len(v) > 1 {
-			return sys.redirectError(w, r, newErrorForRedirect(idperr.Invalid_request, "parameter "+k+" is overlapped", nil), sess)
+			return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Invalid_request, "parameter "+k+" is overlapped", nil)), sess)
 		}
 	}
 
 	if !req.Scope()[scopOpenid] {
-		return sys.redirectError(w, r, newErrorForRedirect(idperr.Invalid_request, "scope does not have "+scopOpenid, nil), sess)
+		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Invalid_request, "scope does not have "+scopOpenid, nil)), sess)
 	}
 
 	// scope には問題無い。
@@ -160,14 +160,14 @@ func (sys *system) authPage(w http.ResponseWriter, r *http.Request) (err error) 
 
 	switch respTypes := req.ResponseType(); len(respTypes) {
 	case 0:
-		return sys.redirectError(w, r, newErrorForRedirect(idperr.Invalid_request, "no response type", nil), sess)
+		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Invalid_request, "no response type", nil)), sess)
 	case 1:
 		if !respTypes[respTypeCode] {
-			return sys.redirectError(w, r, newErrorForRedirect(idperr.Unsupported_response_type, fmt.Sprint("response type ", respTypes, " is not supported"), nil), sess)
+			return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Unsupported_response_type, fmt.Sprint("response type ", respTypes, " is not supported"), nil)), sess)
 		}
 	case 2:
 		if !respTypes[respTypeCode] || !respTypes[respTypeId_token] {
-			return sys.redirectError(w, r, newErrorForRedirect(idperr.Unsupported_response_type, fmt.Sprint("response type ", respTypes, " is not supported"), nil), sess)
+			return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Unsupported_response_type, fmt.Sprint("response type ", respTypes, " is not supported"), nil)), sess)
 		}
 	}
 
@@ -176,7 +176,7 @@ func (sys *system) authPage(w http.ResponseWriter, r *http.Request) (err error) 
 
 	if req.Prompt()[prmptSelect_account] {
 		if req.Prompt()[prmptNone] {
-			return sys.redirectError(w, r, newErrorForRedirect(idperr.Account_selection_required, "cannot select account without UI", nil), sess)
+			return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Account_selection_required, "cannot select account without UI", nil)), sess)
 		}
 
 		return sys.redirectToSelectUi(w, r, sess, "Please select your account")

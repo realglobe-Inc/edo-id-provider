@@ -135,7 +135,7 @@ func (sys *system) selectPage(w http.ResponseWriter, r *http.Request) (err error
 	authReq := sess.Request()
 	if authReq == nil {
 		// ユーザー認証・認可処理が始まっていない。
-		return sys.returnError(w, r, idperr.New(idperr.Invalid_request, "session "+mosaic(sess.Id())+" is not in authentication process", http.StatusBadRequest, nil), sess)
+		return sys.returnError(w, r, erro.Wrap(idperr.New(idperr.Invalid_request, "session "+mosaic(sess.Id())+" is not in authentication process", http.StatusBadRequest, nil)), sess)
 	}
 
 	// ユーザー認証中。
@@ -144,10 +144,10 @@ func (sys *system) selectPage(w http.ResponseWriter, r *http.Request) (err error
 	req := newSelectRequest(r)
 	if sess.Ticket() == "" {
 		// アカウント選択中でない。
-		return sys.redirectError(w, r, newErrorForRedirect(idperr.Access_denied, "not in interactive process", nil), sess)
+		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Access_denied, "not in interactive process", nil)), sess)
 	} else if req.ticket() != sess.Ticket() {
 		// 無効なアカウント選択券。
-		return sys.redirectError(w, r, newErrorForRedirect(idperr.Access_denied, "invalid ticket "+mosaic(req.ticket()), nil), sess)
+		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Access_denied, "invalid ticket "+mosaic(req.ticket()), nil)), sess)
 	}
 
 	// チケットが有効だった。
@@ -191,7 +191,7 @@ func (sys *system) afterSelect(w http.ResponseWriter, r *http.Request, sess *ses
 	prmpts := sess.Request().Prompt()
 	if prmpts[prmptLogin] {
 		if prmpts[prmptNone] {
-			return sys.redirectError(w, r, newErrorForRedirect(idperr.Login_required, "cannot login without UI", nil), sess)
+			return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Login_required, "cannot login without UI", nil)), sess)
 		}
 
 		return sys.redirectToLoginUi(w, r, sess, "Please log in")
@@ -205,7 +205,7 @@ func (sys *system) afterSelect(w http.ResponseWriter, r *http.Request, sess *ses
 	}
 
 	if prmpts[prmptNone] {
-		return sys.redirectError(w, r, newErrorForRedirect(idperr.Login_required, "cannot login without UI", nil), sess)
+		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Login_required, "cannot login without UI", nil)), sess)
 	}
 
 	return sys.redirectToLoginUi(w, r, sess, "Please log in")

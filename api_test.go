@@ -59,10 +59,10 @@ func TestResponse(t *testing.T) {
 }
 
 func TestResponseIdpError(t *testing.T) {
-	origErr := (*idperr.Error)(idperr.New(idperr.Invalid_request, "invalid request", http.StatusBadRequest, nil))
+	origErr := idperr.New(idperr.Invalid_request, "invalid request", http.StatusBadRequest, nil)
 
 	w := httptest.NewRecorder()
-	if err := responseError(w, origErr); err != nil {
+	if err := responseError(w, erro.Wrap(origErr)); err != nil {
 		t.Fatal(err)
 	}
 

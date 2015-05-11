@@ -333,7 +333,7 @@ func serve(param *parameters) (err error) {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/", panicErrorWrapper(s, func(w http.ResponseWriter, r *http.Request) error {
-		return idperr.New(idperr.Invalid_request, "invalid endpoint", http.StatusNotFound, nil)
+		return erro.Wrap(idperr.New(idperr.Invalid_request, "invalid endpoint", http.StatusNotFound, nil))
 	}))
 	mux.HandleFunc(param.pathOk, panicErrorWrapper(s, func(w http.ResponseWriter, r *http.Request) error {
 		return nil

@@ -18,6 +18,7 @@ import (
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
 	"github.com/realglobe-Inc/edo-id-provider/database/consent"
 	"github.com/realglobe-Inc/edo-id-provider/database/session"
+	"github.com/realglobe-Inc/edo-id-provider/request"
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
 	"github.com/realglobe-Inc/go-lib/erro"
@@ -65,7 +66,7 @@ func (sys *system) redirectToLoginUi(w http.ResponseWriter, r *http.Request, ses
 func (sys *system) lginPage(w http.ResponseWriter, r *http.Request) (err error) {
 
 	var sess *session.Element
-	if sessId := newBaseRequest(r).session(); sessId != "" {
+	if sessId := request.Parse(r, sessLabel).Session(); sessId != "" {
 		// セッションが通知された。
 		log.Debug("Session " + mosaic(sessId) + " is declared")
 

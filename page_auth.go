@@ -17,6 +17,7 @@ package main
 import (
 	"fmt"
 	"github.com/realglobe-Inc/edo-id-provider/database/session"
+	"github.com/realglobe-Inc/edo-id-provider/request"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"net/http"
@@ -58,8 +59,8 @@ func (sys *system) returnErrorBeforeParseRequest(w http.ResponseWriter, r *http.
 func (sys *system) authPage(w http.ResponseWriter, r *http.Request) (err error) {
 
 	var sess *session.Element
-	baseReq := newBaseRequest(r)
-	if sessId := baseReq.session(); sessId != "" {
+	baseReq := request.Parse(r, sessLabel)
+	if sessId := baseReq.Session(); sessId != "" {
 		// セッションが通知された。
 		log.Debug("Session " + mosaic(sessId) + " is declared")
 
@@ -142,7 +143,7 @@ func (sys *system) authPage(w http.ResponseWriter, r *http.Request) (err error) 
 	sess.SetRequest(req)
 
 	// リクエストの解析は終了。
-	log.Info("Authentication request " + mosaic(sess.Id()) + " reached from " + baseReq.source())
+	log.Info("Authentication request " + mosaic(sess.Id()) + " reached from " + baseReq.Source())
 
 	// 重複パラメータが無いか検査。
 	for k, v := range r.Form {

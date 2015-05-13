@@ -81,7 +81,7 @@ func (sys *system) redirectToConsentUi(w http.ResponseWriter, r *http.Request, s
 func (sys *system) consentPage(w http.ResponseWriter, r *http.Request) (err error) {
 
 	var sess *session.Element
-	if sessId := newBaseRequest(r).session(); sessId != "" {
+	if sessId := request.Parse(r, sessLabel).Session(); sessId != "" {
 		// セッションが通知された。
 		log.Debug("Session " + mosaic(sessId) + " is declared")
 

@@ -108,7 +108,7 @@ func (sys *system) redirectToSelectUi(w http.ResponseWriter, r *http.Request, se
 func (sys *system) selectPage(w http.ResponseWriter, r *http.Request) (err error) {
 
 	var sess *session.Element
-	if sessId := newBaseRequest(r).session(); sessId != "" {
+	if sessId := request.Parse(r, sessLabel).Session(); sessId != "" {
 		// セッションが通知された。
 		log.Debug("Session " + mosaic(sessId) + " is declared")
 

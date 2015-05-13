@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package request
 
 import (
 	"github.com/realglobe-Inc/go-lib/erro"
@@ -21,41 +21,64 @@ import (
 )
 
 // リクエストの基本情報。
-type baseRequest struct {
+type Request struct {
 	sess string
 	src  string
 }
 
-func newBaseRequest(r *http.Request) *baseRequest {
+const (
+	tagX_forwarded_for = "X-Forwarded-For"
+)
+
+func Parse(r *http.Request, sessLabel string) *Request {
 	var sess string
 	if cook, err := r.Cookie(sessLabel); err != nil {
 		if err != http.ErrNoCookie {
-			log.Err(erro.Wrap(err))
+			log.Warn(erro.Wrap(err))
 		}
 	} else {
 		sess = cook.Value
 	}
 
 	var src string
-	if forwarded := r.Header.Get(headX_forwarded_for); forwarded == "" {
+	if forwarded := r.Header.Get(tagX_forwarded_for); forwarded == "" {
 		src = r.RemoteAddr
 	} else {
 		parts := strings.SplitN(forwarded, ",", 2)
 		src = parts[0]
 	}
 
-	return &baseRequest{
+	return &Request{
 		sess: sess,
 		src:  src,
 	}
 }
 
-// Cookie の Id-Provider で宣言されているセッション ID を返す。
-func (this *baseRequest) session() string {
+// Cookie で宣言されているセッション ID を返す。
+func (this *Request) Session() string {
 	return this.sess
 }
 
-// 送信元の IP を返す。
-func (this *baseRequest) source() string {
+// 送信元の IP アドレスを返す。
+func (this *Request) Source() string {
 	return this.src
+}
+
+var SessionDisplayLength = 8
+
+// <セッション ID の最初の数文字>@<IP アドレス>
+func (this *Request) String() string {
+	str := ""
+	if this.sess != "" {
+		str += cutoff(this.sess, SessionDisplayLength) + "@"
+	}
+	return str + this.src
+}
+
+func cutoff(str string, max int) string {
+	if len(str) <= max {
+		return str
+	} else {
+		return str[:max]
+	}
 }

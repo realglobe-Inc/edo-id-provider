@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package request
 
 import (
 	"net/http"
 	"testing"
 )
 
-func TestBaseRequest(t *testing.T) {
+func TestRequest(t *testing.T) {
 	id := "XAOiyqgngWGzZbgl6j1w6Zm3ytHeI-"
 
 	r, err := http.NewRequest("GET", "https://idp.example.org/auth", nil)
@@ -27,28 +27,33 @@ func TestBaseRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 	r.AddCookie(&http.Cookie{
-		Name:   "Id-Provider",
+		Name:   "SID",
 		Value:  id,
 		Path:   "/",
 		MaxAge: 7 * 24 * 3600,
 	})
 
 	r.RemoteAddr = "192.168.0.18:55555"
-	if req := newBaseRequest(r); req.session() != id {
-		t.Error(req.session())
+	if req := Parse(r, "SID"); req.Session() != id {
+		t.Error(req.Session())
 		t.Fatal(id)
-	} else if req.source() != "192.168.0.18:55555" {
-		t.Error(req.source())
+	} else if req.Source() != "192.168.0.18:55555" {
+		t.Error(req.Source())
 		t.Fatal("192.168.0.18:55555")
+	} else if req.String() != "XAOiyqgn@192.168.0.18:55555" {
+		t.Error(req.String())
+		t.Fatal("XAOiyqgn@192.168.0.18:55555")
 	}
 
 	r.Header.Set("X-Forwarded-For", "203.0.113.34, 192.168.0.12")
-	if req := newBaseRequest(r); req.session() != id {
-		t.Error(req.session())
+	if req := Parse(r, "SID"); req.Session() != id {
+		t.Error(req.Session())
 		t.Fatal(id)
-	} else if req.source() != "203.0.113.34" {
-		t.Error(r)
-		t.Error(req.source())
+	} else if req.Source() != "203.0.113.34" {
+		t.Error(req.Source())
 		t.Fatal("203.0.113.34")
+	} else if req.String() != "XAOiyqgn@203.0.113.34" {
+		t.Error(req.String())
+		t.Fatal("XAOiyqgn@203.0.113.34")
 	}
 }

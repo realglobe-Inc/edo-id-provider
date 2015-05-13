@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
 	"github.com/realglobe-Inc/edo-id-provider/database/session"
+	"github.com/realglobe-Inc/edo-id-provider/request"
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
 	jsonutil "github.com/realglobe-Inc/edo-lib/json"
@@ -65,7 +66,7 @@ func languagesForm(lang string, langs []string) string {
 		a = append(a, v)
 		m[v] = true
 	}
-	return valuesForm(a)
+	return request.ValuesForm(a)
 }
 
 // アカウント選択 UI にリダイレクトする。

@@ -19,6 +19,7 @@ import (
 	"github.com/realglobe-Inc/edo-id-provider/database/authcode"
 	"github.com/realglobe-Inc/edo-id-provider/database/consent"
 	"github.com/realglobe-Inc/edo-id-provider/database/session"
+	"github.com/realglobe-Inc/edo-id-provider/request"
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
 	"github.com/realglobe-Inc/edo-lib/base64url"
@@ -43,15 +44,15 @@ func (sys *system) redirectToConsentUi(w http.ResponseWriter, r *http.Request, s
 	q.Set(formIssuer, sys.selfId)
 	q.Set(formUsername, sess.Account().Name())
 	if scop := removeUnknownScope(sess.Request().Scope()); len(scop) > 0 {
-		q.Set(formScope, valueSetForm(scop))
+		q.Set(formScope, request.ValueSetForm(scop))
 	}
 	if sess.Request().Claims() != nil {
 		attrs, optAttrs := sess.Request().Claims().Names()
 		if len(attrs) > 0 {
-			q.Set(formClaims, valueSetForm(attrs))
+			q.Set(formClaims, request.ValueSetForm(attrs))
 		}
 		if len(optAttrs) > 0 {
-			q.Set(formOptional_claims, valueSetForm(optAttrs))
+			q.Set(formOptional_claims, request.ValueSetForm(optAttrs))
 		}
 	}
 	q.Set(formExpires_in, strconv.FormatInt(int64(sys.tokExpIn/time.Second), 10))

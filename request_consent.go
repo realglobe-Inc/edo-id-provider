@@ -15,6 +15,7 @@
 package main
 
 import (
+	"github.com/realglobe-Inc/edo-id-provider/request"
 	"net/http"
 )
 
@@ -30,10 +31,10 @@ type consentRequest struct {
 func newConsentRequest(r *http.Request) *consentRequest {
 	return &consentRequest{
 		tic:        r.FormValue(formTicket),
-		allowScop:  formValueSet(r.FormValue(formAllowed_scope)),
-		allowAttrs: formValueSet(r.FormValue(formAllowed_claims)),
-		denyScop:   formValueSet(r.FormValue(formDenied_scope)),
-		denyAttrs:  formValueSet(r.FormValue(formDenied_claims)),
+		allowScop:  request.FormValueSet(r.FormValue(formAllowed_scope)),
+		allowAttrs: request.FormValueSet(r.FormValue(formAllowed_claims)),
+		denyScop:   request.FormValueSet(r.FormValue(formDenied_scope)),
+		denyAttrs:  request.FormValueSet(r.FormValue(formDenied_claims)),
 		lang:       r.FormValue(formLocale),
 	}
 }

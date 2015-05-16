@@ -21,7 +21,7 @@ function query_parse(raw) {
         var key = elem[0];
         var val = elem[1];
         if (val) {
-            val = decodeURIComponent(val.replace(/\+/g, " "));
+            val = decodeURIComponent(val.replace(/\+/g, " ")).replace(/\n/g, "<br/>");
         }
 
         queries[key] = val;
@@ -35,11 +35,11 @@ function display() {
     var queries = query_parse(window.location.search.substring(1));
 
     if (ticket) {
-        document.write('ticket: ' + ticket + '<br/>');
+        document.write('<b>ticket:</b> ' + ticket + '<br/>');
     }
     if (queries && Object.keys(queries).length > 0) {
         for (key in queries) {
-            document.write(key + ': ' + queries[key] + '<br/>');
+            document.write('<b>' + key + ':</b> ' + queries[key] + '<br/>');
         }
     }
 }

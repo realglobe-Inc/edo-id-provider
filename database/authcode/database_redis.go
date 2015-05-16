@@ -93,7 +93,6 @@ redis.call("set", KEYS[2], ARGV[3], "PX", exp_in)
 return ""
 `)
 
-// 上書き。
 func (this *redisDb) Replace(elem *Element, savedDate time.Time) (ok bool, err error) {
 	conn := this.pool.Get()
 	defer conn.Close()

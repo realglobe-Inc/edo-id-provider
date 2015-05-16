@@ -93,8 +93,8 @@ func serve(param *parameters) (err error) {
 		keyDb = keydb.NewFileDb(param.keyDbPath)
 		log.Info("Use keys in directory " + param.keyDbPath)
 	case "redis":
-		keyDb = keydb.NewRedisCache(keydb.NewFileDb(param.keyDbPath), redPools.Get(param.keyDbAddr), param.keyDbTag, param.keyDbExpIn)
-		log.Info("Use keys in directory " + param.keyDbPath + " with redis " + param.keyDbAddr + ": " + param.keyDbTag)
+		keyDb = keydb.NewRedisCache(keydb.NewFileDb(param.keyDbPath), redPools.Get(param.keyDbAddr), param.keyDbTag+"."+param.selfId, param.keyDbExpIn)
+		log.Info("Use keys in directory " + param.keyDbPath + " with redis " + param.keyDbAddr + ": " + param.keyDbTag + "." + param.selfId)
 	default:
 		return erro.New("invalid key DB type " + param.keyDbType)
 	}

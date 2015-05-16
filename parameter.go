@@ -218,7 +218,7 @@ func parseParameters(args ...string) (param *parameters, err error) {
 
 	flags.StringVar(&param.socType, "socType", "tcp", "Socket type")
 	flags.StringVar(&param.socPath, "socPath", filepath.Join(filepath.Dir(os.Args[0]), "run", label+".soc"), "Unix socket path")
-	flags.IntVar(&param.socPort, "socPort", 16040, "TCP socket port")
+	flags.IntVar(&param.socPort, "socPort", 1604, "TCP socket port")
 	flags.StringVar(&param.protType, "protType", "http", "Protocol type")
 
 	flags.StringVar(&param.selfId, "selfId", "https://idp.example.org", "IdP ID")

@@ -46,7 +46,7 @@ func responseError(w http.ResponseWriter, origErr error) error {
 	// 認証が始まって経過が記録されているなら、既にリダイレクト先が
 	// 分かっているので、リダイレクトでエラーを返すため。
 
-	e := idperr.From(erro.Unwrap(origErr))
+	e := idperr.From(origErr)
 	log.Err(e.ErrorDescription())
 	log.Debug(origErr)
 

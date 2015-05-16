@@ -43,7 +43,7 @@ func (sys *system) redirectErrorTo(w http.ResponseWriter, r *http.Request, origE
 	}
 
 	// エラー内容の添付。
-	e := idperr.From(erro.Unwrap(origErr))
+	e := idperr.From(origErr)
 	log.Err(e.ErrorDescription())
 	log.Debug(origErr)
 
@@ -88,7 +88,7 @@ func (sys *system) returnError(w http.ResponseWriter, r *http.Request, origErr e
 		log.Debug("Session " + mosaic(sess.Id()) + " will be reported")
 	}
 
-	e := idperr.From(erro.Unwrap(origErr))
+	e := idperr.From(origErr)
 	log.Err(e.ErrorDescription())
 	log.Debug(origErr)
 

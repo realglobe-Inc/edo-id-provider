@@ -32,12 +32,14 @@ const (
 
 func Parse(r *http.Request, sessLabel string) *Request {
 	var sess string
-	if cook, err := r.Cookie(sessLabel); err != nil {
-		if err != http.ErrNoCookie {
-			log.Warn(erro.Wrap(err))
+	if sessLabel != "" {
+		if cook, err := r.Cookie(sessLabel); err != nil {
+			if err != http.ErrNoCookie {
+				log.Warn(erro.Wrap(err))
+			}
+		} else {
+			sess = cook.Value
 		}
-	} else {
-		sess = cook.Value
 	}
 
 	var src string

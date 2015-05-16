@@ -351,8 +351,7 @@ func serve(param *parameters) (err error) {
 	if param.uiDir != "" {
 		// ファイル配信も自前でやる。
 		pathUi := strings.TrimRight(param.pathUi, "/") + "/"
-		filer := http.StripPrefix(pathUi, http.FileServer(http.Dir(param.uiDir)))
-		mux.Handle(pathUi, filer)
+		mux.Handle(pathUi, http.StripPrefix(pathUi, http.FileServer(http.Dir(param.uiDir))))
 	}
 
 	return server.Serve(param, mux)

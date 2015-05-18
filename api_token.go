@@ -150,7 +150,7 @@ func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {
 
 	// Authorization ヘッダと client_secret パラメータも認識はする。
 	if r.Header.Get(tagAuthorization) != "" || r.FormValue(tagClient_secret) != "" {
-		return erro.Wrap(idperr.New(idperr.Invalid_request, "multi client authentication algorithms are exist", http.StatusBadRequest, nil))
+		return erro.Wrap(idperr.New(idperr.Invalid_request, "multi client authentication algorithms are detected", http.StatusBadRequest, nil))
 	}
 
 	// クライアント認証する。
@@ -163,7 +163,7 @@ func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return erro.Wrap(idperr.New(idperr.Invalid_client, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
 	} else if assJt.Header(tagAlg) == tagNone {
-		return erro.Wrap(idperr.New(idperr.Invalid_client, "asserion "+tagAlg+" must not be "+tagNone, http.StatusBadRequest, nil))
+		return erro.Wrap(idperr.New(idperr.Invalid_client, "asserion algorithm must not be "+tagNone, http.StatusBadRequest, nil))
 	} else if err := assJt.Verify(ta.Keys()); err != nil {
 		return erro.Wrap(idperr.New(idperr.Invalid_client, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
 	}
@@ -179,13 +179,13 @@ func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {
 	} else if ok, err := sys.jtiDb.SaveIfAbsent(jtidb.New(req.ta(), jti, exp)); err != nil {
 		return erro.Wrap(err)
 	} else if !ok {
-		return erro.Wrap(idperr.New(idperr.Invalid_client, "overlapped JWT ID", http.StatusBadRequest, nil))
+		return erro.Wrap(idperr.New(idperr.Invalid_client, "JWT ID overlaps", http.StatusBadRequest, nil))
 	} else if assJt.Claim(tagSub) != req.ta() {
 		return erro.Wrap(idperr.New(idperr.Invalid_client, "JWT subject is not "+req.ta(), http.StatusBadRequest, nil))
 	} else if aud := assJt.Claim(tagAud); aud == nil {
-		return erro.Wrap(idperr.New(idperr.Invalid_client, "no assertion "+tagAud, http.StatusBadRequest, nil))
+		return erro.Wrap(idperr.New(idperr.Invalid_client, "no assertion audience", http.StatusBadRequest, nil))
 	} else if !audienceHas(aud, sys.selfId+sys.pathTok) {
-		return erro.Wrap(idperr.New(idperr.Invalid_client, "assertion "+tagAud+" does not contain "+sys.selfId+sys.pathTok, http.StatusBadRequest, nil))
+		return erro.Wrap(idperr.New(idperr.Invalid_client, "assertion audience does not contain "+sys.selfId+sys.pathTok, http.StatusBadRequest, nil))
 	}
 
 	// クライアント認証できた。

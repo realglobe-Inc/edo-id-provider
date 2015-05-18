@@ -140,7 +140,7 @@ func TestDenyOverlapParameterInAuthRequest(t *testing.T) {
 		server.LogResponse(level.ERR, resp, true)
 		t.Error(resp.StatusCode)
 		t.Fatal(http.StatusOK)
-	} else if resp.Request.FormValue(formError) != idperr.Invalid_request {
+	} else if resp.Request.FormValue(tagError) != idperr.Invalid_request {
 		t.Fatal("no error")
 	}
 }
@@ -328,8 +328,8 @@ func TestDenyNoResponseTypeInAuthRequest(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	if resp.Request.FormValue(formError) != idperr.Invalid_request {
-		t.Error(resp.Request.FormValue(formError))
+	if resp.Request.FormValue(tagError) != idperr.Invalid_request {
+		t.Error(resp.Request.FormValue(tagError))
 		t.Fatal(idperr.Invalid_request)
 	}
 }
@@ -370,8 +370,8 @@ func TestDenyUnknownResponseTypeInAuthRequest(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	if resp.Request.FormValue(formError) != idperr.Unsupported_response_type {
-		t.Error(resp.Request.FormValue(formError))
+	if resp.Request.FormValue(tagError) != idperr.Unsupported_response_type {
+		t.Error(resp.Request.FormValue(tagError))
 		t.Fatal(idperr.Invalid_request)
 	}
 }
@@ -419,8 +419,8 @@ func TestErrorWhenOwnerDenied(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	if resp.Request.FormValue(formError) != idperr.Access_denied {
-		t.Error(resp.Request.FormValue(formError))
+	if resp.Request.FormValue(tagError) != idperr.Access_denied {
+		t.Error(resp.Request.FormValue(tagError))
 		t.Fatal(idperr.Access_denied)
 	}
 }

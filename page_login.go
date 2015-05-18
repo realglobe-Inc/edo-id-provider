@@ -38,18 +38,18 @@ func (sys *system) redirectToLoginUi(w http.ResponseWriter, r *http.Request, sen
 
 	// ログインページに渡すクエリパラメータを生成。
 	q := uri.Query()
-	q.Set(formIssuer, sys.selfId)
+	q.Set(tagIssuer, sys.selfId)
 	if acnts := sess.SelectedAccounts(); len(acnts) > 0 {
-		q.Set(formUsernames, accountSetForm(acnts))
+		q.Set(tagUsernames, accountSetForm(acnts))
 	}
 	if disp := sess.Request().Display(); disp != "" {
-		q.Set(formDisplay, disp)
+		q.Set(tagDisplay, disp)
 	}
 	if lang, langs := sess.Language(), sess.Request().Languages(); lang != "" || len(langs) > 0 {
-		q.Set(formLocales, languagesForm(lang, langs))
+		q.Set(tagLocales, languagesForm(lang, langs))
 	}
 	if msg != "" {
-		q.Set(formMessage, msg)
+		q.Set(tagMessage, msg)
 	}
 	uri.RawQuery = q.Encode()
 
@@ -181,8 +181,8 @@ func (sys *system) afterLogin(w http.ResponseWriter, r *http.Request, sender *re
 	}
 
 	prmpts := sess.Request().Prompt()
-	if prmpts[prmptConsent] {
-		if prmpts[prmptNone] {
+	if prmpts[tagConsent] {
+		if prmpts[tagNone] {
 			return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Consent_required, "cannot consent without UI", nil)), sender, sess)
 		}
 
@@ -203,7 +203,7 @@ func (sys *system) afterLogin(w http.ResponseWriter, r *http.Request, sender *re
 		return sys.afterConsent(w, r, sender, sess, ta, acnt, scop, tokAttrs, acntAttrs)
 	}
 
-	if prmpts[prmptNone] {
+	if prmpts[tagNone] {
 		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Consent_required, "cannot consent without UI", nil)), sender, sess)
 	}
 

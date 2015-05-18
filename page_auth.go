@@ -113,7 +113,7 @@ func (sys *system) authPage(w http.ResponseWriter, r *http.Request) (err error) 
 	// request と request_uri パラメータの読み込み。
 	if req.Request() != nil {
 		if req.RequestUri() != "" {
-			return sys.returnErrorBeforeParseRequest(w, r, req, erro.Wrap(idperr.New(idperr.Invalid_request, "cannot use "+formRequest+" and "+formRequest_uri+" together", http.StatusBadRequest, nil)), sender, sess)
+			return sys.returnErrorBeforeParseRequest(w, r, req, erro.Wrap(idperr.New(idperr.Invalid_request, "cannot use "+tagRequest+" and "+tagRequest_uri+" together", http.StatusBadRequest, nil)), sender, sess)
 		} else if keys, err := sys.keyDb.Get(); err != nil {
 			return sys.returnErrorBeforeParseRequest(w, r, req, erro.Wrap(err), sender, sess)
 		} else if err := req.ParseRequest(req.Request(), keys, ta.Keys()); err != nil {
@@ -150,22 +150,22 @@ func (sys *system) authPage(w http.ResponseWriter, r *http.Request) (err error) 
 		}
 	}
 
-	if !req.Scope()[scopOpenid] {
-		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Invalid_request, "scope does not have "+scopOpenid, nil)), sender, sess)
+	if !req.Scope()[tagOpenid] {
+		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Invalid_request, "scope does not have "+tagOpenid, nil)), sender, sess)
 	}
 
 	// scope には問題無い。
-	log.Debug(sender, ": Declared scope has "+scopOpenid)
+	log.Debug(sender, ": Declared scope has "+tagOpenid)
 
 	switch respTypes := req.ResponseType(); len(respTypes) {
 	case 0:
 		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Invalid_request, "no response type", nil)), sender, sess)
 	case 1:
-		if !respTypes[respTypeCode] {
+		if !respTypes[tagCode] {
 			return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Unsupported_response_type, fmt.Sprint("unsupported response types ", respTypes), nil)), sender, sess)
 		}
 	case 2:
-		if !respTypes[respTypeCode] || !respTypes[respTypeId_token] {
+		if !respTypes[tagCode] || !respTypes[tagId_token] {
 			return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Unsupported_response_type, fmt.Sprint("unsupported response types ", respTypes), nil)), sender, sess)
 		}
 	}
@@ -173,8 +173,8 @@ func (sys *system) authPage(w http.ResponseWriter, r *http.Request) (err error) 
 	// response_type には問題無い。
 	log.Debug(sender, ": Response type is ", req.ResponseType())
 
-	if req.Prompt()[prmptSelect_account] {
-		if req.Prompt()[prmptNone] {
+	if req.Prompt()[tagSelect_account] {
+		if req.Prompt()[tagNone] {
 			return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Account_selection_required, "cannot select account without UI", nil)), sender, sess)
 		}
 

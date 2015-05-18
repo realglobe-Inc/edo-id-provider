@@ -19,9 +19,9 @@ import ()
 // サポートするスコープと紐付く属性。
 var knownScops = map[string]map[string]bool{
 	// ID トークンの被発行権。
-	scopOpenid: nil,
+	tagOpenid: nil,
 	// リフレッシュトークンの被発行権。
-	scopOffline_access: nil,
+	tagOffline_access: nil,
 	// 以下、属性集合。
 	"profile": {
 		"name":               true,
@@ -65,8 +65,8 @@ var attrToScop = func() map[string]string {
 
 // 許可必須スコープ。
 var essScops = map[string]bool{
-	scopOpenid:         true,
-	scopOffline_access: true,
+	tagOpenid:         true,
+	tagOffline_access: true,
 }
 
 // 知らないスコープを除く。

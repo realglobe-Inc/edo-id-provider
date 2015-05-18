@@ -80,18 +80,18 @@ func (sys *system) redirectToSelectUi(w http.ResponseWriter, r *http.Request, se
 
 	// アカウント選択ページに渡すクエリパラメータを生成。
 	q := uri.Query()
-	q.Set(formIssuer, sys.selfId)
+	q.Set(tagIssuer, sys.selfId)
 	if acnts := sess.SelectedAccounts(); len(acnts) > 0 {
-		q.Set(formUsernames, accountSetForm(acnts))
+		q.Set(tagUsernames, accountSetForm(acnts))
 	}
 	if disp := sess.Request().Display(); disp != "" {
-		q.Set(formDisplay, disp)
+		q.Set(tagDisplay, disp)
 	}
 	if lang, langs := sess.Language(), sess.Request().Languages(); lang != "" || len(langs) > 0 {
-		q.Set(formLocales, languagesForm(lang, langs))
+		q.Set(tagLocales, languagesForm(lang, langs))
 	}
 	if msg != "" {
-		q.Set(formMessage, msg)
+		q.Set(tagMessage, msg)
 	}
 	uri.RawQuery = q.Encode()
 
@@ -191,8 +191,8 @@ func (sys *system) selectPage(w http.ResponseWriter, r *http.Request) (err error
 func (sys *system) afterSelect(w http.ResponseWriter, r *http.Request, sender *request.Request, sess *session.Element, ta tadb.Element, acnt account.Element) error {
 
 	prmpts := sess.Request().Prompt()
-	if prmpts[prmptLogin] {
-		if prmpts[prmptNone] {
+	if prmpts[tagLogin] {
+		if prmpts[tagNone] {
 			return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Login_required, "cannot login without UI", nil)), sender, sess)
 		}
 
@@ -206,7 +206,7 @@ func (sys *system) afterSelect(w http.ResponseWriter, r *http.Request, sender *r
 		}
 	}
 
-	if prmpts[prmptNone] {
+	if prmpts[tagNone] {
 		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Login_required, "cannot login without UI", nil)), sender, sess)
 	}
 

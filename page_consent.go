@@ -41,30 +41,30 @@ func (sys *system) redirectToConsentUi(w http.ResponseWriter, r *http.Request, s
 
 	// 同意ページに渡すクエリパラメータを生成。
 	q := uri.Query()
-	q.Set(formIssuer, sys.selfId)
-	q.Set(formUsername, sess.Account().Name())
+	q.Set(tagIssuer, sys.selfId)
+	q.Set(tagUsername, sess.Account().Name())
 	if scop := removeUnknownScope(sess.Request().Scope()); len(scop) > 0 {
-		q.Set(formScope, request.ValueSetForm(scop))
+		q.Set(tagScope, request.ValueSetForm(scop))
 	}
 	if sess.Request().Claims() != nil {
 		attrs, optAttrs := sess.Request().Claims().Names()
 		if len(attrs) > 0 {
-			q.Set(formClaims, request.ValueSetForm(attrs))
+			q.Set(tagClaims, request.ValueSetForm(attrs))
 		}
 		if len(optAttrs) > 0 {
-			q.Set(formOptional_claims, request.ValueSetForm(optAttrs))
+			q.Set(tagOptional_claims, request.ValueSetForm(optAttrs))
 		}
 	}
-	q.Set(formExpires_in, strconv.FormatInt(int64(sys.tokExpIn/time.Second), 10))
-	q.Set(formClient_id, sess.Request().Ta())
+	q.Set(tagExpires_in, strconv.FormatInt(int64(sys.tokExpIn/time.Second), 10))
+	q.Set(tagClient_id, sess.Request().Ta())
 	if disp := sess.Request().Display(); disp != "" {
-		q.Set(formDisplay, disp)
+		q.Set(tagDisplay, disp)
 	}
 	if lang, langs := sess.Language(), sess.Request().Languages(); lang != "" || len(langs) > 0 {
-		q.Set(formLocales, languagesForm(lang, langs))
+		q.Set(tagLocales, languagesForm(lang, langs))
 	}
 	if msg != "" {
-		q.Set(formMessage, msg)
+		q.Set(tagMessage, msg)
 	}
 	uri.RawQuery = q.Encode()
 
@@ -174,9 +174,9 @@ func (sys *system) consentPage(w http.ResponseWriter, r *http.Request) (err erro
 // 同意が終わったところから。
 func (sys *system) afterConsent(w http.ResponseWriter, r *http.Request, sender *request.Request, sess *session.Element, ta tadb.Element, acnt account.Element, scop, tokAttrs, acntAttrs map[string]bool) (err error) {
 
-	if !scop[scopOpenid] {
+	if !scop[tagOpenid] {
 		// openid すら許されなかった。
-		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Access_denied, scopOpenid+" scope was denied", nil)), sender, sess)
+		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Access_denied, tagOpenid+" scope was denied", nil)), sender, sess)
 	}
 
 	req := sess.Request()
@@ -197,7 +197,7 @@ func (sys *system) afterConsent(w http.ResponseWriter, r *http.Request, sender *
 	log.Info(sender, ": Published authorization code "+mosaic(cod.Id())+" to "+mosaic(sess.Id()))
 
 	var idTok string
-	if req.ResponseType()[respTypeId_token] {
+	if req.ResponseType()[tagId_token] {
 		if ta == nil {
 			if ta, err = sys.taDb.Get(sess.Request().Ta()); err != nil {
 				return sys.redirectError(w, r, erro.Wrap(err), sender, sess)
@@ -217,10 +217,10 @@ func (sys *system) afterConsent(w http.ResponseWriter, r *http.Request, sender *
 
 		clms := map[string]interface{}{}
 		if sess.Request().MaxAge() >= 0 {
-			clms[clmAuth_time] = sess.Account().LoginDate().Unix()
+			clms[tagAuth_time] = sess.Account().LoginDate().Unix()
 		}
 		if cod.Nonce() != "" {
-			clms[clmNonce] = cod.Nonce()
+			clms[tagNonce] = cod.Nonce()
 		}
 		if hGen, err := jwt.HashFunction(sys.sigAlg); err != nil {
 			return sys.redirectError(w, r, erro.Wrap(err), sender, sess)
@@ -228,7 +228,7 @@ func (sys *system) afterConsent(w http.ResponseWriter, r *http.Request, sender *
 			h := hGen.New()
 			h.Write([]byte(cod.Id()))
 			sum := h.Sum(nil)
-			clms[clmC_hash] = base64url.EncodeToString(sum[:len(sum)/2])
+			clms[tagC_hash] = base64url.EncodeToString(sum[:len(sum)/2])
 		}
 		idTok, err = sys.newIdToken(ta, acnt, tokAttrs, clms)
 		if err != nil {

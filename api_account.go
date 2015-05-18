@@ -26,7 +26,7 @@ func (sys *system) accountApi(w http.ResponseWriter, r *http.Request) error {
 
 	req := newAccountRequest(r)
 
-	if req.scheme() != scmBearer {
+	if req.scheme() != tagBearer {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "unsupported authorization scheme "+req.scheme(), http.StatusBadRequest, nil))
 	}
 
@@ -82,7 +82,7 @@ func (sys *system) accountApi(w http.ResponseWriter, r *http.Request) error {
 		}
 		info[clmName] = clm
 	}
-	info[clmSub] = acnt.Id()
+	info[tagSub] = acnt.Id()
 
 	return response(w, info)
 }

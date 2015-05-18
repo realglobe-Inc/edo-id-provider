@@ -29,16 +29,16 @@ type tokenRequest struct {
 
 func newTokenRequest(r *http.Request) *tokenRequest {
 	var taAss []byte
-	if strTaAss := r.FormValue(formClient_assertion); strTaAss != "" {
+	if strTaAss := r.FormValue(tagClient_assertion); strTaAss != "" {
 		taAss = []byte(strTaAss)
 	}
 
 	return &tokenRequest{
-		grntType:  r.FormValue(formGrant_type),
-		cod:       r.FormValue(formCode),
-		ta_:       r.FormValue(formClient_id),
-		rediUri:   r.FormValue(formRedirect_uri),
-		taAssType: r.FormValue(formClient_assertion_type),
+		grntType:  r.FormValue(tagGrant_type),
+		cod:       r.FormValue(tagCode),
+		ta_:       r.FormValue(tagClient_id),
+		rediUri:   r.FormValue(tagRedirect_uri),
+		taAssType: r.FormValue(tagClient_assertion_type),
 		taAss:     taAss,
 	}
 }

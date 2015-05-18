@@ -28,10 +28,10 @@ import (
 type fileDb string
 
 const (
-	ext_Json = ".json"
-	ext_Pem  = ".pem"
-	ext_Key  = ".key"
-	ext_Pub  = ".pub"
+	tag_Json = ".json"
+	tag_Pem  = ".pem"
+	tag_Key  = ".key"
+	tag_Pub  = ".pub"
 )
 
 func NewFileDb(path string) Db {
@@ -58,9 +58,9 @@ func (this fileDb) Get() ([]jwk.Key, error) {
 		}
 		var newKeys []jwk.Key
 		switch filepath.Ext(file.Name()) {
-		case ext_Json:
+		case tag_Json:
 			newKeys, err = this.readJson(filepath.Join(string(this), file.Name()))
-		case ext_Pem, ext_Key, ext_Pub:
+		case tag_Pem, tag_Key, tag_Pub:
 			newKeys, err = this.readPem(filepath.Join(string(this), file.Name()))
 		}
 		if err != nil {

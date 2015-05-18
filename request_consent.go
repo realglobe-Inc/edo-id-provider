@@ -30,12 +30,12 @@ type consentRequest struct {
 
 func newConsentRequest(r *http.Request) *consentRequest {
 	return &consentRequest{
-		tic:        r.FormValue(formTicket),
-		allowScop:  request.FormValueSet(r.FormValue(formAllowed_scope)),
-		allowAttrs: request.FormValueSet(r.FormValue(formAllowed_claims)),
-		denyScop:   request.FormValueSet(r.FormValue(formDenied_scope)),
-		denyAttrs:  request.FormValueSet(r.FormValue(formDenied_claims)),
-		lang:       r.FormValue(formLocale),
+		tic:        r.FormValue(tagTicket),
+		allowScop:  request.FormValueSet(r.FormValue(tagAllowed_scope)),
+		allowAttrs: request.FormValueSet(r.FormValue(tagAllowed_claims)),
+		denyScop:   request.FormValueSet(r.FormValue(tagDenied_scope)),
+		denyAttrs:  request.FormValueSet(r.FormValue(tagDenied_claims)),
+		lang:       r.FormValue(tagLocale),
 	}
 }
 

@@ -52,16 +52,16 @@ func responseError(w http.ResponseWriter, origErr error, sender *request.Request
 	log.Debug(sender, ": ", origErr)
 
 	buff, err := json.Marshal(map[string]string{
-		formError:             e.ErrorCode(),
-		formError_description: e.ErrorDescription(),
+		tagError:             e.ErrorCode(),
+		tagError_description: e.ErrorDescription(),
 	})
 	if err != nil {
 		log.Err(sender, ": ", erro.Unwrap(err))
 		log.Debug(sender, ": ", erro.Wrap(err))
 		// 最後の手段。たぶん正しい変換。
 		buff = []byte(`{` +
-			formError + `="` + jsonutil.StringEscape(e.ErrorCode()) + `",` +
-			formError_description + `="` + jsonutil.StringEscape(e.ErrorDescription()) +
+			tagError + `="` + jsonutil.StringEscape(e.ErrorCode()) + `",` +
+			tagError_description + `="` + jsonutil.StringEscape(e.ErrorDescription()) +
 			`"}`)
 	}
 

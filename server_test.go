@@ -151,8 +151,8 @@ func TestAbortSession(t *testing.T) {
 	}
 	defer selResp.Body.Close()
 
-	if selResp.Request.FormValue(formError) != idperr.Access_denied {
-		t.Error(selResp.Request.FormValue(formError))
+	if selResp.Request.FormValue(tagError) != idperr.Access_denied {
+		t.Error(selResp.Request.FormValue(tagError))
 		t.Fatal(idperr.Access_denied)
 	}
 

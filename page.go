@@ -49,8 +49,8 @@ func (sys *system) redirectErrorTo(w http.ResponseWriter, r *http.Request, origE
 	log.Debug(sender, ": ", origErr)
 
 	q := uri.Query()
-	q.Set(formError, e.ErrorCode())
-	q.Set(formError_description, e.ErrorDescription())
+	q.Set(tagError, e.ErrorCode())
+	q.Set(tagError_description, e.ErrorDescription())
 	for k, v := range queries {
 		q.Set(k, v)
 	}
@@ -127,7 +127,7 @@ func (sys *system) redirectError(w http.ResponseWriter, r *http.Request, origErr
 
 	var queries map[string]string
 	if stat := sess.Request().State(); stat != "" {
-		queries = map[string]string{formState: stat}
+		queries = map[string]string{tagState: stat}
 	}
 	return sys.redirectErrorTo(w, r, origErr, uri, queries, sender, sess)
 }
@@ -164,12 +164,12 @@ func (sys *system) redirectCode(w http.ResponseWriter, r *http.Request, cod *aut
 	sess.Clear()
 
 	q := uri.Query()
-	q.Set(formCode, cod.Id())
+	q.Set(tagCode, cod.Id())
 	if idTok != "" {
-		q.Set(formId_token, idTok)
+		q.Set(tagId_token, idTok)
 	}
 	if req.State() != "" {
-		q.Set(formState, req.State())
+		q.Set(tagState, req.State())
 	}
 	uri.RawQuery = q.Encode()
 

@@ -32,11 +32,11 @@ import (
 
 func responseToken(w http.ResponseWriter, tok *token.Element, refTok, idTok string) error {
 	m := map[string]interface{}{
-		formAccess_token: tok.Id(),
-		formToken_type:   tokTypeBearer,
+		tagAccess_token: tok.Id(),
+		tagToken_type:   tagBearer,
 	}
 	if !tok.Expires().IsZero() {
-		m[formExpires_in] = int64(tok.Expires().Sub(time.Now()).Seconds())
+		m[tagExpires_in] = int64(tok.Expires().Sub(time.Now()).Seconds())
 	}
 	if len(tok.Scope()) > 0 {
 		var buff string
@@ -46,13 +46,13 @@ func responseToken(w http.ResponseWriter, tok *token.Element, refTok, idTok stri
 			}
 			buff += scop
 		}
-		m[formScope] = buff
+		m[tagScope] = buff
 	}
 	if refTok != "" {
-		m[formRefresh_token] = refTok
+		m[tagRefresh_token] = refTok
 	}
 	if idTok != "" {
-		m[formId_token] = idTok
+		m[tagId_token] = idTok
 	}
 	buff, err := json.Marshal(m)
 	if err != nil {
@@ -85,16 +85,16 @@ func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	if grntType := req.grantType(); grntType == "" {
-		return erro.Wrap(idperr.New(idperr.Invalid_request, "no "+formGrant_type, http.StatusBadRequest, nil))
-	} else if grntType != grntTypeAuthorization_code {
+		return erro.Wrap(idperr.New(idperr.Invalid_request, "no "+tagGrant_type, http.StatusBadRequest, nil))
+	} else if grntType != tagAuthorization_code {
 		return erro.Wrap(idperr.New(idperr.Unsupported_grant_type, "unsupported grant type "+grntType, http.StatusBadRequest, nil))
 	}
 
-	log.Debug(sender, ": Grant type is "+grntTypeAuthorization_code)
+	log.Debug(sender, ": Grant type is "+tagAuthorization_code)
 
 	codId := req.code()
 	if codId == "" {
-		return erro.Wrap(idperr.New(idperr.Invalid_request, "no "+formCode, http.StatusBadRequest, nil))
+		return erro.Wrap(idperr.New(idperr.Invalid_request, "no "+tagCode, http.StatusBadRequest, nil))
 	}
 
 	log.Debug(sender, ": Code "+mosaic(codId)+" is declared")
@@ -117,7 +117,7 @@ func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {
 	savedCodDate := cod.Date()
 
 	if req.ta() == "" {
-		return erro.Wrap(idperr.New(idperr.Invalid_request, "no "+formClient_id, http.StatusBadRequest, nil))
+		return erro.Wrap(idperr.New(idperr.Invalid_request, "no "+tagClient_id, http.StatusBadRequest, nil))
 	} else if req.ta() != cod.Ta() {
 		return erro.Wrap(idperr.New(idperr.Invalid_grant, "you are not code holder", http.StatusBadRequest, nil))
 	} else {
@@ -126,30 +126,30 @@ func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {
 
 	rediUri := req.redirectUri()
 	if rediUri == "" {
-		return erro.Wrap(idperr.New(idperr.Invalid_request, "no "+formRedirect_uri, http.StatusBadRequest, nil))
+		return erro.Wrap(idperr.New(idperr.Invalid_request, "no "+tagRedirect_uri, http.StatusBadRequest, nil))
 	} else if !reflect.DeepEqual(rediUri, cod.RedirectUri()) {
-		return erro.Wrap(idperr.New(idperr.Invalid_grant, "invalid "+formRedirect_uri, http.StatusBadRequest, nil))
+		return erro.Wrap(idperr.New(idperr.Invalid_grant, "invalid "+tagRedirect_uri, http.StatusBadRequest, nil))
 	}
 
-	log.Debug(sender, ": "+formRedirect_uri+" matches that of code")
+	log.Debug(sender, ": "+tagRedirect_uri+" matches that of code")
 
 	if taAssType := req.taAssertionType(); taAssType == "" {
-		return erro.Wrap(idperr.New(idperr.Invalid_client, "no "+formClient_assertion_type, http.StatusBadRequest, nil))
-	} else if taAssType != taAssTypeJwt {
+		return erro.Wrap(idperr.New(idperr.Invalid_client, "no "+tagClient_assertion_type, http.StatusBadRequest, nil))
+	} else if taAssType != cliAssTypeJwt_bearer {
 		return erro.Wrap(idperr.New(idperr.Invalid_client, "unsupported assertion type "+taAssType, http.StatusBadRequest, nil))
 	}
 
-	log.Debug(sender, ": "+formClient_assertion_type+" is "+taAssTypeJwt)
+	log.Debug(sender, ": "+tagClient_assertion_type+" is "+cliAssTypeJwt_bearer)
 
 	taAss := req.taAssertion()
 	if taAss == nil {
-		return erro.Wrap(idperr.New(idperr.Invalid_client, "no "+formClient_assertion, http.StatusBadRequest, nil))
+		return erro.Wrap(idperr.New(idperr.Invalid_client, "no "+tagClient_assertion, http.StatusBadRequest, nil))
 	}
 
-	log.Debug(sender, ": "+formClient_assertion+" is found")
+	log.Debug(sender, ": "+tagClient_assertion+" is found")
 
 	// Authorization ヘッダと client_secret パラメータも認識はする。
-	if r.Header.Get(headAuthorization) != "" || r.FormValue(formClient_secret) != "" {
+	if r.Header.Get(tagAuthorization) != "" || r.FormValue(tagClient_secret) != "" {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "multi client authentication algorithms are exist", http.StatusBadRequest, nil))
 	}
 
@@ -162,17 +162,17 @@ func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {
 	assJt, err := jwt.Parse(taAss)
 	if err != nil {
 		return erro.Wrap(idperr.New(idperr.Invalid_client, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
-	} else if assJt.Header(jwtAlg) == algNone {
-		return erro.Wrap(idperr.New(idperr.Invalid_client, "asserion "+jwtAlg+" must not be "+algNone, http.StatusBadRequest, nil))
+	} else if assJt.Header(tagAlg) == tagNone {
+		return erro.Wrap(idperr.New(idperr.Invalid_client, "asserion "+tagAlg+" must not be "+tagNone, http.StatusBadRequest, nil))
 	} else if err := assJt.Verify(ta.Keys()); err != nil {
 		return erro.Wrap(idperr.New(idperr.Invalid_client, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
 	}
 
-	if assJt.Claim(clmIss) != req.ta() {
+	if assJt.Claim(tagIss) != req.ta() {
 		return erro.Wrap(idperr.New(idperr.Invalid_client, "JWT issuer is not "+req.ta(), http.StatusBadRequest, nil))
-	} else if jti, _ := assJt.Claim(clmJti).(string); jti == "" {
+	} else if jti, _ := assJt.Claim(tagJti).(string); jti == "" {
 		return erro.Wrap(idperr.New(idperr.Invalid_client, "no JWT ID", http.StatusBadRequest, nil))
-	} else if rawExp, _ := assJt.Claim(clmExp).(float64); rawExp == 0 {
+	} else if rawExp, _ := assJt.Claim(tagExp).(float64); rawExp == 0 {
 		return erro.Wrap(idperr.New(idperr.Invalid_client, "no expiration date", http.StatusBadRequest, nil))
 	} else if exp := time.Unix(int64(rawExp), 0); now.After(exp) {
 		return erro.Wrap(idperr.New(idperr.Invalid_client, "assertion expired", http.StatusBadRequest, nil))
@@ -180,12 +180,12 @@ func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {
 		return erro.Wrap(err)
 	} else if !ok {
 		return erro.Wrap(idperr.New(idperr.Invalid_client, "overlapped JWT ID", http.StatusBadRequest, nil))
-	} else if assJt.Claim(clmSub) != req.ta() {
+	} else if assJt.Claim(tagSub) != req.ta() {
 		return erro.Wrap(idperr.New(idperr.Invalid_client, "JWT subject is not "+req.ta(), http.StatusBadRequest, nil))
-	} else if aud := assJt.Claim(clmAud); aud == nil {
-		return erro.Wrap(idperr.New(idperr.Invalid_client, "no assertion "+clmAud, http.StatusBadRequest, nil))
+	} else if aud := assJt.Claim(tagAud); aud == nil {
+		return erro.Wrap(idperr.New(idperr.Invalid_client, "no assertion "+tagAud, http.StatusBadRequest, nil))
 	} else if !audienceHas(aud, sys.selfId+sys.pathTok) {
-		return erro.Wrap(idperr.New(idperr.Invalid_client, "assertion "+clmAud+" does not contain "+sys.selfId+sys.pathTok, http.StatusBadRequest, nil))
+		return erro.Wrap(idperr.New(idperr.Invalid_client, "assertion "+tagAud+" does not contain "+sys.selfId+sys.pathTok, http.StatusBadRequest, nil))
 	}
 
 	// クライアント認証できた。
@@ -207,10 +207,10 @@ func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {
 
 	clms := map[string]interface{}{}
 	if !cod.LoginDate().IsZero() {
-		clms[clmAuth_time] = cod.LoginDate().Unix()
+		clms[tagAuth_time] = cod.LoginDate().Unix()
 	}
 	if cod.Nonce() != "" {
-		clms[clmNonce] = cod.Nonce()
+		clms[tagNonce] = cod.Nonce()
 	}
 	if hGen, err := jwt.HashFunction(sys.sigAlg); err != nil {
 		return erro.Wrap(err)
@@ -218,7 +218,7 @@ func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {
 		h := hGen.New()
 		h.Write([]byte(tokId))
 		sum := h.Sum(nil)
-		clms[clmAt_hash] = base64url.EncodeToString(sum[:len(sum)/2])
+		clms[tagAt_hash] = base64url.EncodeToString(sum[:len(sum)/2])
 	}
 	idTok, err := sys.newIdToken(ta, acnt, cod.IdTokenAttributes(), clms)
 	if err != nil {

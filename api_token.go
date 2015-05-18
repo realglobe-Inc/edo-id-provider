@@ -59,10 +59,10 @@ func responseToken(w http.ResponseWriter, tok *token.Element, refTok, idTok stri
 		return erro.Wrap(err)
 	}
 
-	w.Header().Add("Content-Type", server.ContentTypeJson)
-	w.Header().Add("Content-Length", strconv.Itoa(len(buff)))
-	w.Header().Add("Cache-Control", "no-store")
-	w.Header().Add("Pragma", "no-cache")
+	w.Header().Add(tagContent_type, server.ContentTypeJson)
+	w.Header().Add(tagContent_length, strconv.Itoa(len(buff)))
+	w.Header().Add(tagCache_control, tagNo_store)
+	w.Header().Add(tagPragma, tagNo_cache)
 	if _, err := w.Write(buff); err != nil {
 		log.Err(erro.Wrap(err))
 	}
@@ -72,7 +72,7 @@ func responseToken(w http.ResponseWriter, tok *token.Element, refTok, idTok stri
 func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {
 	sender := request.Parse(r, "")
 
-	if r.Method != "POST" {
+	if r.Method != tagPost {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "unsupported method "+r.Method, http.StatusMethodNotAllowed, nil))
 	}
 

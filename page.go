@@ -56,8 +56,8 @@ func (sys *system) redirectErrorTo(w http.ResponseWriter, r *http.Request, origE
 	}
 	uri.RawQuery = q.Encode()
 
-	w.Header().Add("Cache-Control", "no-store")
-	w.Header().Add("Pragma", "no-cache")
+	w.Header().Add(tagCache_control, tagNo_store)
+	w.Header().Add(tagPragma, tagNo_cache)
 	http.Redirect(w, r, uri.String(), http.StatusFound)
 	return nil
 }
@@ -106,10 +106,10 @@ func (sys *system) returnError(w http.ResponseWriter, r *http.Request, origErr e
 	msg += `</p></body></html>`
 	buff := []byte(msg)
 
-	w.Header().Set("Content-Type", server.ContentTypeHtml)
-	w.Header().Set("Content-Length", strconv.Itoa(len(buff)))
-	w.Header().Add("Cache-Control", "no-store")
-	w.Header().Add("Pragma", "no-cache")
+	w.Header().Set(tagContent_type, server.ContentTypeHtml)
+	w.Header().Set(tagContent_length, strconv.Itoa(len(buff)))
+	w.Header().Add(tagCache_control, tagNo_store)
+	w.Header().Add(tagPragma, tagNo_cache)
 	w.WriteHeader(e.Status())
 	if _, err := w.Write(buff); err != nil {
 		log.Err(sender, ": ", erro.Wrap(err))
@@ -145,8 +145,8 @@ func (sys *system) redirectTo(w http.ResponseWriter, r *http.Request, uri *url.U
 		log.Debug(sender, ": Report session "+mosaic(sess.Id()))
 	}
 
-	w.Header().Add("Cache-Control", "no-store")
-	w.Header().Add("Pragma", "no-cache")
+	w.Header().Add(tagCache_control, tagNo_store)
+	w.Header().Add(tagPragma, tagNo_cache)
 	http.Redirect(w, r, uri.String(), http.StatusFound)
 	return nil
 }

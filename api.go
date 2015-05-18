@@ -32,9 +32,9 @@ func response(w http.ResponseWriter, params map[string]interface{}) error {
 		return erro.Wrap(err)
 	}
 
-	w.Header().Add("Content-Type", server.ContentTypeJson)
-	w.Header().Add("Cache-Control", "no-store")
-	w.Header().Add("Pragma", "no-cache")
+	w.Header().Add(tagContent_type, server.ContentTypeJson)
+	w.Header().Add(tagCache_control, tagNo_store)
+	w.Header().Add(tagPragma, tagNo_cache)
 	if _, err := w.Write(buff); err != nil {
 		log.Err(erro.Wrap(err))
 	}
@@ -65,9 +65,9 @@ func responseError(w http.ResponseWriter, origErr error, sender *request.Request
 			`"}`)
 	}
 
-	w.Header().Set("Content-Type", server.ContentTypeJson)
-	w.Header().Add("Cache-Control", "no-store")
-	w.Header().Add("Pragma", "no-cache")
+	w.Header().Set(tagContent_type, server.ContentTypeJson)
+	w.Header().Add(tagCache_control, tagNo_store)
+	w.Header().Add(tagPragma, tagNo_cache)
 	w.WriteHeader(e.Status())
 	if _, err := w.Write(buff); err != nil {
 		log.Err(sender, ": ", erro.Wrap(err))

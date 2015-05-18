@@ -90,11 +90,11 @@ const (
 	//tagNonce     = "nonce"
 	tagSub = "sub"
 
-	// JWT のヘッダパラメータ名。
+	// JWT のヘッダ名。
 	tagAlg = "alg"
 	tagKid = "kid"
 
-	// JWT のヘッダ alg の値。
+	// JWT の alg ヘッダの値。
 	//tagNone = "none"
 
 	// grant_type の値。
@@ -103,11 +103,20 @@ const (
 	// token_type の値。
 	tagBearer = "Bearer"
 
-	// HTTP ヘッダ名。
-	tagAuthorization = "Authorization"
+	// HTTP メソッド。
+	tagPost = "POST"
 
-	// HTTP の Authorization の方式名。
+	// HTTP ヘッダ名。
+	tagAuthorization  = "Authorization"
+	tagCache_control  = "Cache-Control"
+	tagContent_length = "Content-Length"
+	tagContent_type   = "Content-Type"
+	tagPragma         = "Pragma"
+
+	// HTTP ヘッダ値。
 	//tagBearer = "Bearer"
+	tagNo_store = "no-store"
+	tagNo_cache = "no-cache"
 )
 
 const (

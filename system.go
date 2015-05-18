@@ -48,6 +48,7 @@ type system struct {
 	pathErrUi  string
 
 	pwSaltLen    int
+	sessLabel    string
 	sessLen      int
 	sessExpIn    time.Duration
 	sessRefDelay time.Duration
@@ -67,6 +68,7 @@ type system struct {
 	ticLen       int
 
 	keyDb  keydb.Db
+	webDb  webdb.Db
 	acntDb account.Db
 	consDb consent.Db
 	taDb   tadb.Db
@@ -78,7 +80,6 @@ type system struct {
 	tokDb  token.Db
 	ccodDb coopcode.Db
 	jtiDb  jtidb.Db
-	webDb  webdb.Db
 
 	cookPath string
 	cookSec  bool
@@ -86,7 +87,7 @@ type system struct {
 
 func (sys *system) newCookie(sess *session.Element) *http.Cookie {
 	return &http.Cookie{
-		Name:     sessLabel,
+		Name:     sys.sessLabel,
 		Value:    sess.Id(),
 		Path:     sys.cookPath,
 		Expires:  sess.Expires(),

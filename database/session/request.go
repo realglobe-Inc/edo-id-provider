@@ -16,6 +16,7 @@ package session
 
 import (
 	"encoding/json"
+	"github.com/realglobe-Inc/edo-id-provider/request"
 	"github.com/realglobe-Inc/edo-lib/duration"
 	"github.com/realglobe-Inc/edo-lib/jwk"
 	"github.com/realglobe-Inc/edo-lib/jwt"
@@ -24,7 +25,6 @@ import (
 	"net/http"
 	"reflect"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -91,18 +91,18 @@ func ParseRequest(r *http.Request) (*Request, error) {
 
 	req := &Request{}
 
-	req.scop = stringsToSet(splitBySpace(r.FormValue(labelScope)))
-	req.respType = stringsToSet(splitBySpace(r.FormValue(labelResponse_type)))
+	req.scop = request.FormValueSet(r.FormValue(labelScope))
+	req.respType = request.FormValueSet(r.FormValue(labelResponse_type))
 	req.ta = r.FormValue(labelClient_id)
 	req.rediUri = r.FormValue(labelRedirect_uri)
 	req.stat = r.FormValue(labelState)
 	req.nonc = r.FormValue(labelNonce)
 	req.disp = r.FormValue(labelDisplay)
-	req.prmpt = stringsToSet(splitBySpace(r.FormValue(labelPrompt)))
+	req.prmpt = request.FormValueSet(r.FormValue(labelPrompt))
 	if req.maxAge, err = parseMaxAge(r.FormValue(labelMax_age)); err != nil {
 		return req, erro.Wrap(err)
 	}
-	req.langs = splitBySpace(r.FormValue(labelUi_locales))
+	req.langs = request.FormValues(r.FormValue(labelUi_locales))
 	req.hint = r.FormValue(labelId_token_hint)
 	if req.reqClm, err = parseClaims(r.FormValue(labelClaims)); err != nil {
 		return req, erro.Wrap(err)
@@ -241,14 +241,14 @@ func (this *Request) ParseRequest(req []byte, selfKeys, taKeys []jwk.Key) (err e
 		return erro.New(labelRequest + " in request object")
 	} else if buff.ReqUri != "" {
 		return erro.New(labelRequest_uri + " in request object")
-	} else if buff.RespType != "" && !reflect.DeepEqual(stringsToSet(splitBySpace(buff.RespType)), this.respType) {
+	} else if buff.RespType != "" && !reflect.DeepEqual(request.FormValueSet(buff.RespType), this.respType) {
 		return erro.New("not same response type")
 	} else if buff.Ta != "" && buff.Ta != this.ta {
 		return erro.New("not same TA")
 	}
 
 	if buff.Scop != "" {
-		this.scop = stringsToSet(splitBySpace(buff.Scop))
+		this.scop = request.FormValueSet(buff.Scop)
 	}
 	if buff.RediUri != "" {
 		this.rediUri = buff.RediUri
@@ -263,7 +263,7 @@ func (this *Request) ParseRequest(req []byte, selfKeys, taKeys []jwk.Key) (err e
 		this.disp = buff.Disp
 	}
 	if buff.Prmpt != "" {
-		this.prmpt = stringsToSet(splitBySpace(buff.Prmpt))
+		this.prmpt = request.FormValueSet(buff.Prmpt)
 	}
 	if buff.MaxAge != nil {
 		this.maxAge, err = parseMaxAge(string(*buff.MaxAge))
@@ -272,7 +272,7 @@ func (this *Request) ParseRequest(req []byte, selfKeys, taKeys []jwk.Key) (err e
 		}
 	}
 	if buff.Langs != "" {
-		this.langs = splitBySpace(buff.Langs)
+		this.langs = request.FormValues(buff.Langs)
 	}
 	if buff.Hint != "" {
 		this.hint = buff.Hint
@@ -282,22 +282,6 @@ func (this *Request) ParseRequest(req []byte, selfKeys, taKeys []jwk.Key) (err e
 	}
 
 	return nil
-}
-
-func stringsToSet(a []string) map[string]bool {
-	m := map[string]bool{}
-	for _, s := range a {
-		m[s] = true
-	}
-	return m
-}
-
-// 1 つも無いときは要素 0 で返す。
-func splitBySpace(s string) []string {
-	if s == "" {
-		return []string{}
-	}
-	return strings.Split(s, " ")
 }
 
 // 未指定なら負値を返す。
@@ -322,9 +306,6 @@ func parseClaims(s string) (*Claim, error) {
 	}
 	return &reqClm, nil
 }
-
-func SplitBySpace(s string) []string          { return splitBySpace(s) }
-func StringsToSet(a []string) map[string]bool { return stringsToSet(a) }
 
 func (this *Request) MarshalJSON() (data []byte, err error) {
 	return json.Marshal(map[string]interface{}{

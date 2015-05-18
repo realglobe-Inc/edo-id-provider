@@ -79,6 +79,7 @@ type parameters struct {
 	// セクタ固有のアカウント ID の計算に使う情報。
 	pwSaltLen int
 	// セッション。
+	sessLabel    string
 	sessLen      int
 	sessExpIn    time.Duration
 	sessRefDelay time.Duration
@@ -117,6 +118,12 @@ type parameters struct {
 	keyDbAddr  string
 	keyDbTag   string
 	keyDbExpIn time.Duration
+
+	// web データ DB。
+	webDbType  string
+	webDbAddr  string
+	webDbTag   string
+	webDbExpIn time.Duration
 
 	// アカウント情報 DB。
 	acntDbType string
@@ -179,12 +186,6 @@ type parameters struct {
 	jtiDbAddr string
 	jtiDbTag  string
 
-	// web データ DB。
-	webDbType  string
-	webDbAddr  string
-	webDbTag   string
-	webDbExpIn time.Duration
-
 	// その他のオプション。
 
 	// Set-Cookie の Path。
@@ -218,23 +219,23 @@ func parseParameters(args ...string) (param *parameters, err error) {
 
 	flags.StringVar(&param.socType, "socType", "tcp", "Socket type")
 	flags.StringVar(&param.socPath, "socPath", filepath.Join(filepath.Dir(os.Args[0]), "run", label+".soc"), "Unix socket path")
-	flags.IntVar(&param.socPort, "socPort", 16040, "TCP socket port")
+	flags.IntVar(&param.socPort, "socPort", 1604, "TCP socket port")
 	flags.StringVar(&param.protType, "protType", "http", "Protocol type")
 
 	flags.StringVar(&param.selfId, "selfId", "https://idp.example.org", "IdP ID")
 	flags.StringVar(&param.sigAlg, "sigAlg", "RS256", "Signature algorithm")
 	flags.StringVar(&param.sigKid, "sigKid", "", "Signature key ID")
 
-	flags.StringVar(&param.pathOk, "pathOk", "/ok", " URI")
-	flags.StringVar(&param.pathAuth, "pathAuth", "/auth", " URI")
-	flags.StringVar(&param.pathSel, "pathSel", "/auth/select", " URI")
-	flags.StringVar(&param.pathLgin, "pathLgin", "/auth/login", " URI")
-	flags.StringVar(&param.pathCons, "pathCons", "/auth/consent", " URI")
-	flags.StringVar(&param.pathTa, "pathTa", "/api/info/ta", " URI")
-	flags.StringVar(&param.pathTok, "pathTok", "/api/token", " URI")
-	flags.StringVar(&param.pathAcnt, "pathAcnt", "/api/info/account", " URI")
-	flags.StringVar(&param.pathCoopFr, "pathCoopFr", "/api/cooperation/from", " URI")
-	flags.StringVar(&param.pathCoopTo, "pathCoopTo", "/api/cooperation/to", " URI")
+	flags.StringVar(&param.pathOk, "pathOk", "/ok", "OK URI")
+	flags.StringVar(&param.pathAuth, "pathAuth", "/auth", "Authentication URI")
+	flags.StringVar(&param.pathSel, "pathSel", "/auth/select", "Account select URI")
+	flags.StringVar(&param.pathLgin, "pathLgin", "/auth/login", "Login URI")
+	flags.StringVar(&param.pathCons, "pathCons", "/auth/consent", "Consent URI")
+	flags.StringVar(&param.pathTa, "pathTa", "/api/info/ta", "TA info URI")
+	flags.StringVar(&param.pathTok, "pathTok", "/api/token", "Token URI")
+	flags.StringVar(&param.pathAcnt, "pathAcnt", "/api/info/account", "Account info URI")
+	flags.StringVar(&param.pathCoopFr, "pathCoopFr", "/api/cooperation/from", "Cooperation from URI")
+	flags.StringVar(&param.pathCoopTo, "pathCoopTo", "/api/cooperation/to", "Cooperation to URI")
 	flags.StringVar(&param.pathUi, "pathUi", "/ui", "UI URI")
 	flags.StringVar(&param.pathSelUi, "pathSelUi", "/ui/select.html", "Account selection UI URI")
 	flags.StringVar(&param.pathLginUi, "pathLginUi", "/ui/login.html", "Login UI URI")
@@ -243,6 +244,7 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.StringVar(&param.uiDir, "uiDir", filepath.Join(filepath.Dir(os.Args[0]), "html"), "UI file directory")
 
 	flags.IntVar(&param.pwSaltLen, "pwSaltLen", 20, "Pairwise account ID calculation salt length")
+	flags.StringVar(&param.sessLabel, "sessLabel", "Id-Provider", "Session ID label")
 	flags.IntVar(&param.sessLen, "sessLen", 30, "Session ID length")
 	flags.DurationVar(&param.sessExpIn, "sessExpIn", 7*24*time.Hour, "Session expiration duration")
 	flags.DurationVar(&param.sessRefDelay, "sessRefDelay", 24*time.Hour, "Session refresh delay")
@@ -266,11 +268,16 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.DurationVar(&param.redPoolExpIn, "redPoolExpIn", time.Minute, "redis connection keep duration")
 	flags.DurationVar(&param.monTimeout, "monTimeout", 30*time.Second, "mongodb timeout duration")
 
-	flags.StringVar(&param.keyDbType, "keyDbType", "file", "Key DB type")
+	flags.StringVar(&param.keyDbType, "keyDbType", "redis", "Key DB type")
 	flags.StringVar(&param.keyDbPath, "keyDbPath", filepath.Join(filepath.Dir(os.Args[0]), "key"), "Key DB directory")
-	flags.StringVar(&param.keyDbAddr, "keyDbAddr", "localhost", "Key DB address")
-	flags.StringVar(&param.keyDbTag, "keyDbTag", "keys", "Key DB tag")
+	flags.StringVar(&param.keyDbAddr, "keyDbAddr", "localhost:6379", "Key DB address")
+	flags.StringVar(&param.keyDbTag, "keyDbTag", "key", "Key DB tag")
 	flags.DurationVar(&param.keyDbExpIn, "keyDbExpIn", 5*time.Minute, "Key DB expiration duration")
+
+	flags.StringVar(&param.webDbType, "webDbType", "redis", "Web data DB type")
+	flags.StringVar(&param.webDbAddr, "webDbAddr", "localhost:6379", "Web data DB address")
+	flags.StringVar(&param.webDbTag, "webDbTag", "web", "Web data DB tag")
+	flags.DurationVar(&param.webDbExpIn, "webDbExpIn", 7*24*time.Hour, "Web data keep duration")
 
 	flags.StringVar(&param.acntDbType, "acntDbType", "mongo", "Account DB type")
 	flags.StringVar(&param.acntDbAddr, "acntDbAddr", "localhost", "Account DB address")
@@ -321,11 +328,6 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.StringVar(&param.jtiDbType, "jtiDbType", "redis", "JWT ID DB type")
 	flags.StringVar(&param.jtiDbAddr, "jtiDbAddr", "localhost:6379", "JWT ID DB address")
 	flags.StringVar(&param.jtiDbTag, "jtiDbTag", "jti", "JWT ID DB tag")
-
-	flags.StringVar(&param.webDbType, "webDbType", "redis", "Web data DB type")
-	flags.StringVar(&param.webDbAddr, "webDbAddr", "localhost:6379", "Web data DB address")
-	flags.StringVar(&param.webDbTag, "webDbTag", "webuest", "Web data DB tag")
-	flags.DurationVar(&param.webDbExpIn, "webDbExpIn", 7*24*time.Hour, "Web data keep duration")
 
 	flags.StringVar(&param.cookPath, "cookPath", "/", "Path in Set-Cookie")
 	flags.BoolVar(&param.cookSec, "cookSec", true, "Secure flag in Set-Cookie")

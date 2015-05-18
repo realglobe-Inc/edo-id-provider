@@ -65,9 +65,6 @@ const (
 	formUsernames       = "usernames"
 )
 
-// Cookie 中にセッション識別子。
-const sessLabel = "Id-Provider"
-
 // scope の値。
 const (
 	scopOpenid         = "openid"
@@ -130,8 +127,7 @@ const (
 
 // HTTP ヘッダ名。
 const (
-	headAuthorization   = "Authorization"
-	headX_forwarded_for = "X-Forwarded-For"
+	headAuthorization = "Authorization"
 )
 
 // HTTP の Authorization の方式名。

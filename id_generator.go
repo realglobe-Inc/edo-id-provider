@@ -15,20 +15,21 @@
 package main
 
 import (
+	"github.com/realglobe-Inc/edo-lib/prand"
 	"github.com/realglobe-Inc/edo-lib/secrand"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"time"
 )
 
 // 安全な乱数が使えないときの代替。
-var prand = newPseudoRandom(time.Minute)
+var pr = prand.New(time.Minute)
 
 // 長さを指定して ID 用のランダム文字列をつくる。
 func newId(length int) string {
 	id, err := secrand.String(length)
 	if err != nil {
 		log.Err(erro.Wrap(err))
-		id = prand.string(length)
+		id = pr.String(length)
 	}
 	return id
 }
@@ -38,7 +39,7 @@ func newIdBytes(length int) []byte {
 	id, err := secrand.Bytes(length)
 	if err != nil {
 		log.Err(erro.Wrap(err))
-		id = prand.bytes(length)
+		id = pr.Bytes(length)
 	}
 	return id
 }

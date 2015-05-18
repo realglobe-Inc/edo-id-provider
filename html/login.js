@@ -13,21 +13,14 @@
 // limitations under the License.
 
 function calculate(issuer, username, password) {
-    var shaObj = new jsSHA(issuer + "\0" + username + "\0" + password, "TEXT");
-    var hash = shaObj.getHash("SHA-256", "B64");
-
-    var len = hash.length;
-    for (; len > 0; len--) {
-        if (hash[len - 1] != '=') {
-            break;
-        }
-    }
-    if (len != hash.length) {
-        hash = hash.substring(0, len);
-    }
     var plus = new RegExp("\\+", "g");
     var slash = new RegExp("/", "g");
-    return hash.replace(plus, "-").replace(slash, "_");
+    var shaObj = new jsSHA(issuer + "\0" + username + "\0" + password, "TEXT");
+    var hash = shaObj.getHash("SHA-256", "B64");
+    hash = hash.substring(0, 43); // 256 bit を 6 bit 区切りにすると 43 文字。
+    hash = hash.replace(plus, "-");
+    hash = hash.replace(slash, "-");
+    return hash;
 }
 
 function login() {

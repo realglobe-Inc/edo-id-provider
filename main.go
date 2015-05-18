@@ -29,6 +29,7 @@ import (
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
 	webdb "github.com/realglobe-Inc/edo-idp-selector/database/web"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
+	"github.com/realglobe-Inc/edo-lib/driver"
 	logutil "github.com/realglobe-Inc/edo-lib/log"
 	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/go-lib/erro"
@@ -80,10 +81,10 @@ func serve(param *parameters) (err error) {
 
 	// バックエンドの準備。
 
-	redPools := newRedisPoolSet(param.redTimeout, param.redPoolSize, param.redPoolExpIn)
-	defer redPools.close()
-	monPools := newMongoPoolSet(param.monTimeout)
-	defer monPools.close()
+	redPools := driver.NewRedisPoolSet(param.redTimeout, param.redPoolSize, param.redPoolExpIn)
+	defer redPools.Close()
+	monPools := driver.NewMongoPoolSet(param.monTimeout)
+	defer monPools.Close()
 
 	// 鍵。
 	var keyDb keydb.Db
@@ -92,8 +93,8 @@ func serve(param *parameters) (err error) {
 		keyDb = keydb.NewFileDb(param.keyDbPath)
 		log.Info("Use keys in directory " + param.keyDbPath)
 	case "redis":
-		keyDb = keydb.NewRedisCache(keydb.NewFileDb(param.keyDbPath), redPools.get(param.keyDbAddr), param.keyDbTag, param.keyDbExpIn)
-		log.Info("Use keys in directory " + param.keyDbPath + " with redis " + param.keyDbAddr + ": " + param.keyDbTag)
+		keyDb = keydb.NewRedisCache(keydb.NewFileDb(param.keyDbPath), redPools.Get(param.keyDbAddr), param.keyDbTag+"."+param.selfId, param.keyDbExpIn)
+		log.Info("Use keys in directory " + param.keyDbPath + " with redis " + param.keyDbAddr + "<" + param.keyDbTag + "." + param.selfId + ">")
 	default:
 		return erro.New("invalid key DB type " + param.keyDbType)
 	}
@@ -102,12 +103,12 @@ func serve(param *parameters) (err error) {
 	var acntDb account.Db
 	switch param.acntDbType {
 	case "mongo":
-		pool, err := monPools.get(param.acntDbAddr)
+		pool, err := monPools.Get(param.acntDbAddr)
 		if err != nil {
 			return erro.Wrap(err)
 		}
 		acntDb = account.NewMongoDb(pool, param.acntDbTag, param.acntDbTag2)
-		log.Info("Use account info in mongodb " + param.acntDbAddr + ": " + param.acntDbTag + "." + param.acntDbTag2)
+		log.Info("Use account info in mongodb " + param.acntDbAddr + "<" + param.acntDbTag + "." + param.acntDbTag2 + ">")
 	default:
 		return erro.New("invalid account DB type " + param.acntDbType)
 	}
@@ -119,12 +120,12 @@ func serve(param *parameters) (err error) {
 		consDb = consent.NewMemoryDb()
 		log.Info("Save consent info in memory")
 	case "mongo":
-		pool, err := monPools.get(param.consDbAddr)
+		pool, err := monPools.Get(param.consDbAddr)
 		if err != nil {
 			return erro.Wrap(err)
 		}
 		consDb = consent.NewMongoDb(pool, param.consDbTag, param.consDbTag2)
-		log.Info("Save consent info in mongodb " + param.consDbAddr + ": " + param.consDbTag + "." + param.consDbTag2)
+		log.Info("Save consent info in mongodb " + param.consDbAddr + "<" + param.consDbTag + "." + param.consDbTag2 + ">")
 	default:
 		return erro.New("invalid consent DB type " + param.consDbType)
 	}
@@ -136,8 +137,8 @@ func serve(param *parameters) (err error) {
 		webDb = webdb.NewDirectDb()
 		log.Info("Get web data directly")
 	case "redis":
-		webDb = webdb.NewRedisCache(webdb.NewDirectDb(), redPools.get(param.webDbAddr), param.webDbTag, param.webDbExpIn)
-		log.Info("Get web data with redis " + param.webDbAddr + ": " + param.webDbTag)
+		webDb = webdb.NewRedisCache(webdb.NewDirectDb(), redPools.Get(param.webDbAddr), param.webDbTag, param.webDbExpIn)
+		log.Info("Get web data with redis " + param.webDbAddr + "<" + param.webDbTag + ">")
 	default:
 		return erro.New("invalid web data DB type " + param.webDbType)
 	}
@@ -146,12 +147,12 @@ func serve(param *parameters) (err error) {
 	var taDb tadb.Db
 	switch param.taDbType {
 	case "mongo":
-		pool, err := monPools.get(param.taDbAddr)
+		pool, err := monPools.Get(param.taDbAddr)
 		if err != nil {
 			return erro.Wrap(err)
 		}
 		taDb = tadb.NewMongoDb(pool, param.taDbTag, param.taDbTag2, webDb)
-		log.Info("Use TA info in mongodb " + param.taDbAddr + ": " + param.taDbTag + "." + param.taDbTag2)
+		log.Info("Use TA info in mongodb " + param.taDbAddr + "<" + param.taDbTag + "." + param.taDbTag2 + ">")
 	default:
 		return erro.New("invalid TA DB type " + param.taDbType)
 	}
@@ -163,12 +164,12 @@ func serve(param *parameters) (err error) {
 		sectDb = sector.NewMemoryDb()
 		log.Info("Save pairwise account ID calculation info in memory")
 	case "mongo":
-		pool, err := monPools.get(param.sectDbAddr)
+		pool, err := monPools.Get(param.sectDbAddr)
 		if err != nil {
 			return erro.Wrap(err)
 		}
 		sectDb = sector.NewMongoDb(pool, param.sectDbTag, param.sectDbTag2)
-		log.Info("Save pairwise account ID calculation info in mongodb " + param.sectDbAddr + ": " + param.sectDbTag + "." + param.sectDbTag2)
+		log.Info("Save pairwise account ID calculation info in mongodb " + param.sectDbAddr + "<" + param.sectDbTag + "." + param.sectDbTag2 + ">")
 	default:
 		return erro.New("invalid pairwise account ID calculation info DB type " + param.sectDbType)
 	}
@@ -180,12 +181,12 @@ func serve(param *parameters) (err error) {
 		pwDb = pairwise.NewMemoryDb()
 		log.Info("Save pairwise account IDs in memory")
 	case "mongo":
-		pool, err := monPools.get(param.pwDbAddr)
+		pool, err := monPools.Get(param.pwDbAddr)
 		if err != nil {
 			return erro.Wrap(err)
 		}
 		pwDb = pairwise.NewMongoDb(pool, param.pwDbTag, param.pwDbTag2)
-		log.Info("Save pairwise account IDs in mongodb " + param.pwDbAddr + ": " + param.pwDbTag + "." + param.pwDbTag2)
+		log.Info("Save pairwise account IDs in mongodb " + param.pwDbAddr + "<" + param.pwDbTag + "." + param.pwDbTag2 + ">")
 	default:
 		return erro.New("invalid pairwise account ID DB type " + param.pwDbType)
 	}
@@ -194,12 +195,12 @@ func serve(param *parameters) (err error) {
 	var idpDb idpdb.Db
 	switch param.idpDbType {
 	case "mongo":
-		pool, err := monPools.get(param.idpDbAddr)
+		pool, err := monPools.Get(param.idpDbAddr)
 		if err != nil {
 			return erro.Wrap(err)
 		}
 		idpDb = idpdb.NewMongoDb(pool, param.idpDbTag, param.idpDbTag2, webDb)
-		log.Info("Use IdP info in mongodb " + param.idpDbAddr + ": " + param.idpDbTag + "." + param.idpDbTag2)
+		log.Info("Use IdP info in mongodb " + param.idpDbAddr + "<" + param.idpDbTag + "." + param.idpDbTag2 + ">")
 	default:
 		return erro.New("invalid IdP DB type " + param.idpDbType)
 	}
@@ -211,8 +212,8 @@ func serve(param *parameters) (err error) {
 		sessDb = session.NewMemoryDb()
 		log.Info("Save sessions in memory")
 	case "redis":
-		sessDb = session.NewRedisDb(redPools.get(param.sessDbAddr), param.sessDbTag)
-		log.Info("Save sessions in redis " + param.sessDbAddr + ": " + param.sessDbTag)
+		sessDb = session.NewRedisDb(redPools.Get(param.sessDbAddr), param.sessDbTag)
+		log.Info("Save sessions in redis " + param.sessDbAddr + "<" + param.sessDbTag + ">")
 	default:
 		return erro.New("invalid session DB type " + param.sessDbType)
 	}
@@ -224,8 +225,8 @@ func serve(param *parameters) (err error) {
 		acodDb = authcode.NewMemoryDb()
 		log.Info("Save authorization codes in memory")
 	case "redis":
-		acodDb = authcode.NewRedisDb(redPools.get(param.acodDbAddr), param.acodDbTag)
-		log.Info("Save authorization codes in redis " + param.acodDbAddr + ": " + param.acodDbTag)
+		acodDb = authcode.NewRedisDb(redPools.Get(param.acodDbAddr), param.acodDbTag)
+		log.Info("Save authorization codes in redis " + param.acodDbAddr + "<" + param.acodDbTag + ">")
 	default:
 		return erro.New("invalid authorization code DB type " + param.acodDbType)
 	}
@@ -237,8 +238,8 @@ func serve(param *parameters) (err error) {
 		tokDb = token.NewMemoryDb()
 		log.Info("Save access tokens in memory")
 	case "redis":
-		tokDb = token.NewRedisDb(redPools.get(param.tokDbAddr), param.tokDbTag)
-		log.Info("Save access tokens in redis " + param.tokDbAddr + ": " + param.tokDbTag)
+		tokDb = token.NewRedisDb(redPools.Get(param.tokDbAddr), param.tokDbTag)
+		log.Info("Save access tokens in redis " + param.tokDbAddr + "<" + param.tokDbTag + ">")
 	default:
 		return erro.New("invalid access token DB type " + param.tokDbType)
 	}
@@ -250,8 +251,8 @@ func serve(param *parameters) (err error) {
 		ccodDb = coopcode.NewMemoryDb()
 		log.Info("Save cooperation codes in memory")
 	case "redis":
-		ccodDb = coopcode.NewRedisDb(redPools.get(param.ccodDbAddr), param.ccodDbTag)
-		log.Info("Save cooperation codes in redis " + param.ccodDbAddr + ": " + param.ccodDbTag)
+		ccodDb = coopcode.NewRedisDb(redPools.Get(param.ccodDbAddr), param.ccodDbTag)
+		log.Info("Save cooperation codes in redis " + param.ccodDbAddr + "<" + param.ccodDbTag + ">")
 	default:
 		return erro.New("invalid cooperation code DB type " + param.ccodDbType)
 	}
@@ -263,8 +264,8 @@ func serve(param *parameters) (err error) {
 		jtiDb = jtidb.NewMemoryDb()
 		log.Info("Save JWT IDs in memory")
 	case "redis":
-		jtiDb = jtidb.NewRedisDb(redPools.get(param.jtiDbAddr), param.jtiDbTag)
-		log.Info("Save JWT IDs in redis " + param.jtiDbAddr + ": " + param.jtiDbTag)
+		jtiDb = jtidb.NewRedisDb(redPools.Get(param.jtiDbAddr), param.jtiDbTag)
+		log.Info("Save JWT IDs in redis " + param.jtiDbAddr + "<" + param.jtiDbTag + ">")
 	default:
 		return erro.New("invalid JWT ID DB type " + param.jtiDbType)
 	}
@@ -282,6 +283,7 @@ func serve(param *parameters) (err error) {
 		param.pathErrUi,
 
 		param.pwSaltLen,
+		param.sessLabel,
 		param.sessLen,
 		param.sessExpIn,
 		param.sessRefDelay,
@@ -301,6 +303,7 @@ func serve(param *parameters) (err error) {
 		param.ticLen,
 
 		keyDb,
+		webDb,
 		acntDb,
 		consDb,
 		taDb,
@@ -312,7 +315,6 @@ func serve(param *parameters) (err error) {
 		tokDb,
 		ccodDb,
 		jtiDb,
-		webDb,
 
 		param.cookPath,
 		param.cookSec,
@@ -333,7 +335,7 @@ func serve(param *parameters) (err error) {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/", panicErrorWrapper(s, func(w http.ResponseWriter, r *http.Request) error {
-		return idperr.New(idperr.Invalid_request, "invalid endpoint", http.StatusNotFound, nil)
+		return erro.Wrap(idperr.New(idperr.Invalid_request, "invalid endpoint", http.StatusNotFound, nil))
 	}))
 	mux.HandleFunc(param.pathOk, panicErrorWrapper(s, func(w http.ResponseWriter, r *http.Request) error {
 		return nil
@@ -350,8 +352,7 @@ func serve(param *parameters) (err error) {
 	if param.uiDir != "" {
 		// ファイル配信も自前でやる。
 		pathUi := strings.TrimRight(param.pathUi, "/") + "/"
-		filer := http.StripPrefix(pathUi, http.FileServer(http.Dir(param.uiDir)))
-		mux.Handle(pathUi, filer)
+		mux.Handle(pathUi, http.StripPrefix(pathUi, http.FileServer(http.Dir(param.uiDir))))
 	}
 
 	return server.Serve(param, mux)

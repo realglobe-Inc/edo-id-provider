@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package request
 
 import (
 	"reflect"
@@ -20,28 +20,28 @@ import (
 )
 
 func TestFormValueSet(t *testing.T) {
-	if s, s2 := map[string]bool{"openid": true, "email": true}, formValueSet("openid email"); !reflect.DeepEqual(s2, s) {
+	if s, s2 := map[string]bool{"openid": true, "email": true}, FormValueSet("openid email"); !reflect.DeepEqual(s2, s) {
 		t.Error(s2)
 		t.Fatal(s)
 	}
 }
 
 func TestValueSetForm(t *testing.T) {
-	if f := valueSetForm(map[string]bool{"openid": true, "email": true}); f != "openid email" && f != "email openid" {
+	if f := ValueSetForm(map[string]bool{"openid": true, "email": true}); f != "openid email" && f != "email openid" {
 		t.Error(f)
 		t.Fatal(`"openid email" or "email openid"`)
 	}
 }
 
 func TestFormValues(t *testing.T) {
-	if s, s2 := []string{"openid", "email"}, formValues("openid email"); !reflect.DeepEqual(s2, s) {
+	if s, s2 := []string{"openid", "email"}, FormValues("openid email"); !reflect.DeepEqual(s2, s) {
 		t.Error(s2)
 		t.Fatal(s)
 	}
 }
 
 func TestValuesForm(t *testing.T) {
-	if f := valuesForm([]string{"openid", "email"}); f != "openid email" {
+	if f := ValuesForm([]string{"openid", "email"}); f != "openid email" {
 		t.Error(f)
 		t.Fatal(`"openid email"`)
 	}

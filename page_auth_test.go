@@ -19,6 +19,7 @@ package main
 import (
 	"encoding/json"
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
+	"github.com/realglobe-Inc/edo-id-provider/request"
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
 	"github.com/realglobe-Inc/edo-lib/jwt"
@@ -239,7 +240,7 @@ func TestIgnoreUnknownScopes(t *testing.T) {
 		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
 	}, test_taPriKey); err != nil {
 		t.Fatal(err)
-	} else if scop, _ := res["scope"].(string); formValueSet(scop)["unknown_scope"] {
+	} else if scop, _ := res["scope"].(string); request.FormValueSet(scop)["unknown_scope"] {
 		t.Fatal(scop)
 	}
 }

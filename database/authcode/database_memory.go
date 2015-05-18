@@ -33,7 +33,6 @@ func NewMemoryDb() Db {
 	}
 }
 
-// 取得。
 func (this *memoryDb) Get(id string) (*Element, error) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
@@ -52,7 +51,6 @@ func (this *memoryDb) Get(id string) (*Element, error) {
 	return &e, nil
 }
 
-// 保存。
 func (this *memoryDb) Save(elem *Element, exp time.Time) error {
 	// Replace で使う更新日時が変わらないように防御的コピー。
 	e := *elem
@@ -65,7 +63,6 @@ func (this *memoryDb) Save(elem *Element, exp time.Time) error {
 	return nil
 }
 
-// 上書き。
 func (this *memoryDb) Replace(elem *Element, savedDate time.Time) (ok bool, err error) {
 	this.lock.Lock()
 	defer this.lock.Unlock()

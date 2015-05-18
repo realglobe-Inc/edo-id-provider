@@ -12,23 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package request
 
 import (
-	"github.com/realglobe-Inc/edo-id-provider/database/session"
+	"strings"
 )
 
 // リクエスト解析用関数。
 
 // "openid email" みたいな文字列を
 // {"openid": true, "email": true} みたいな集合にする。
-func formValueSet(s string) map[string]bool {
-	return session.StringsToSet(session.SplitBySpace(s))
+func FormValueSet(s string) map[string]bool {
+	return stringsToSet(FormValues(s))
 }
 
 // {"openid": true, "email": true} みたいな集合を
 // "openid email" みたいな文字列にする
-func valueSetForm(m map[string]bool) string {
+func ValueSetForm(m map[string]bool) string {
 	buff := ""
 	for v := range m {
 		if len(buff) > 0 {
@@ -41,11 +41,16 @@ func valueSetForm(m map[string]bool) string {
 
 // "openid email" みたいな文字列を
 // {"openid", "email"} みたいな配列にする。
-var formValues = session.SplitBySpace
+func FormValues(s string) []string {
+	if s == "" {
+		return []string{}
+	}
+	return strings.Split(s, " ")
+}
 
 // {"openid", "email"} みたいな配列を
 // "openid email" みたいな文字列にする
-func valuesForm(a []string) string {
+func ValuesForm(a []string) string {
 	buff := ""
 	for _, v := range a {
 		if len(buff) > 0 {
@@ -54,4 +59,12 @@ func valuesForm(a []string) string {
 		buff += v
 	}
 	return buff
+}
+
+func stringsToSet(a []string) map[string]bool {
+	m := map[string]bool{}
+	for _, s := range a {
+		m[s] = true
+	}
+	return m
 }

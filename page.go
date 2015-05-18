@@ -17,6 +17,7 @@ package main
 import (
 	"github.com/realglobe-Inc/edo-id-provider/database/authcode"
 	"github.com/realglobe-Inc/edo-id-provider/database/session"
+	"github.com/realglobe-Inc/edo-id-provider/request"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
 	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/go-lib/erro"
@@ -28,24 +29,24 @@ import (
 )
 
 // リダイレクトでエラーを返す。
-func (sys *system) redirectErrorTo(w http.ResponseWriter, r *http.Request, origErr error, uri *url.URL, queries map[string]string, sess *session.Element) error {
+func (sys *system) redirectErrorTo(w http.ResponseWriter, r *http.Request, origErr error, uri *url.URL, queries map[string]string, sender *request.Request, sess *session.Element) error {
 	// 経過を破棄。
 	sess.Clear()
 	if err := sys.sessDb.Save(sess, sess.Expires().Add(sys.sessDbExpIn-sys.sessExpIn)); err != nil {
-		log.Err(erro.Wrap(err))
+		log.Err(sender, ": ", erro.Wrap(err))
 	} else {
-		log.Debug("Session " + mosaic(sess.Id()) + " was saved")
+		log.Debug(sender, ": Saved session "+mosaic(sess.Id()))
 	}
 
 	if !sess.Saved() {
 		http.SetCookie(w, sys.newCookie(sess))
-		log.Debug("Session " + mosaic(sess.Id()) + " will be reported")
+		log.Debug(sender, ": Report session "+mosaic(sess.Id()))
 	}
 
 	// エラー内容の添付。
-	e := idperr.From(erro.Unwrap(origErr))
-	log.Err(e.ErrorDescription())
-	log.Debug(origErr)
+	e := idperr.From(origErr)
+	log.Err(sender, ": "+e.ErrorDescription())
+	log.Debug(sender, ": ", origErr)
 
 	q := uri.Query()
 	q.Set(formError, e.ErrorCode())
@@ -62,14 +63,14 @@ func (sys *system) redirectErrorTo(w http.ResponseWriter, r *http.Request, origE
 }
 
 // ユーザーエージェント向けにエラーを返す。
-func (sys *system) returnError(w http.ResponseWriter, r *http.Request, origErr error, sess *session.Element) error {
+func (sys *system) returnError(w http.ResponseWriter, r *http.Request, origErr error, sender *request.Request, sess *session.Element) error {
 
 	if sys.pathErrUi != "" {
 		uri, err := url.Parse(sys.pathErrUi)
 		if err == nil {
-			return sys.redirectErrorTo(w, r, origErr, uri, nil, sess)
+			return sys.redirectErrorTo(w, r, origErr, uri, nil, sender, sess)
 		}
-		log.Err(erro.Wrap(err))
+		log.Err(sender, ": ", erro.Wrap(err))
 	}
 
 	// 自前でユーザー向けの HTML を返さなきゃならない。
@@ -77,20 +78,20 @@ func (sys *system) returnError(w http.ResponseWriter, r *http.Request, origErr e
 	// 経過を破棄。
 	sess.Clear()
 	if err := sys.sessDb.Save(sess, sess.Expires().Add(sys.sessDbExpIn-sys.sessExpIn)); err != nil {
-		log.Err(erro.Wrap(err))
+		log.Err(sender, ": ", erro.Wrap(err))
 	} else {
-		log.Debug("Session " + mosaic(sess.Id()) + " was saved")
+		log.Debug(sender, ": Saved session "+mosaic(sess.Id()))
 	}
 
 	if !sess.Saved() {
 		// 未通知セッションの通知。
 		http.SetCookie(w, sys.newCookie(sess))
-		log.Debug("Session " + mosaic(sess.Id()) + " will be reported")
+		log.Debug(sender, ": Report session "+mosaic(sess.Id()))
 	}
 
-	e := idperr.From(erro.Unwrap(origErr))
-	log.Err(e.ErrorDescription())
-	log.Debug(origErr)
+	e := idperr.From(origErr)
+	log.Err(sender, ": "+e.ErrorDescription())
+	log.Debug(sender, ": ", origErr)
 
 	msg := `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Error</title></head><body><h1>`
 	msg += strconv.Itoa(e.Status())
@@ -111,37 +112,37 @@ func (sys *system) returnError(w http.ResponseWriter, r *http.Request, origErr e
 	w.Header().Add("Pragma", "no-cache")
 	w.WriteHeader(e.Status())
 	if _, err := w.Write(buff); err != nil {
-		log.Err(erro.Wrap(err))
+		log.Err(sender, ": ", erro.Wrap(err))
 	}
 	return nil
 }
 
 // TA 向けにリダイレクトでエラーを返す。
-func (sys *system) redirectError(w http.ResponseWriter, r *http.Request, origErr error, sess *session.Element) error {
+func (sys *system) redirectError(w http.ResponseWriter, r *http.Request, origErr error, sender *request.Request, sess *session.Element) error {
 	uri, err := url.Parse(sess.Request().RedirectUri())
 	if err != nil {
-		log.Err(erro.Wrap(err))
-		return sys.returnError(w, r, origErr, sess)
+		log.Err(sender, ": ", erro.Wrap(err))
+		return sys.returnError(w, r, origErr, sender, sess)
 	}
 
 	var queries map[string]string
 	if stat := sess.Request().State(); stat != "" {
 		queries = map[string]string{formState: stat}
 	}
-	return sys.redirectErrorTo(w, r, origErr, uri, queries, sess)
+	return sys.redirectErrorTo(w, r, origErr, uri, queries, sender, sess)
 }
 
 // セッション処理をしてリダイレクトさせる。
-func (sys *system) redirectTo(w http.ResponseWriter, r *http.Request, uri *url.URL, sess *session.Element) error {
+func (sys *system) redirectTo(w http.ResponseWriter, r *http.Request, uri *url.URL, sender *request.Request, sess *session.Element) error {
 	if err := sys.sessDb.Save(sess, sess.Expires().Add(sys.sessDbExpIn-sys.sessExpIn)); err != nil {
-		log.Err(erro.Wrap(err))
+		log.Err(sender, ": ", erro.Wrap(err))
 	} else {
-		log.Debug("Session " + mosaic(sess.Id()) + " was saved")
+		log.Debug(sender, ": Saved session "+mosaic(sess.Id()))
 	}
 
 	if !sess.Saved() {
 		http.SetCookie(w, sys.newCookie(sess))
-		log.Debug("Session " + mosaic(sess.Id()) + " will be reported")
+		log.Debug(sender, ": Report session "+mosaic(sess.Id()))
 	}
 
 	w.Header().Add("Cache-Control", "no-store")
@@ -151,11 +152,11 @@ func (sys *system) redirectTo(w http.ResponseWriter, r *http.Request, uri *url.U
 }
 
 // リダイレクトで認可コードを返す。
-func (sys *system) redirectCode(w http.ResponseWriter, r *http.Request, cod *authcode.Element, idTok string, sess *session.Element) error {
+func (sys *system) redirectCode(w http.ResponseWriter, r *http.Request, cod *authcode.Element, idTok string, sender *request.Request, sess *session.Element) error {
 
 	uri, err := url.Parse(sess.Request().RedirectUri())
 	if err != nil {
-		return sys.returnError(w, r, erro.Wrap(err), sess)
+		return sys.returnError(w, r, erro.Wrap(err), sender, sess)
 	}
 
 	// 経過を破棄。
@@ -172,6 +173,6 @@ func (sys *system) redirectCode(w http.ResponseWriter, r *http.Request, cod *aut
 	}
 	uri.RawQuery = q.Encode()
 
-	log.Info("Redirect " + mosaic(sess.Id()) + " to TA " + req.Ta())
-	return sys.redirectTo(w, r, uri, sess)
+	log.Info(sender, ": Redirect "+mosaic(sess.Id())+" to TA "+req.Ta())
+	return sys.redirectTo(w, r, uri, sender, sess)
 }

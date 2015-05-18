@@ -67,10 +67,15 @@ func (sys *system) accountApi(w http.ResponseWriter, r *http.Request) error {
 
 	log.Debug(sender, ": Account "+acnt.Id()+" is exist")
 
+	if err := sys.setSub(acnt, ta); err != nil {
+		return erro.Wrap(err)
+	}
+
 	clms := scopeToClaims(tok.Scope())
 	for clm := range tok.Attributes() {
 		clms[clm] = true
 	}
+	clms[tagSub] = true
 
 	log.Debug(sender, ": Return claims ", clms)
 
@@ -82,7 +87,6 @@ func (sys *system) accountApi(w http.ResponseWriter, r *http.Request) error {
 		}
 		info[clmName] = clm
 	}
-	info[tagSub] = acnt.Id()
 
 	return response(w, info)
 }

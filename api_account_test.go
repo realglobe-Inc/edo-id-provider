@@ -130,9 +130,8 @@ func TestAccountInfo(t *testing.T) {
 			server.LogRequest(level.ERR, req, true)
 			server.LogResponse(level.ERR, resp, true)
 			t.Fatal(err)
-		} else if res.Sub != acnt.Id() {
-			t.Error(res.Sub)
-			t.Fatal(acnt.Id())
+		} else if res.Sub == "" {
+			t.Fatal(res.Sub)
 		} else if em, _ := acnt.Attribute("email").(string); res.Email != em {
 			t.Error(res.Email)
 			t.Fatal(em)

@@ -65,9 +65,6 @@ const (
 	formUsernames       = "usernames"
 )
 
-// Cookie 中にセッション識別子。
-const sessLabel = "Id-Provider"
-
 // scope の値。
 const (
 	scopOpenid         = "openid"

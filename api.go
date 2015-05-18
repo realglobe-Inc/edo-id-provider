@@ -16,6 +16,7 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/realglobe-Inc/edo-id-provider/request"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
 	jsonutil "github.com/realglobe-Inc/edo-lib/json"
 	"github.com/realglobe-Inc/edo-lib/server"
@@ -41,23 +42,22 @@ func response(w http.ResponseWriter, params map[string]interface{}) error {
 }
 
 // エラーを返す。
-func responseError(w http.ResponseWriter, origErr error) error {
+func responseError(w http.ResponseWriter, origErr error, sender *request.Request) error {
 	// リダイレクトでエラーを返す時のように認証経過を廃棄する必要は無い。
 	// 認証が始まって経過が記録されているなら、既にリダイレクト先が
 	// 分かっているので、リダイレクトでエラーを返すため。
 
 	e := idperr.From(origErr)
-	log.Err(e.ErrorDescription())
-	log.Debug(origErr)
+	log.Err(sender, ": "+e.ErrorDescription())
+	log.Debug(sender, ": ", origErr)
 
 	buff, err := json.Marshal(map[string]string{
 		formError:             e.ErrorCode(),
 		formError_description: e.ErrorDescription(),
 	})
 	if err != nil {
-		err = erro.Wrap(err)
-		log.Err(erro.Unwrap(err))
-		log.Debug(err)
+		log.Err(sender, ": ", erro.Unwrap(err))
+		log.Debug(sender, ": ", erro.Wrap(err))
 		// 最後の手段。たぶん正しい変換。
 		buff = []byte(`{` +
 			formError + `="` + jsonutil.StringEscape(e.ErrorCode()) + `",` +
@@ -70,7 +70,7 @@ func responseError(w http.ResponseWriter, origErr error) error {
 	w.Header().Add("Pragma", "no-cache")
 	w.WriteHeader(e.Status())
 	if _, err := w.Write(buff); err != nil {
-		log.Err(erro.Wrap(err))
+		log.Err(sender, ": ", erro.Wrap(err))
 	}
 	return nil
 }
@@ -84,7 +84,7 @@ func panicErrorWrapper(s *server.Stopper, f server.HandlerFunc) http.HandlerFunc
 		// panic時にプロセス終了しないようにrecoverする
 		defer func() {
 			if rcv := recover(); rcv != nil {
-				responseError(w, erro.New(rcv))
+				responseError(w, erro.New(rcv), request.Parse(r, ""))
 				return
 			}
 		}()
@@ -94,7 +94,7 @@ func panicErrorWrapper(s *server.Stopper, f server.HandlerFunc) http.HandlerFunc
 		//////////////////////////////
 
 		if err := f(w, r); err != nil {
-			responseError(w, erro.Wrap(err))
+			responseError(w, erro.Wrap(err), request.Parse(r, ""))
 			return
 		}
 	}

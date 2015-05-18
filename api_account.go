@@ -15,36 +15,39 @@
 package main
 
 import (
+	"github.com/realglobe-Inc/edo-id-provider/request"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"net/http"
 )
 
 func (sys *system) accountApi(w http.ResponseWriter, r *http.Request) error {
+	sender := request.Parse(r, "")
+
 	req := newAccountRequest(r)
 
 	if req.scheme() != scmBearer {
-		return erro.Wrap(idperr.New(idperr.Invalid_request, "authorization scheme "+req.scheme()+" is not supported", http.StatusBadRequest, nil))
+		return erro.Wrap(idperr.New(idperr.Invalid_request, "unsupported authorization scheme "+req.scheme(), http.StatusBadRequest, nil))
 	}
 
-	log.Debug("Authrization scheme " + req.scheme() + " is OK")
+	log.Debug(sender, ": Authrization scheme "+req.scheme()+" is OK")
 
 	if req.token() == "" {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "no access token", http.StatusBadRequest, nil))
 	}
 
-	log.Debug("Access token " + mosaic(req.token()) + " is declared")
+	log.Debug(sender, ": Access token "+mosaic(req.token())+" is declared")
 
 	tok, err := sys.tokDb.Get(req.token())
 	if err != nil {
 		return erro.Wrap(err)
 	} else if tok == nil {
-		return erro.Wrap(idperr.New(idperr.Invalid_token, "token "+mosaic(req.token())+" is not exist", http.StatusBadRequest, nil))
+		return erro.Wrap(idperr.New(idperr.Invalid_token, "token is not exist", http.StatusBadRequest, nil))
 	} else if tok.Invalid() {
-		return erro.Wrap(idperr.New(idperr.Invalid_token, "token "+mosaic(req.token())+" is invalid", http.StatusBadRequest, nil))
+		return erro.Wrap(idperr.New(idperr.Invalid_token, "token is invalid", http.StatusBadRequest, nil))
 	}
 
-	log.Debug("Declared access token " + mosaic(tok.Id()) + " is OK")
+	log.Debug(sender, ": Declared access token "+mosaic(tok.Id())+" is OK")
 
 	ta, err := sys.taDb.Get(tok.Ta())
 	if err != nil {
@@ -53,7 +56,7 @@ func (sys *system) accountApi(w http.ResponseWriter, r *http.Request) error {
 		return erro.Wrap(idperr.New(idperr.Invalid_token, "TA "+tok.Ta()+" is not exist", http.StatusBadRequest, nil))
 	}
 
-	log.Debug("TA " + ta.Id() + " is exist")
+	log.Debug(sender, ": TA "+ta.Id()+" is exist")
 
 	acnt, err := sys.acntDb.Get(tok.Account())
 	if err != nil {
@@ -62,14 +65,14 @@ func (sys *system) accountApi(w http.ResponseWriter, r *http.Request) error {
 		return erro.Wrap(idperr.New(idperr.Invalid_token, "account is not exist", http.StatusBadRequest, nil))
 	}
 
-	log.Debug("Account " + acnt.Id() + " is exist")
+	log.Debug(sender, ": Account "+acnt.Id()+" is exist")
 
 	clms := scopeToClaims(tok.Scope())
 	for clm := range tok.Attributes() {
 		clms[clm] = true
 	}
 
-	log.Debug("Token claims ", clms, " will be returned")
+	log.Debug(sender, ": Return claims ", clms)
 
 	info := map[string]interface{}{}
 	for clmName := range clms {

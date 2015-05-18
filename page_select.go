@@ -70,12 +70,12 @@ func languagesForm(lang string, langs []string) string {
 }
 
 // アカウント選択 UI にリダイレクトする。
-func (sys *system) redirectToSelectUi(w http.ResponseWriter, r *http.Request, sess *session.Element, msg string) error {
+func (sys *system) redirectToSelectUi(w http.ResponseWriter, r *http.Request, sender *request.Request, sess *session.Element, msg string) error {
 	// TODO 試行回数でエラー。
 
 	uri, err := url.Parse(sys.pathSelUi)
 	if err != nil {
-		return sys.redirectError(w, r, erro.Wrap(err), sess)
+		return sys.redirectError(w, r, erro.Wrap(err), sender, sess)
 	}
 
 	// アカウント選択ページに渡すクエリパラメータを生成。
@@ -98,29 +98,30 @@ func (sys *system) redirectToSelectUi(w http.ResponseWriter, r *http.Request, se
 	// チケットを発行。
 	uri.Fragment = newId(sys.ticLen)
 	sess.SetTicket(uri.Fragment)
-	log.Info("Ticket " + mosaic(uri.Fragment) + " was published")
+	log.Info(sender, ": Published ticket "+mosaic(uri.Fragment))
 
-	log.Info("Redirect " + mosaic(sess.Id()) + " to select UI")
-	return sys.redirectTo(w, r, uri, sess)
+	log.Info(sender, ": Redirect to select UI")
+	return sys.redirectTo(w, r, uri, sender, sess)
 }
 
 // アカウント UI ページからの入力を受け付けて続きをする。
 func (sys *system) selectPage(w http.ResponseWriter, r *http.Request) (err error) {
+	sender := request.Parse(r, sys.sessLabel)
 
 	var sess *session.Element
-	if sessId := request.Parse(r, sessLabel).Session(); sessId != "" {
+	if sessId := sender.Session(); sessId != "" {
 		// セッションが通知された。
-		log.Debug("Session " + mosaic(sessId) + " is declared")
+		log.Debug(sender, ": Session is declared")
 
 		if sess, err = sys.sessDb.Get(sessId); err != nil {
-			log.Err(erro.Wrap(err))
+			log.Err(sender, ": ", erro.Wrap(err))
 			// 新規発行すれば動くので諦めない。
 		} else if sess == nil {
 			// セッションが無かった。
-			log.Warn("Declared session " + mosaic(sessId) + " is not exist")
+			log.Warn(sender, ": Declared session is not exist")
 		} else {
 			// セッションがあった。
-			log.Debug("Declared session " + mosaic(sessId) + " is exist")
+			log.Debug(sender, ": Declared session is exist")
 		}
 	}
 
@@ -128,7 +129,7 @@ func (sys *system) selectPage(w http.ResponseWriter, r *http.Request) (err error
 	if sess == nil || now.After(sess.Expires()) {
 		// セッションを新規発行。
 		sess = session.New(newId(sys.sessLen), now.Add(sys.sessExpIn))
-		log.Info("New session " + mosaic(sess.Id()) + " was generated but not yet saved")
+		log.Info(sender, ": Generated new session "+mosaic(sess.Id())+" but not yet saved")
 	}
 
 	// セッションは決まった。
@@ -136,78 +137,78 @@ func (sys *system) selectPage(w http.ResponseWriter, r *http.Request) (err error
 	authReq := sess.Request()
 	if authReq == nil {
 		// ユーザー認証・認可処理が始まっていない。
-		return sys.returnError(w, r, erro.Wrap(idperr.New(idperr.Invalid_request, "session "+mosaic(sess.Id())+" is not in authentication process", http.StatusBadRequest, nil)), sess)
+		return sys.returnError(w, r, erro.Wrap(idperr.New(idperr.Invalid_request, "session is not in authentication process", http.StatusBadRequest, nil)), sender, sess)
 	}
 
 	// ユーザー認証中。
-	log.Debug("session " + mosaic(sess.Id()) + " is in authentication process")
+	log.Debug(sender, ": Session is in authentication process")
 
 	req := newSelectRequest(r)
 	if sess.Ticket() == "" {
 		// アカウント選択中でない。
-		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Access_denied, "not in interactive process", nil)), sess)
+		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Access_denied, "not in interactive process", nil)), sender, sess)
 	} else if req.ticket() != sess.Ticket() {
 		// 無効なアカウント選択券。
-		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Access_denied, "invalid ticket "+mosaic(req.ticket()), nil)), sess)
+		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Access_denied, "invalid ticket "+mosaic(req.ticket()), nil)), sender, sess)
 	}
 
 	// チケットが有効だった。
-	log.Debug("Ticket " + mosaic(req.ticket()) + " is OK")
+	log.Debug(sender, ": Ticket "+mosaic(req.ticket())+" is OK")
 
 	if req.accountName() == "" {
 		// アカウント選択情報不備。
-		log.Warn("Account is not specified")
-		return sys.redirectToSelectUi(w, r, sess, "Please select your account")
+		log.Warn(sender, ": Account is not specified")
+		return sys.redirectToSelectUi(w, r, sender, sess, "Please select your account")
 	}
 
 	// アカウント選択情報があった。
-	log.Debug("Account " + req.accountName() + " is specified")
+	log.Debug(sender, ": Account "+req.accountName()+" is specified")
 
 	acnt, err := sys.acntDb.GetByName(req.accountName())
 	if err != nil {
-		return sys.redirectError(w, r, erro.Wrap(err), sess)
+		return sys.redirectError(w, r, erro.Wrap(err), sender, sess)
 	} else if acnt == nil {
 		// アカウントが無い。
-		log.Debug("Specified accout " + req.accountName() + " was not found")
-		return sys.redirectToSelectUi(w, r, sess, "Accout "+req.accountName()+" was not found. Please select your account")
+		log.Debug(sender, ": Specified accout "+req.accountName()+" is not exist")
+		return sys.redirectToSelectUi(w, r, sender, sess, "Accout "+req.accountName()+" is not exist. Please select your account")
 	}
 
 	// アカウント選択できた。
-	log.Info("Specified account " + req.accountName() + " is exist")
+	log.Info(sender, ": Specified account "+req.accountName()+" is exist")
 
 	sess.SelectAccount(session.NewAccount(acnt.Id(), acnt.Name()))
 	if lang := req.language(); lang != "" {
 		sess.SetLanguage(lang)
 
 		// 言語を選択してた。
-		log.Debug("Language " + lang + " was selected")
+		log.Debug(sender, ": Language "+lang+" was selected")
 	}
 
-	return sys.afterSelect(w, r, sess, nil, acnt)
+	return sys.afterSelect(w, r, sender, sess, nil, acnt)
 }
 
 // アカウント選択が終わったところから。
-func (sys *system) afterSelect(w http.ResponseWriter, r *http.Request, sess *session.Element, ta tadb.Element, acnt account.Element) error {
+func (sys *system) afterSelect(w http.ResponseWriter, r *http.Request, sender *request.Request, sess *session.Element, ta tadb.Element, acnt account.Element) error {
 
 	prmpts := sess.Request().Prompt()
 	if prmpts[prmptLogin] {
 		if prmpts[prmptNone] {
-			return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Login_required, "cannot login without UI", nil)), sess)
+			return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Login_required, "cannot login without UI", nil)), sender, sess)
 		}
 
-		return sys.redirectToLoginUi(w, r, sess, "Please log in")
+		return sys.redirectToLoginUi(w, r, sender, sess, "Please log in")
 	}
 
 	if sess.Account() != nil && sess.Account().LoggedIn() {
 		if maxAge := sess.Request().MaxAge(); maxAge < 0 || time.Now().Sub(sess.Account().LoginDate()) <= time.Duration(maxAge*time.Second) {
 			// ログイン済み。
-			return sys.afterLogin(w, r, sess, ta, acnt)
+			return sys.afterLogin(w, r, sender, sess, ta, acnt)
 		}
 	}
 
 	if prmpts[prmptNone] {
-		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Login_required, "cannot login without UI", nil)), sess)
+		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Login_required, "cannot login without UI", nil)), sender, sess)
 	}
 
-	return sys.redirectToLoginUi(w, r, sess, "Please log in")
+	return sys.redirectToLoginUi(w, r, sender, sess, "Please log in")
 }

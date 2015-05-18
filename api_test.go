@@ -62,7 +62,7 @@ func TestResponseIdpError(t *testing.T) {
 	origErr := idperr.New(idperr.Invalid_request, "invalid request", http.StatusBadRequest, nil)
 
 	w := httptest.NewRecorder()
-	if err := responseError(w, erro.Wrap(origErr)); err != nil {
+	if err := responseError(w, erro.Wrap(origErr), nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -96,7 +96,7 @@ func TestResponseNormalError(t *testing.T) {
 	origErr := erro.New("test error")
 
 	w := httptest.NewRecorder()
-	if err := responseError(w, origErr); err != nil {
+	if err := responseError(w, origErr, nil); err != nil {
 		t.Fatal(err)
 	}
 

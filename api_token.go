@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	jtidb "github.com/realglobe-Inc/edo-id-provider/database/jti"
 	"github.com/realglobe-Inc/edo-id-provider/database/token"
+	"github.com/realglobe-Inc/edo-id-provider/request"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
 	"github.com/realglobe-Inc/edo-lib/base64url"
 	"github.com/realglobe-Inc/edo-lib/jwt"
@@ -63,40 +64,40 @@ func responseToken(w http.ResponseWriter, tok *token.Element, refTok, idTok stri
 	w.Header().Add("Cache-Control", "no-store")
 	w.Header().Add("Pragma", "no-cache")
 	if _, err := w.Write(buff); err != nil {
-		err = erro.Wrap(err)
-		log.Err(erro.Unwrap(err))
-		log.Debug(err)
+		log.Err(erro.Wrap(err))
 	}
 	return nil
 }
 
 func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {
+	sender := request.Parse(r, "")
+
 	if r.Method != "POST" {
-		return erro.Wrap(idperr.New(idperr.Invalid_request, r.Method+" is not supported", http.StatusMethodNotAllowed, nil))
+		return erro.Wrap(idperr.New(idperr.Invalid_request, "unsupported method "+r.Method, http.StatusMethodNotAllowed, nil))
 	}
 
 	req := newTokenRequest(r)
 	// 重複パラメータが無いか検査。
 	for k, v := range r.Form {
 		if len(v) > 1 {
-			return erro.Wrap(idperr.New(idperr.Invalid_request, k+" is overlapped", http.StatusBadRequest, nil))
+			return erro.Wrap(idperr.New(idperr.Invalid_request, "parameter "+k+" overlaps", http.StatusBadRequest, nil))
 		}
 	}
 
 	if grntType := req.grantType(); grntType == "" {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "no "+formGrant_type, http.StatusBadRequest, nil))
 	} else if grntType != grntTypeAuthorization_code {
-		return erro.Wrap(idperr.New(idperr.Unsupported_grant_type, grntType+" is not supported", http.StatusBadRequest, nil))
+		return erro.Wrap(idperr.New(idperr.Unsupported_grant_type, "unsupported grant type "+grntType, http.StatusBadRequest, nil))
 	}
 
-	log.Debug("Grant type is " + grntTypeAuthorization_code)
+	log.Debug(sender, ": Grant type is "+grntTypeAuthorization_code)
 
 	codId := req.code()
 	if codId == "" {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "no "+formCode, http.StatusBadRequest, nil))
 	}
 
-	log.Debug("Code " + mosaic(codId) + " is declared")
+	log.Debug(sender, ": Code "+mosaic(codId)+" is declared")
 
 	now := time.Now()
 
@@ -112,7 +113,7 @@ func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {
 		return erro.Wrap(idperr.New(idperr.Invalid_grant, "code "+mosaic(codId)+" is invalid", http.StatusBadRequest, nil))
 	}
 
-	log.Debug("Code " + mosaic(codId) + " is exist")
+	log.Debug(sender, ": Code "+mosaic(codId)+" is exist")
 	savedCodDate := cod.Date()
 
 	if req.ta() == "" {
@@ -120,7 +121,7 @@ func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {
 	} else if req.ta() != cod.Ta() {
 		return erro.Wrap(idperr.New(idperr.Invalid_grant, "you are not code holder", http.StatusBadRequest, nil))
 	} else {
-		log.Debug("TA ID " + req.ta() + " is declared")
+		log.Debug(sender, ": TA "+req.ta()+" is declared")
 	}
 
 	rediUri := req.redirectUri()
@@ -130,22 +131,22 @@ func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {
 		return erro.Wrap(idperr.New(idperr.Invalid_grant, "invalid "+formRedirect_uri, http.StatusBadRequest, nil))
 	}
 
-	log.Debug(formRedirect_uri + " matches that of code")
+	log.Debug(sender, ": "+formRedirect_uri+" matches that of code")
 
 	if taAssType := req.taAssertionType(); taAssType == "" {
 		return erro.Wrap(idperr.New(idperr.Invalid_client, "no "+formClient_assertion_type, http.StatusBadRequest, nil))
 	} else if taAssType != taAssTypeJwt {
-		return erro.Wrap(idperr.New(idperr.Invalid_client, taAssType+" is not supported", http.StatusBadRequest, nil))
+		return erro.Wrap(idperr.New(idperr.Invalid_client, "unsupported assertion type "+taAssType, http.StatusBadRequest, nil))
 	}
 
-	log.Debug(formClient_assertion_type + " is " + taAssTypeJwt)
+	log.Debug(sender, ": "+formClient_assertion_type+" is "+taAssTypeJwt)
 
 	taAss := req.taAssertion()
 	if taAss == nil {
 		return erro.Wrap(idperr.New(idperr.Invalid_client, "no "+formClient_assertion, http.StatusBadRequest, nil))
 	}
 
-	log.Debug(formClient_assertion + " is found")
+	log.Debug(sender, ": "+formClient_assertion+" is found")
 
 	// Authorization ヘッダと client_secret パラメータも認識はする。
 	if r.Header.Get(headAuthorization) != "" || r.FormValue(formClient_secret) != "" {
@@ -188,12 +189,12 @@ func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// クライアント認証できた。
-	log.Debug(req.ta() + " is authenticated")
+	log.Debug(sender, ": Authenticated "+req.ta())
 
 	tokId := newId(sys.tokLen)
 
 	// アクセストークンが決まった。
-	log.Debug("Token " + mosaic(tokId) + " was generated")
+	log.Debug(sender, ": Generated token "+mosaic(tokId))
 
 	// ID トークンの作成。
 	acnt, err := sys.acntDb.Get(cod.Account())
@@ -201,7 +202,7 @@ func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {
 		return erro.Wrap(err)
 	} else if acnt == nil {
 		// アカウントが無い。
-		return erro.Wrap(idperr.New(idperr.Invalid_request, "accout "+mosaic(cod.Account())+" was not found", http.StatusBadRequest, nil))
+		return erro.Wrap(idperr.New(idperr.Invalid_request, "accout is not exist", http.StatusBadRequest, nil))
 	}
 
 	clms := map[string]interface{}{}
@@ -225,7 +226,7 @@ func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// ID トークンができた。
-	log.Debug("ID token was generated")
+	log.Debug(sender, ": Generated ID token")
 
 	tok := token.New(
 		tokId,
@@ -245,14 +246,14 @@ func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {
 		return erro.Wrap(idperr.New(idperr.Invalid_grant, "code "+mosaic(codId)+" is used by others", http.StatusBadRequest, nil))
 	}
 
-	log.Debug("Token " + mosaic(tok.Id()) + " was linked to code " + mosaic(cod.Id()))
+	log.Debug(sender, ": Linked token "+mosaic(tok.Id())+" to code "+mosaic(cod.Id()))
 
 	// アクセストークンを保存する。
 	if err := sys.tokDb.Save(tok, now.Add(sys.tokDbExpIn)); err != nil {
 		return erro.Wrap(err)
 	}
 
-	log.Debug("Token " + mosaic(tok.Id()) + " was registerd")
+	log.Debug(sender, ": Saved token "+mosaic(tok.Id()))
 
 	return responseToken(w, tok, "", idTok)
 }

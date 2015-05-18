@@ -79,6 +79,7 @@ type parameters struct {
 	// セクタ固有のアカウント ID の計算に使う情報。
 	pwSaltLen int
 	// セッション。
+	sessLabel    string
 	sessLen      int
 	sessExpIn    time.Duration
 	sessRefDelay time.Duration
@@ -243,6 +244,7 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.StringVar(&param.uiDir, "uiDir", filepath.Join(filepath.Dir(os.Args[0]), "html"), "UI file directory")
 
 	flags.IntVar(&param.pwSaltLen, "pwSaltLen", 20, "Pairwise account ID calculation salt length")
+	flags.StringVar(&param.sessLabel, "sessLabel", "Id-Provider", "Session ID label")
 	flags.IntVar(&param.sessLen, "sessLen", 30, "Session ID length")
 	flags.DurationVar(&param.sessExpIn, "sessExpIn", 7*24*time.Hour, "Session expiration duration")
 	flags.DurationVar(&param.sessRefDelay, "sessRefDelay", 24*time.Hour, "Session refresh delay")
@@ -266,15 +268,15 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.DurationVar(&param.redPoolExpIn, "redPoolExpIn", time.Minute, "redis connection keep duration")
 	flags.DurationVar(&param.monTimeout, "monTimeout", 30*time.Second, "mongodb timeout duration")
 
-	flags.StringVar(&param.keyDbType, "keyDbType", "file", "Key DB type")
+	flags.StringVar(&param.keyDbType, "keyDbType", "redis", "Key DB type")
 	flags.StringVar(&param.keyDbPath, "keyDbPath", filepath.Join(filepath.Dir(os.Args[0]), "key"), "Key DB directory")
-	flags.StringVar(&param.keyDbAddr, "keyDbAddr", "localhost", "Key DB address")
-	flags.StringVar(&param.keyDbTag, "keyDbTag", "keys", "Key DB tag")
+	flags.StringVar(&param.keyDbAddr, "keyDbAddr", "localhost:6379", "Key DB address")
+	flags.StringVar(&param.keyDbTag, "keyDbTag", "key", "Key DB tag")
 	flags.DurationVar(&param.keyDbExpIn, "keyDbExpIn", 5*time.Minute, "Key DB expiration duration")
 
 	flags.StringVar(&param.webDbType, "webDbType", "redis", "Web data DB type")
 	flags.StringVar(&param.webDbAddr, "webDbAddr", "localhost:6379", "Web data DB address")
-	flags.StringVar(&param.webDbTag, "webDbTag", "webuest", "Web data DB tag")
+	flags.StringVar(&param.webDbTag, "webDbTag", "web", "Web data DB tag")
 	flags.DurationVar(&param.webDbExpIn, "webDbExpIn", 7*24*time.Hour, "Web data keep duration")
 
 	flags.StringVar(&param.acntDbType, "acntDbType", "mongo", "Account DB type")

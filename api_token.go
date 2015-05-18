@@ -191,7 +191,7 @@ func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {
 	// クライアント認証できた。
 	log.Debug(sender, ": Authenticated "+req.ta())
 
-	tokId := newId(sys.tokLen)
+	tokId := randomString(sys.tokLen)
 
 	// アクセストークンが決まった。
 	log.Debug(sender, ": Generated token "+mosaic(tokId))

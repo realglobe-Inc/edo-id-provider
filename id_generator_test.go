@@ -23,7 +23,7 @@ func TestNewId(t *testing.T) {
 	m := map[string]bool{}
 	for j := 0; j < 100; j++ {
 		for i := 100; i < 200; i++ {
-			id := newId(i)
+			id := randomString(i)
 			if m[id] {
 				t.Fatal("overlap " + id)
 			} else if len(id) != i {
@@ -40,7 +40,7 @@ func TestNewIdBytes(t *testing.T) {
 	m := map[string]bool{}
 	for j := 0; j < 100; j++ {
 		for i := 100; i < 200; i++ {
-			id := newIdBytes(i)
+			id := randomBytes(i)
 			label := base64.StdEncoding.EncodeToString(id)
 			if m[label] {
 				t.Fatal("overlap " + label)

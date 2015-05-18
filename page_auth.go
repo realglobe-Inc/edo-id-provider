@@ -79,12 +79,12 @@ func (sys *system) authPage(w http.ResponseWriter, r *http.Request) (err error) 
 	now := time.Now()
 	if sess == nil {
 		// セッションを新規発行。
-		sess = session.New(newId(sys.sessLen), now.Add(sys.sessExpIn))
+		sess = session.New(randomString(sys.sessLen), now.Add(sys.sessExpIn))
 		log.Info(sender, ": Generated new session "+mosaic(sess.Id())+" but not yet saved")
 	} else if now.After(sess.Expires().Add(-sys.sessRefDelay)) {
 		// セッションを更新。
 		old := sess
-		sess = sess.New(newId(sys.sessLen), now.Add(sys.sessExpIn))
+		sess = sess.New(randomString(sys.sessLen), now.Add(sys.sessExpIn))
 		log.Info(sender, ": Refreshed session "+mosaic(old.Id())+" to "+mosaic(sess.Id())+" but not yet saved")
 	}
 

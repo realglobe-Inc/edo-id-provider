@@ -110,7 +110,7 @@ func (sys *system) setSub(acnt account.Element, ta tadb.Element) error {
 	if err != nil {
 		return erro.Wrap(err)
 	} else if sect == nil {
-		sect = sector.New(ta.Sector(), newIdBytes(sys.pwSaltLen))
+		sect = sector.New(ta.Sector(), randomBytes(sys.pwSaltLen))
 		if existing, err := sys.sectDb.SaveIfAbsent(sect); err != nil {
 			return erro.Wrap(err)
 		} else if existing != nil {

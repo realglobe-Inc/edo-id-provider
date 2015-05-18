@@ -25,7 +25,7 @@ import (
 var pr = prand.New(time.Minute)
 
 // 長さを指定して ID 用のランダム文字列をつくる。
-func newId(length int) string {
+func randomString(length int) string {
 	id, err := secrand.String(length)
 	if err != nil {
 		log.Err(erro.Wrap(err))
@@ -35,7 +35,7 @@ func newId(length int) string {
 }
 
 // 長さを指定して ID 用のランダムバイト列をつくる。
-func newIdBytes(length int) []byte {
+func randomBytes(length int) []byte {
 	id, err := secrand.Bytes(length)
 	if err != nil {
 		log.Err(erro.Wrap(err))

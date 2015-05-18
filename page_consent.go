@@ -69,7 +69,7 @@ func (sys *system) redirectToConsentUi(w http.ResponseWriter, r *http.Request, s
 	uri.RawQuery = q.Encode()
 
 	// チケットを発行。
-	uri.Fragment = newId(sys.ticLen)
+	uri.Fragment = randomString(sys.ticLen)
 	sess.SetTicket(uri.Fragment)
 	log.Info(sender, ": Published ticket "+mosaic(uri.Fragment))
 
@@ -100,7 +100,7 @@ func (sys *system) consentPage(w http.ResponseWriter, r *http.Request) (err erro
 
 	now := time.Now()
 	if sess == nil || now.After(sess.Expires()) {
-		sess = session.New(newId(sys.sessLen), now.Add(sys.sessExpIn))
+		sess = session.New(randomString(sys.sessLen), now.Add(sys.sessExpIn))
 		log.Info(sender, ": Generated new session "+mosaic(sess.Id())+" but not yet registered")
 	}
 
@@ -183,7 +183,7 @@ func (sys *system) afterConsent(w http.ResponseWriter, r *http.Request, sender *
 
 	// 認可コードを発行する。
 	now := time.Now()
-	cod := authcode.New(newId(sys.acodLen), now.Add(sys.acodExpIn), sess.Account().Id(),
+	cod := authcode.New(randomString(sys.acodLen), now.Add(sys.acodExpIn), sess.Account().Id(),
 		sess.Account().LoginDate(), scop, tokAttrs, acntAttrs, req.Ta(),
 		req.RedirectUri(), req.Nonce())
 

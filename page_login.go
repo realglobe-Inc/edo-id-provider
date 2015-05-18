@@ -54,7 +54,7 @@ func (sys *system) redirectToLoginUi(w http.ResponseWriter, r *http.Request, sen
 	uri.RawQuery = q.Encode()
 
 	// チケットを発行。
-	uri.Fragment = newId(sys.ticLen)
+	uri.Fragment = randomString(sys.ticLen)
 	sess.SetTicket(uri.Fragment)
 	log.Info(sender, ": Published ticket "+mosaic(uri.Fragment))
 
@@ -85,7 +85,7 @@ func (sys *system) lginPage(w http.ResponseWriter, r *http.Request) (err error) 
 
 	now := time.Now()
 	if sess == nil || now.After(sess.Expires()) {
-		sess = session.New(newId(sys.sessLen), now.Add(sys.sessExpIn))
+		sess = session.New(randomString(sys.sessLen), now.Add(sys.sessExpIn))
 		log.Info(sender, ": Generated new session "+mosaic(sess.Id())+" but not yet registered")
 	}
 

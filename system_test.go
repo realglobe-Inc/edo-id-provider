@@ -42,7 +42,6 @@ func newTestSystem(selfKeys []jwk.Key, acnts []account.Element, tas []tadb.Eleme
 		pathSelUi:  test_pathSelUi,
 		pathLginUi: test_pathLginUi,
 		pathConsUi: test_pathConsUi,
-		pathErrUi:  test_pathErrUi,
 
 		pwSaltLen:    20,
 		sessLabel:    "Id-Provider",

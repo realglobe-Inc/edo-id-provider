@@ -75,7 +75,7 @@ func (sys *system) redirectToSelectUi(w http.ResponseWriter, r *http.Request, se
 
 	uri, err := url.Parse(sys.pathSelUi)
 	if err != nil {
-		return sys.redirectError(w, r, erro.Wrap(err), sender, sess)
+		return sys.respondPageError(w, r, erro.Wrap(err), sender, sess)
 	}
 
 	// アカウント選択ページに渡すクエリパラメータを生成。
@@ -108,6 +108,9 @@ func (sys *system) redirectToSelectUi(w http.ResponseWriter, r *http.Request, se
 func (sys *system) selectPage(w http.ResponseWriter, r *http.Request) (err error) {
 	sender := request.Parse(r, sys.sessLabel)
 
+	log.Info(sender, ": Received select request")
+	defer log.Info(sender, ": Handled select request")
+
 	var sess *session.Element
 	if sessId := sender.Session(); sessId != "" {
 		// セッションが通知された。
@@ -125,8 +128,7 @@ func (sys *system) selectPage(w http.ResponseWriter, r *http.Request) (err error
 		}
 	}
 
-	now := time.Now()
-	if sess == nil || now.After(sess.Expires()) {
+	if now := time.Now(); sess == nil || now.After(sess.Expires()) {
 		// セッションを新規発行。
 		sess = session.New(randomString(sys.sessLen), now.Add(sys.sessExpIn))
 		log.Info(sender, ": Generated new session "+mosaic(sess.Id())+" but not yet saved")
@@ -134,10 +136,17 @@ func (sys *system) selectPage(w http.ResponseWriter, r *http.Request) (err error
 
 	// セッションは決まった。
 
+	if err := sys.selectServe(w, r, sender, sess); err != nil {
+		return sys.respondPageError(w, r, erro.Wrap(err), sender, sess)
+	}
+	return nil
+}
+
+func (sys *system) selectServe(w http.ResponseWriter, r *http.Request, sender *request.Request, sess *session.Element) error {
 	authReq := sess.Request()
 	if authReq == nil {
 		// ユーザー認証・認可処理が始まっていない。
-		return sys.returnError(w, r, erro.Wrap(idperr.New(idperr.Invalid_request, "session is not in authentication process", http.StatusBadRequest, nil)), sender, sess)
+		return erro.Wrap(idperr.New(idperr.Invalid_request, "session is not in authentication process", http.StatusBadRequest, nil))
 	}
 
 	// ユーザー認証中。
@@ -146,10 +155,10 @@ func (sys *system) selectPage(w http.ResponseWriter, r *http.Request) (err error
 	req := newSelectRequest(r)
 	if sess.Ticket() == "" {
 		// アカウント選択中でない。
-		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Access_denied, "not in interactive process", nil)), sender, sess)
+		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, "not in interactive process", nil))
 	} else if req.ticket() != sess.Ticket() {
 		// 無効なアカウント選択券。
-		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Access_denied, "invalid ticket "+mosaic(req.ticket()), nil)), sender, sess)
+		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, "invalid ticket "+mosaic(req.ticket()), nil))
 	}
 
 	// チケットが有効だった。
@@ -166,7 +175,7 @@ func (sys *system) selectPage(w http.ResponseWriter, r *http.Request) (err error
 
 	acnt, err := sys.acntDb.GetByName(req.accountName())
 	if err != nil {
-		return sys.redirectError(w, r, erro.Wrap(err), sender, sess)
+		return erro.Wrap(err)
 	} else if acnt == nil {
 		// アカウントが無い。
 		log.Debug(sender, ": Specified accout "+req.accountName()+" is not exist")
@@ -193,7 +202,7 @@ func (sys *system) afterSelect(w http.ResponseWriter, r *http.Request, sender *r
 	prmpts := sess.Request().Prompt()
 	if prmpts[tagLogin] {
 		if prmpts[tagNone] {
-			return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Login_required, "cannot login without UI", nil)), sender, sess)
+			return erro.Wrap(newErrorForRedirect(idperr.Login_required, "cannot login without UI", nil))
 		}
 
 		return sys.redirectToLoginUi(w, r, sender, sess, "Please log in")
@@ -207,7 +216,7 @@ func (sys *system) afterSelect(w http.ResponseWriter, r *http.Request, sender *r
 	}
 
 	if prmpts[tagNone] {
-		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Login_required, "cannot login without UI", nil)), sender, sess)
+		return erro.Wrap(newErrorForRedirect(idperr.Login_required, "cannot login without UI", nil))
 	}
 
 	return sys.redirectToLoginUi(w, r, sender, sess, "Please log in")

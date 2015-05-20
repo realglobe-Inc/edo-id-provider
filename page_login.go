@@ -33,7 +33,7 @@ func (sys *system) redirectToLoginUi(w http.ResponseWriter, r *http.Request, sen
 
 	uri, err := url.Parse(sys.pathLginUi)
 	if err != nil {
-		return sys.redirectError(w, r, erro.Wrap(err), sender, sess)
+		return sys.respondPageError(w, r, erro.Wrap(err), sender, sess)
 	}
 
 	// ログインページに渡すクエリパラメータを生成。
@@ -66,6 +66,9 @@ func (sys *system) redirectToLoginUi(w http.ResponseWriter, r *http.Request, sen
 func (sys *system) lginPage(w http.ResponseWriter, r *http.Request) (err error) {
 	sender := request.Parse(r, sys.sessLabel)
 
+	log.Info(sender, ": Received login request")
+	defer log.Info(sender, ": Handled login request")
+
 	var sess *session.Element
 	if sessId := sender.Session(); sessId != "" {
 		// セッションが通知された。
@@ -83,18 +86,24 @@ func (sys *system) lginPage(w http.ResponseWriter, r *http.Request) (err error) 
 		}
 	}
 
-	now := time.Now()
-	if sess == nil || now.After(sess.Expires()) {
+	if now := time.Now(); sess == nil || now.After(sess.Expires()) {
 		sess = session.New(randomString(sys.sessLen), now.Add(sys.sessExpIn))
 		log.Info(sender, ": Generated new session "+mosaic(sess.Id())+" but not yet registered")
 	}
 
 	// セッションは決まった。
 
+	if err := sys.loginServe(w, r, sender, sess); err != nil {
+		return sys.respondPageError(w, r, erro.Wrap(err), sender, sess)
+	}
+	return nil
+}
+
+func (sys *system) loginServe(w http.ResponseWriter, r *http.Request, sender *request.Request, sess *session.Element) error {
 	authReq := sess.Request()
 	if authReq == nil {
 		// ユーザー認証・認可処理が始まっていない。
-		return sys.returnError(w, r, erro.Wrap(idperr.New(idperr.Invalid_request, "session is not in authentication process", http.StatusBadRequest, nil)), sender, sess)
+		return erro.Wrap(idperr.New(idperr.Invalid_request, "session is not in authentication process", http.StatusBadRequest, nil))
 	}
 
 	// ユーザー認証中。
@@ -103,10 +112,10 @@ func (sys *system) lginPage(w http.ResponseWriter, r *http.Request) (err error) 
 	req := newLoginRequest(r)
 	if sess.Ticket() == "" {
 		// ログイン中でない。
-		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Access_denied, "not in interactive process", nil)), sender, sess)
+		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, "not in interactive process", nil))
 	} else if req.ticket() != sess.Ticket() {
 		// 無効なログイン券。
-		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Access_denied, "invalid ticket "+mosaic(req.ticket()), nil)), sender, sess)
+		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, "invalid ticket "+mosaic(req.ticket()), nil))
 	}
 
 	// チケットが有効だった。
@@ -123,7 +132,7 @@ func (sys *system) lginPage(w http.ResponseWriter, r *http.Request) (err error) 
 
 	acnt, err := sys.acntDb.GetByName(req.accountName())
 	if err != nil {
-		return sys.redirectError(w, r, erro.Wrap(err), sender, sess)
+		return erro.Wrap(err)
 	} else if acnt == nil {
 		// アカウントが無い。
 		log.Debug(sender, ": Specified accout "+req.accountName()+" is not exist")
@@ -157,33 +166,33 @@ func (sys *system) afterLogin(w http.ResponseWriter, r *http.Request, sender *re
 
 	if ta == nil {
 		if ta, err = sys.taDb.Get(sess.Request().Ta()); err != nil {
-			return sys.redirectError(w, r, erro.Wrap(err), sender, sess)
+			return erro.Wrap(err)
 		} else if ta == nil {
 			// アカウントが無い。
-			return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Server_error, "TA "+mosaic(sess.Request().Ta())+" is not exist", nil)), sender, sess)
+			return erro.Wrap(newErrorForRedirect(idperr.Server_error, "TA "+mosaic(sess.Request().Ta())+" is not exist", nil))
 		}
 	}
 	if acnt == nil {
 		if acnt, err = sys.acntDb.Get(sess.Account().Id()); err != nil {
-			return sys.redirectError(w, r, erro.Wrap(err), sender, sess)
+			return erro.Wrap(err)
 		} else if acnt == nil {
 			// アカウントが無い。
-			return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Server_error, "accout is not exist", nil)), sender, sess)
+			return erro.Wrap(newErrorForRedirect(idperr.Server_error, "accout is not exist", nil))
 		}
 	}
 
 	// クレーム指定の検査。
 	if err := sys.setSub(acnt, ta); err != nil {
-		return sys.redirectError(w, r, erro.Wrap(err), sender, sess)
+		return erro.Wrap(err)
 	} else if err := checkContradiction(acnt, sess.Request().Claims()); err != nil {
 		// 指定を満たすのは無理。
-		return sys.redirectError(w, r, newErrorForRedirect(idperr.Access_denied, erro.Unwrap(err).Error(), erro.Wrap(err)), sender, sess)
+		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, erro.Unwrap(err).Error(), erro.Wrap(err)))
 	}
 
 	prmpts := sess.Request().Prompt()
 	if prmpts[tagConsent] {
 		if prmpts[tagNone] {
-			return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Consent_required, "cannot consent without UI", nil)), sender, sess)
+			return erro.Wrap(newErrorForRedirect(idperr.Consent_required, "cannot consent without UI", nil))
 		}
 
 		return sys.redirectToConsentUi(w, r, sender, sess, "Please allow to provide these scope and attributes")
@@ -192,7 +201,7 @@ func (sys *system) afterLogin(w http.ResponseWriter, r *http.Request, sender *re
 	// 事前同意を調べる。
 	cons, err := sys.consDb.Get(sess.Account().Id(), sess.Request().Ta())
 	if err != nil {
-		return sys.redirectError(w, r, erro.Wrap(err), sender, sess)
+		return erro.Wrap(err)
 	} else if cons == nil {
 		cons = consent.New(sess.Account().Id(), sess.Request().Ta())
 	}
@@ -204,7 +213,7 @@ func (sys *system) afterLogin(w http.ResponseWriter, r *http.Request, sender *re
 	}
 
 	if prmpts[tagNone] {
-		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Consent_required, "cannot consent without UI", nil)), sender, sess)
+		return erro.Wrap(newErrorForRedirect(idperr.Consent_required, "cannot consent without UI", nil))
 	}
 
 	return sys.redirectToConsentUi(w, r, sender, sess, "Please allow to provide these scope and attributes")

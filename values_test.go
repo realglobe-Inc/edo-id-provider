@@ -39,7 +39,6 @@ const (
 	test_pathSelUi  = "/ui/select.html"
 	test_pathLginUi = "/ui/login.html"
 	test_pathConsUi = "/ui/consent.html"
-	test_pathErrUi  = "/ui/error.html"
 
 	test_taPathCb = "/callback"
 )

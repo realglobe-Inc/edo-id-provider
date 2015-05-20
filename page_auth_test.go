@@ -282,13 +282,9 @@ func TestDenyNoClientIdInAuthRequest(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	// エラー UI にリダイレクトされる。
-	if resp.Request.URL.Path != test_pathErrUi {
-		t.Error(resp.Request.URL.Path)
-		t.Fatal(test_pathErrUi)
-	} else if resp.Request.FormValue("error") != "invalid_request" {
-		t.Error(resp.Request.FormValue("error"))
-		t.Fatal("invalid_request")
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Error(resp.Status)
+		t.Fatal(http.StatusBadRequest)
 	}
 }
 
@@ -563,12 +559,9 @@ func TestDirectErrorResponseInInvalidRedirectUri(t *testing.T) {
 	defer resp.Body.Close()
 
 	// エラー UI にリダイレクトされる。
-	if resp.Request.URL.Path != test_pathErrUi {
-		t.Error(resp.Request.URL.Path)
-		t.Fatal(test_pathErrUi)
-	} else if resp.Request.FormValue("error") != "invalid_request" {
-		t.Error(resp.Request.FormValue("error"))
-		t.Fatal("invalid_request")
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Error(resp.StatusCode)
+		t.Fatal(http.StatusBadRequest)
 	}
 }
 
@@ -607,13 +600,9 @@ func TestDirectErrorResponseInNoRedirectUri(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	// エラー UI にリダイレクトされる。
-	if resp.Request.URL.Path != test_pathErrUi {
-		t.Error(resp.Request.URL.Path)
-		t.Fatal(test_pathErrUi)
-	} else if resp.Request.FormValue("error") != "invalid_request" {
-		t.Error(resp.Request.FormValue("error"))
-		t.Fatal("invalid_request")
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Error(resp.Status)
+		t.Fatal(http.StatusBadRequest)
 	}
 }
 

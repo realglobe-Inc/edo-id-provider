@@ -18,9 +18,16 @@ import ()
 
 // コンパイル時に打ち間違いを検知するため。それ以上ではない。
 const (
-	// HTTP の URL クエリや application/json, application/x-www-form-urlencoded で使うパラメータ名。
-	// OAuth と OpenID Connect で定義されているパラメータ。
+	// アンダースコア。
 	tagAccess_token          = "access_token"
+	tagAlg                   = "alg"
+	tagAllowed_claims        = "allowed_claims"
+	tagAllowed_scope         = "allowed_scope"
+	tagAt_hash               = "at_hash"
+	tagAud                   = "aud"
+	tagAuth_time             = "auth_time"
+	tagAuthorization_code    = "authorization_code"
+	tagC_hash                = "at_hash"
 	tagClaim                 = "claim"
 	tagClaims                = "claims"
 	tagClient_assertion      = "client_assertion"
@@ -28,14 +35,33 @@ const (
 	tagClient_id             = "client_id"
 	tagClient_secret         = "client_secret"
 	tagCode                  = "code"
+	tagConsent               = "consent"
+	tagDenied_claims         = "denied_claims"
+	tagDenied_scope          = "denied_scope"
 	tagDisplay               = "display"
 	tagError                 = "error"
 	tagError_description     = "error_description"
+	tagExp                   = "exp"
 	tagExpires_in            = "expires_in"
 	tagGrant_type            = "grant_type"
+	tagIat                   = "iat"
 	tagId_token              = "id_token"
+	tagIss                   = "iss"
+	tagIssuer                = "issuer"
+	tagJti                   = "jti"
+	tagKid                   = "kid"
+	tagLocale                = "locale"
+	tagLocales               = "locales"
+	tagLogin                 = "login"
 	tagMax_age               = "max_age"
+	tagMessage               = "message"
 	tagNonce                 = "nonce"
+	tagNone                  = "none"
+	tagOffline_access        = "offline_access"
+	tagOpenid                = "openid"
+	tagOptional_claims       = "optional_claims"
+	tagPass_type             = "pass_type"
+	tagPassword              = "password"
 	tagPrompt                = "prompt"
 	tagRedirect_uri          = "redirect_uri"
 	tagRefresh_token         = "refresh_token"
@@ -43,82 +69,36 @@ const (
 	tagRequest_uri           = "request_uri"
 	tagResponse_type         = "response_type"
 	tagScope                 = "scope"
+	tagSelect_account        = "select_account"
 	tagState                 = "state"
+	tagSub                   = "sub"
+	tagTicket                = "ticket"
 	tagToken_type            = "token_type"
 	tagUi_locales            = "ui_locales"
+	tagUsername              = "username"
+	tagUsernames             = "usernames"
 
-	// 独自。
-	tagAllowed_claims  = "allowed_claims"
-	tagAllowed_scope   = "allowed_scope"
-	tagDenied_claims   = "denied_claims"
-	tagDenied_scope    = "denied_scope"
-	tagIssuer          = "issuer"
-	tagLocale          = "locale"
-	tagLocales         = "locales"
-	tagMessage         = "message"
-	tagOptional_claims = "optional_claims"
-	tagPass_type       = "pass_type"
-	tagPassword        = "password"
-	tagTicket          = "ticket"
-	tagUsername        = "username"
-	tagUsernames       = "usernames"
+	// ハイフン。
+	tagNo_cache = "no-cache"
+	tagNo_store = "no-store"
 
-	// scope の値。
-	tagOpenid         = "openid"
-	tagOffline_access = "offline_access"
-
-	// response_type の値。
-	//tagCode     = "code"
-	//tagId_token = "id_token"
-
-	// prompt の値。
-	tagConsent        = "consent"
-	tagLogin          = "login"
-	tagNone           = "none"
-	tagSelect_account = "select_account"
-
-	// クレーム名。
-	tagAt_hash   = "at_hash"
-	tagAud       = "aud"
-	tagAuth_time = "auth_time"
-	tagC_hash    = "at_hash"
-	tagExp       = "exp"
-	tagIat       = "iat"
-	tagIss       = "iss"
-	tagJti       = "jti"
-	//tagNonce     = "nonce"
-	tagSub = "sub"
-
-	// JWT のヘッダ名。
-	tagAlg = "alg"
-	tagKid = "kid"
-
-	// JWT の alg ヘッダの値。
-	//tagNone = "none"
-
-	// grant_type の値。
-	tagAuthorization_code = "authorization_code"
-
-	// token_type の値。
-	tagBearer = "Bearer"
-
-	// HTTP メソッド。
-	tagPost = "POST"
-
-	// HTTP ヘッダ名。
+	// 頭大文字、ハイフン。
 	tagAuthorization  = "Authorization"
+	tagBearer         = "Bearer"
 	tagCache_control  = "Cache-Control"
 	tagContent_length = "Content-Length"
 	tagContent_type   = "Content-Type"
 	tagPragma         = "Pragma"
 
-	// HTTP ヘッダ値。
-	//tagBearer = "Bearer"
-	tagNo_store = "no-store"
-	tagNo_cache = "no-cache"
+	// 大文字。
+	tagPost = "POST"
 )
 
 const (
 	// client_assertion_type の値。
 	cliAssTypeJwt_bearer = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+
+	// Content-Type の値。
+	contTypeHtml = "text/html"
+	contTypeJson = "application/json"
 )

@@ -36,7 +36,7 @@ func (sys *system) redirectToConsentUi(w http.ResponseWriter, r *http.Request, s
 
 	uri, err := url.Parse(sys.pathConsUi)
 	if err != nil {
-		return sys.redirectError(w, r, erro.Wrap(err), sender, sess)
+		return sys.respondPageError(w, r, erro.Wrap(err), sender, sess)
 	}
 
 	// 同意ページに渡すクエリパラメータを生成。
@@ -81,6 +81,9 @@ func (sys *system) redirectToConsentUi(w http.ResponseWriter, r *http.Request, s
 func (sys *system) consentPage(w http.ResponseWriter, r *http.Request) (err error) {
 	sender := request.Parse(r, sys.sessLabel)
 
+	log.Info(sender, ": Received consent request")
+	defer log.Info(sender, ": Handled consent request")
+
 	var sess *session.Element
 	if sessId := sender.Session(); sessId != "" {
 		// セッションが通知された。
@@ -98,18 +101,24 @@ func (sys *system) consentPage(w http.ResponseWriter, r *http.Request) (err erro
 		}
 	}
 
-	now := time.Now()
-	if sess == nil || now.After(sess.Expires()) {
+	if now := time.Now(); sess == nil || now.After(sess.Expires()) {
 		sess = session.New(randomString(sys.sessLen), now.Add(sys.sessExpIn))
 		log.Info(sender, ": Generated new session "+mosaic(sess.Id())+" but not yet registered")
 	}
 
-	// セッションは決まった。
+	// セッションが決まった。
 
+	if err := sys.consentServe(w, r, sender, sess); err != nil {
+		return sys.respondPageError(w, r, erro.Wrap(err), sender, sess)
+	}
+	return nil
+}
+
+func (sys *system) consentServe(w http.ResponseWriter, r *http.Request, sender *request.Request, sess *session.Element) error {
 	authReq := sess.Request()
 	if authReq == nil {
 		// ユーザー認証・認可処理が始まっていない。
-		return sys.returnError(w, r, erro.Wrap(idperr.New(idperr.Invalid_request, "session is not in authentication process", http.StatusBadRequest, nil)), sender, sess)
+		return erro.Wrap(idperr.New(idperr.Invalid_request, "session is not in authentication process", http.StatusBadRequest, nil))
 	}
 
 	// ユーザー認証・認可処理中。
@@ -118,10 +127,10 @@ func (sys *system) consentPage(w http.ResponseWriter, r *http.Request) (err erro
 	req := newConsentRequest(r)
 	if sess.Ticket() == "" {
 		// 同意中でない。
-		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Access_denied, "not in interaction process", nil)), sender, sess)
+		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, "not in interaction process", nil))
 	} else if req.ticket() != sess.Ticket() {
 		// 無効な同意券。
-		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Access_denied, "invalid ticket "+mosaic(req.ticket()), nil)), sender, sess)
+		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, "invalid ticket "+mosaic(req.ticket()), nil))
 	}
 
 	// チケットが有効だった。
@@ -130,7 +139,7 @@ func (sys *system) consentPage(w http.ResponseWriter, r *http.Request) (err erro
 	ok, scop, tokAttrs, acntAttrs := satisfiable(newConsentInfo(req.allowedScope(), req.allowedAttributes()), removeUnknownScope(sess.Request().Scope()), sess.Request().Claims())
 	if !ok {
 		// 同意が足りなかった。
-		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Access_denied, "some essential claims were denied", nil)), sender, sess)
+		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, "some essential claims were denied", nil))
 	}
 
 	// 同意できた。
@@ -139,7 +148,7 @@ func (sys *system) consentPage(w http.ResponseWriter, r *http.Request) (err erro
 	// 同意情報を更新。
 	cons, err := sys.consDb.Get(sess.Account().Id(), sess.Request().Ta())
 	if err != nil {
-		return sys.redirectError(w, r, erro.Wrap(err), sender, sess)
+		return erro.Wrap(err)
 	} else if cons == nil {
 		cons = consent.New(sess.Account().Id(), sess.Request().Ta())
 	}
@@ -176,7 +185,7 @@ func (sys *system) afterConsent(w http.ResponseWriter, r *http.Request, sender *
 
 	if !scop[tagOpenid] {
 		// openid すら許されなかった。
-		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Access_denied, tagOpenid+" scope was denied", nil)), sender, sess)
+		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, tagOpenid+" scope was denied", nil))
 	}
 
 	req := sess.Request()
@@ -190,7 +199,7 @@ func (sys *system) afterConsent(w http.ResponseWriter, r *http.Request, sender *
 	log.Debug(sender, ": Generated authorization code "+mosaic(cod.Id()))
 
 	if err := sys.acodDb.Save(cod, now.Add(sys.acodDbExpIn)); err != nil {
-		return sys.redirectError(w, r, erro.Wrap(err), sender, sess)
+		return erro.Wrap(err)
 	}
 
 	// 認可コードを発行した。
@@ -200,18 +209,18 @@ func (sys *system) afterConsent(w http.ResponseWriter, r *http.Request, sender *
 	if req.ResponseType()[tagId_token] {
 		if ta == nil {
 			if ta, err = sys.taDb.Get(sess.Request().Ta()); err != nil {
-				return sys.redirectError(w, r, erro.Wrap(err), sender, sess)
+				return erro.Wrap(err)
 			} else if ta == nil {
 				// TA が無い。
-				return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Invalid_request, "TA "+sess.Request().Ta()+" is not exist", nil)), sender, sess)
+				return erro.Wrap(newErrorForRedirect(idperr.Invalid_request, "TA "+sess.Request().Ta()+" is not exist", nil))
 			}
 		}
 		if acnt == nil {
 			if acnt, err = sys.acntDb.Get(sess.Account().Id()); err != nil {
-				return sys.redirectError(w, r, erro.Wrap(err), sender, sess)
+				return erro.Wrap(err)
 			} else if acnt == nil {
 				// アカウントが無い。
-				return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Invalid_request, "accout is not exist", nil)), sender, sess)
+				return erro.Wrap(newErrorForRedirect(idperr.Invalid_request, "accout is not exist", nil))
 			}
 		}
 
@@ -223,7 +232,7 @@ func (sys *system) afterConsent(w http.ResponseWriter, r *http.Request, sender *
 			clms[tagNonce] = cod.Nonce()
 		}
 		if hGen, err := jwt.HashFunction(sys.sigAlg); err != nil {
-			return sys.redirectError(w, r, erro.Wrap(err), sender, sess)
+			return erro.Wrap(err)
 		} else if hGen > 0 {
 			h := hGen.New()
 			h.Write([]byte(cod.Id()))
@@ -232,7 +241,7 @@ func (sys *system) afterConsent(w http.ResponseWriter, r *http.Request, sender *
 		}
 		idTok, err = sys.newIdToken(ta, acnt, tokAttrs, clms)
 		if err != nil {
-			return sys.redirectError(w, r, erro.Wrap(err), sender, sess)
+			return erro.Wrap(err)
 		}
 	}
 

@@ -15,18 +15,15 @@
 package main
 
 import (
-	"encoding/json"
 	jtidb "github.com/realglobe-Inc/edo-id-provider/database/jti"
 	"github.com/realglobe-Inc/edo-id-provider/database/token"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
 	"github.com/realglobe-Inc/edo-idp-selector/request"
 	"github.com/realglobe-Inc/edo-lib/base64url"
 	"github.com/realglobe-Inc/edo-lib/jwt"
-	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"net/http"
 	"reflect"
-	"strconv"
 	"time"
 )
 
@@ -54,19 +51,7 @@ func responseToken(w http.ResponseWriter, tok *token.Element, refTok, idTok stri
 	if idTok != "" {
 		m[tagId_token] = idTok
 	}
-	buff, err := json.Marshal(m)
-	if err != nil {
-		return erro.Wrap(err)
-	}
-
-	w.Header().Add(tagContent_type, server.ContentTypeJson)
-	w.Header().Add(tagContent_length, strconv.Itoa(len(buff)))
-	w.Header().Add(tagCache_control, tagNo_store)
-	w.Header().Add(tagPragma, tagNo_cache)
-	if _, err := w.Write(buff); err != nil {
-		log.Err(erro.Wrap(err))
-	}
-	return nil
+	return respondJson(w, m)
 }
 
 func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {

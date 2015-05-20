@@ -82,10 +82,10 @@ type Request struct {
 }
 
 // 途中で失敗したら error と共にそこまでの結果も返す。
-func ParseRequest(r *http.Request) (*Request, error) {
-	var err error
+func ParseRequest(r *http.Request) (req *Request, err error) {
+	// エラー検知は最後にする。
 
-	req := &Request{}
+	req = &Request{}
 
 	req.scop = request.FormValueSet(r.FormValue(tagScope))
 	req.respType = request.FormValueSet(r.FormValue(tagResponse_type))
@@ -95,18 +95,25 @@ func ParseRequest(r *http.Request) (*Request, error) {
 	req.nonc = r.FormValue(tagNonce)
 	req.disp = r.FormValue(tagDisplay)
 	req.prmpt = request.FormValueSet(r.FormValue(tagPrompt))
-	if req.maxAge, err = parseMaxAge(r.FormValue(tagMax_age)); err != nil {
-		return req, erro.Wrap(err)
-	}
 	req.langs = request.FormValues(r.FormValue(tagUi_locales))
 	req.hint = r.FormValue(tagId_token_hint)
-	if req.reqClm, err = parseClaims(r.FormValue(tagClaims)); err != nil {
-		return req, erro.Wrap(err)
-	}
 	if reqObj := r.FormValue(tagRequest); reqObj != "" {
 		req.req = []byte(reqObj)
 	}
 	req.reqUri = r.FormValue(tagRequest_uri)
+
+	if req.maxAge, err = parseMaxAge(r.FormValue(tagMax_age)); err != nil {
+		return req, erro.Wrap(err)
+	}
+	if req.reqClm, err = parseClaims(r.FormValue(tagClaims)); err != nil {
+		return req, erro.Wrap(err)
+	}
+
+	if len(req.respType) == 0 {
+		return req, erro.New("no response type")
+	} else if req.ta == "" {
+		return req, erro.New("no TA ID")
+	}
 
 	return req, nil
 }

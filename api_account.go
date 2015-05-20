@@ -88,5 +88,5 @@ func (sys *system) accountApi(w http.ResponseWriter, r *http.Request) error {
 		info[clmName] = clm
 	}
 
-	return response(w, info)
+	return respondJson(w, info)
 }

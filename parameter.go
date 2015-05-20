@@ -72,9 +72,10 @@ type parameters struct {
 	pathSelUi  string
 	pathLginUi string
 	pathConsUi string
-	pathErrUi  string
 	// UI 用 HTML を置くディレクトリパス。
 	uiDir string
+
+	tmplErr string
 
 	// セクタ固有のアカウント ID の計算に使う情報。
 	pwSaltLen int
@@ -240,8 +241,9 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.StringVar(&param.pathSelUi, "pathSelUi", "/ui/select.html", "Account selection UI URI")
 	flags.StringVar(&param.pathLginUi, "pathLginUi", "/ui/login.html", "Login UI URI")
 	flags.StringVar(&param.pathConsUi, "pathConsUi", "/ui/consent.html", "Consent UI URI")
-	flags.StringVar(&param.pathErrUi, "pathErrUi", "/ui/error.html", "Error UI URI")
-	flags.StringVar(&param.uiDir, "uiDir", filepath.Join(filepath.Dir(os.Args[0]), "html"), "UI file directory")
+	flags.StringVar(&param.uiDir, "uiDir", "", "UI file directory")
+
+	flags.StringVar(&param.tmplErr, "tmplErr", "", "Error UI template")
 
 	flags.IntVar(&param.pwSaltLen, "pwSaltLen", 20, "Pairwise account ID calculation salt length")
 	flags.StringVar(&param.sessLabel, "sessLabel", "Id-Provider", "Session ID label")

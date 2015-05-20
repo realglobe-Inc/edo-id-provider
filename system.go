@@ -31,6 +31,7 @@ import (
 	webdb "github.com/realglobe-Inc/edo-idp-selector/database/web"
 	"github.com/realglobe-Inc/edo-lib/jwt"
 	"github.com/realglobe-Inc/go-lib/erro"
+	"html/template"
 	"net/http"
 	"time"
 )
@@ -45,7 +46,8 @@ type system struct {
 	pathSelUi  string
 	pathLginUi string
 	pathConsUi string
-	pathErrUi  string
+
+	errTmpl *template.Template
 
 	pwSaltLen    int
 	sessLabel    string

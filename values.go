@@ -17,7 +17,6 @@ package main
 import ()
 
 // コンパイル時に打ち間違いを検知するため。それ以上ではない。
-
 const (
 	// HTTP の URL クエリや application/json, application/x-www-form-urlencoded で使うパラメータ名。
 	// OAuth と OpenID Connect で定義されているパラメータ。

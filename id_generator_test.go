@@ -19,7 +19,7 @@ import (
 	"testing"
 )
 
-func TestNewId(t *testing.T) {
+func TestRandomString(t *testing.T) {
 	m := map[string]bool{}
 	for j := 0; j < 100; j++ {
 		for i := 100; i < 200; i++ {
@@ -36,7 +36,7 @@ func TestNewId(t *testing.T) {
 	}
 }
 
-func TestNewIdBytes(t *testing.T) {
+func TestRandomBytes(t *testing.T) {
 	m := map[string]bool{}
 	for j := 0; j < 100; j++ {
 		for i := 100; i < 200; i++ {

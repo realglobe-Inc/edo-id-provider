@@ -46,7 +46,6 @@ func main() {
 			os.Exit(exitCode)
 		}
 	}()
-
 	defer rglog.Flush()
 
 	logutil.InitConsole("github.com/realglobe-Inc")

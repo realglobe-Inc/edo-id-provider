@@ -147,14 +147,14 @@ func TestElementPastAccount(t *testing.T) {
 
 	for i := 0; i < 2*MaxHistory; i++ {
 		elem.SelectAccount(NewAccount(test_acntId+strconv.Itoa(i), test_acntName+strconv.Itoa(i)))
-		if acnts := elem.SelectedAccounts(); len(acnts) > MaxHistory+1 {
+		if len(elem.SelectedAccounts()) > MaxHistory {
 			t.Error(i)
-			t.Fatal(acnts)
+			t.Fatal(elem.SelectedAccounts())
 		}
 		elem.Account().Login()
 	}
-	if acnts := elem.SelectedAccounts(); len(acnts) != MaxHistory {
-		t.Fatal(acnts)
+	if len(elem.SelectedAccounts()) != MaxHistory {
+		t.Fatal(elem.SelectedAccounts())
 	}
 	for _, acnt := range elem.SelectedAccounts() {
 		if !acnt.LoggedIn() {

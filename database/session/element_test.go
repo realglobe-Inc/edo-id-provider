@@ -73,6 +73,8 @@ func TestElement(t *testing.T) {
 	} else if !elem.Expires().Equal(exp) {
 		t.Error(elem.Expires())
 		t.Fatal(exp)
+	} else if elem.Account() != nil {
+		t.Fatal(elem.Account())
 	} else if elem.Request() != nil {
 		t.Fatal(elem.Request())
 	} else if elem.Ticket() != "" {
@@ -88,7 +90,10 @@ func TestElement(t *testing.T) {
 	elem.SetTicket(test_tic)
 	elem.SetLanguage(test_lang)
 
-	if !reflect.DeepEqual(elem.Request(), test_req) {
+	if !reflect.DeepEqual(elem.Account(), test_acnt) {
+		t.Error(elem.Account())
+		t.Fatal(test_acnt)
+	} else if !reflect.DeepEqual(elem.Request(), test_req) {
 		t.Error(elem.Request())
 		t.Fatal(test_req)
 	} else if elem.Ticket() != test_tic {

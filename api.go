@@ -16,8 +16,8 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/realglobe-Inc/edo-id-provider/request"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
+	"github.com/realglobe-Inc/edo-idp-selector/request"
 	jsonutil "github.com/realglobe-Inc/edo-lib/json"
 	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/go-lib/erro"

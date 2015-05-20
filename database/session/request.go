@@ -16,7 +16,7 @@ package session
 
 import (
 	"encoding/json"
-	"github.com/realglobe-Inc/edo-id-provider/request"
+	"github.com/realglobe-Inc/edo-idp-selector/request"
 	"github.com/realglobe-Inc/edo-lib/duration"
 	"github.com/realglobe-Inc/edo-lib/jwk"
 	"github.com/realglobe-Inc/edo-lib/jwt"

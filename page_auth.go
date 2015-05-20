@@ -17,8 +17,8 @@ package main
 import (
 	"fmt"
 	"github.com/realglobe-Inc/edo-id-provider/database/session"
-	"github.com/realglobe-Inc/edo-id-provider/request"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
+	"github.com/realglobe-Inc/edo-idp-selector/request"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"net/http"
 	"time"

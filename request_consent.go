@@ -15,7 +15,7 @@
 package main
 
 import (
-	"github.com/realglobe-Inc/edo-id-provider/request"
+	"github.com/realglobe-Inc/edo-idp-selector/request"
 	"net/http"
 )
 

@@ -16,8 +16,6 @@ package main
 
 import (
 	"encoding/json"
-	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
-	"github.com/realglobe-Inc/go-lib/erro"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -25,7 +23,7 @@ import (
 	"testing"
 )
 
-func TestResponse(t *testing.T) {
+func TestRespondJson(t *testing.T) {
 	m := map[string]interface{}{
 		"access_token": "ZkTPOdBdh_bS2PqWnb1r8A3DqeKGCC",
 		"scope":        "openid email",
@@ -34,7 +32,7 @@ func TestResponse(t *testing.T) {
 	}
 
 	w := httptest.NewRecorder()
-	if err := response(w, m); err != nil {
+	if err := respondJson(w, m); err != nil {
 		t.Fatal(err)
 	}
 
@@ -55,73 +53,5 @@ func TestResponse(t *testing.T) {
 	} else if !reflect.DeepEqual(m2, m) {
 		t.Error(m2)
 		t.Fatal(m2)
-	}
-}
-
-func TestResponseIdpError(t *testing.T) {
-	origErr := idperr.New(idperr.Invalid_request, "invalid request", http.StatusBadRequest, nil)
-
-	w := httptest.NewRecorder()
-	if err := responseError(w, erro.Wrap(origErr), nil); err != nil {
-		t.Fatal(err)
-	}
-
-	if w.Code != origErr.Status() {
-		t.Error(w.Code)
-		t.Fatal(origErr.Status())
-	} else if w.HeaderMap.Get("Content-Type") != "application/json" {
-		t.Error(w.HeaderMap.Get("Content-Type"))
-		t.Fatal("application/json")
-	} else if w.Body == nil {
-		t.Fatal("no body")
-	}
-
-	data, _ := ioutil.ReadAll(w.Body)
-	var buff struct {
-		Error             string
-		Error_description string
-	}
-	if err := json.Unmarshal(data, &buff); err != nil {
-		t.Fatal(err)
-	} else if buff.Error != origErr.ErrorCode() {
-		t.Error(buff.Error)
-		t.Fatal(origErr.ErrorCode())
-	} else if buff.Error_description != origErr.ErrorDescription() {
-		t.Error(buff.Error_description)
-		t.Fatal(origErr.ErrorDescription())
-	}
-}
-
-func TestResponseNormalError(t *testing.T) {
-	origErr := erro.New("test error")
-
-	w := httptest.NewRecorder()
-	if err := responseError(w, origErr, nil); err != nil {
-		t.Fatal(err)
-	}
-
-	if w.Code != http.StatusInternalServerError {
-		t.Error(w.Code)
-		t.Fatal(http.StatusInternalServerError)
-	} else if w.HeaderMap.Get("Content-Type") != "application/json" {
-		t.Error(w.HeaderMap.Get("Content-Type"))
-		t.Fatal("application/json")
-	} else if w.Body == nil {
-		t.Fatal("no body")
-	}
-
-	data, _ := ioutil.ReadAll(w.Body)
-	var buff struct {
-		Error             string
-		Error_description string
-	}
-	if err := json.Unmarshal(data, &buff); err != nil {
-		t.Fatal(err)
-	} else if buff.Error != idperr.Server_error {
-		t.Error(buff.Error)
-		t.Fatal(idperr.Server_error)
-	} else if buff.Error_description != "test error" {
-		t.Error(buff.Error_description)
-		t.Fatal("test error")
 	}
 }

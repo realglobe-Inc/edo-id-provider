@@ -17,120 +17,88 @@ package main
 import ()
 
 // コンパイル時に打ち間違いを検知するため。それ以上ではない。
-
-// HTTP の URL クエリや application/json, application/x-www-form-urlencoded で使うパラメータ名。
 const (
-	// OAuth と OpenID Connect で定義されているパラメータ。
-	formAccess_token          = "access_token"
-	formClaim                 = "claim"
-	formClaims                = "claims"
-	formClient_assertion      = "client_assertion"
-	formClient_assertion_type = "client_assertion_type"
-	formClient_id             = "client_id"
-	formClient_secret         = "client_secret"
-	formCode                  = "code"
-	formDisplay               = "display"
-	formError                 = "error"
-	formError_description     = "error_description"
-	formExpires_in            = "expires_in"
-	formGrant_type            = "grant_type"
-	formId_token              = "id_token"
-	formMax_age               = "max_age"
-	formNonce                 = "nonce"
-	formPrompt                = "prompt"
-	formRedirect_uri          = "redirect_uri"
-	formRefresh_token         = "refresh_token"
-	formRequest               = "request"
-	formRequest_uri           = "request_uri"
-	formResponse_type         = "response_type"
-	formScope                 = "scope"
-	formState                 = "state"
-	formToken_type            = "token_type"
-	formUi_locales            = "ui_locales"
+	// アンダースコア。
+	tagAccess_token          = "access_token"
+	tagAlg                   = "alg"
+	tagAllowed_claims        = "allowed_claims"
+	tagAllowed_scope         = "allowed_scope"
+	tagAt_hash               = "at_hash"
+	tagAud                   = "aud"
+	tagAuth_time             = "auth_time"
+	tagAuthorization_code    = "authorization_code"
+	tagC_hash                = "at_hash"
+	tagClaim                 = "claim"
+	tagClaims                = "claims"
+	tagClient_assertion      = "client_assertion"
+	tagClient_assertion_type = "client_assertion_type"
+	tagClient_id             = "client_id"
+	tagClient_secret         = "client_secret"
+	tagCode                  = "code"
+	tagConsent               = "consent"
+	tagDenied_claims         = "denied_claims"
+	tagDenied_scope          = "denied_scope"
+	tagDisplay               = "display"
+	tagError                 = "error"
+	tagError_description     = "error_description"
+	tagExp                   = "exp"
+	tagExpires_in            = "expires_in"
+	tagGrant_type            = "grant_type"
+	tagIat                   = "iat"
+	tagId_token              = "id_token"
+	tagIss                   = "iss"
+	tagIssuer                = "issuer"
+	tagJti                   = "jti"
+	tagKid                   = "kid"
+	tagLocale                = "locale"
+	tagLocales               = "locales"
+	tagLogin                 = "login"
+	tagMax_age               = "max_age"
+	tagMessage               = "message"
+	tagNonce                 = "nonce"
+	tagNone                  = "none"
+	tagOffline_access        = "offline_access"
+	tagOpenid                = "openid"
+	tagOptional_claims       = "optional_claims"
+	tagPass_type             = "pass_type"
+	tagPassword              = "password"
+	tagPrompt                = "prompt"
+	tagRedirect_uri          = "redirect_uri"
+	tagRefresh_token         = "refresh_token"
+	tagRequest               = "request"
+	tagRequest_uri           = "request_uri"
+	tagResponse_type         = "response_type"
+	tagScope                 = "scope"
+	tagSelect_account        = "select_account"
+	tagState                 = "state"
+	tagSub                   = "sub"
+	tagTicket                = "ticket"
+	tagToken_type            = "token_type"
+	tagUi_locales            = "ui_locales"
+	tagUsername              = "username"
+	tagUsernames             = "usernames"
 
-	// 独自。
-	formAllowed_claims  = "allowed_claims"
-	formAllowed_scope   = "allowed_scope"
-	formDenied_claims   = "denied_claims"
-	formDenied_scope    = "denied_scope"
-	formIssuer          = "issuer"
-	formLocale          = "locale"
-	formLocales         = "locales"
-	formMessage         = "message"
-	formOptional_claims = "optional_claims"
-	formPass_type       = "pass_type"
-	formPassword        = "password"
-	formTicket          = "ticket"
-	formUsername        = "username"
-	formUsernames       = "usernames"
+	// ハイフン。
+	tagNo_cache = "no-cache"
+	tagNo_store = "no-store"
+
+	// 頭大文字、ハイフン。
+	tagAuthorization  = "Authorization"
+	tagBearer         = "Bearer"
+	tagCache_control  = "Cache-Control"
+	tagContent_length = "Content-Length"
+	tagContent_type   = "Content-Type"
+	tagPragma         = "Pragma"
+
+	// 大文字。
+	tagPost = "POST"
 )
 
-// scope の値。
 const (
-	scopOpenid         = "openid"
-	scopOffline_access = "offline_access"
-)
+	// client_assertion_type の値。
+	cliAssTypeJwt_bearer = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
 
-// response_type の値。
-const (
-	respTypeCode     = "code"
-	respTypeId_token = "id_token"
-)
-
-// prompt の値。
-const (
-	prmptConsent        = "consent"
-	prmptLogin          = "login"
-	prmptNone           = "none"
-	prmptSelect_account = "select_account"
-)
-
-// client_assertion_type の値。
-const (
-	taAssTypeJwt = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
-)
-
-// クレーム名。
-const (
-	clmAt_hash   = "at_hash"
-	clmAud       = "aud"
-	clmAuth_time = "auth_time"
-	clmC_hash    = "at_hash"
-	clmExp       = "exp"
-	clmIat       = "iat"
-	clmIss       = "iss"
-	clmJti       = "jti"
-	clmNonce     = "nonce"
-	clmSub       = "sub"
-)
-
-// JWT のヘッダパラメータ名。
-const (
-	jwtAlg = "alg"
-	jwtKid = "kid"
-)
-
-// JWT のヘッダ alg の値。
-const (
-	algNone = "none"
-)
-
-// grant_type の値。
-const (
-	grntTypeAuthorization_code = "authorization_code"
-)
-
-// token_type の値。
-const (
-	tokTypeBearer = "Bearer"
-)
-
-// HTTP ヘッダ名。
-const (
-	headAuthorization = "Authorization"
-)
-
-// HTTP の Authorization の方式名。
-const (
-	scmBearer = "Bearer"
+	// Content-Type の値。
+	contTypeHtml = "text/html"
+	contTypeJson = "application/json"
 )

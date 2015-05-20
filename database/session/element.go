@@ -52,7 +52,6 @@ func (this *Element) copy() *Element {
 	}
 	elem.req = this.req
 	elem.tic = this.tic
-	elem.tic = this.tic
 	for e := this.pastAcnts.Back(); e != nil; e = e.Prev() {
 		elem.pastAcnts.PushFront(e.Value.(*Account).copy())
 	}

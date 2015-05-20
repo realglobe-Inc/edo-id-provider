@@ -18,9 +18,9 @@ import (
 	"encoding/json"
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
 	"github.com/realglobe-Inc/edo-id-provider/database/session"
-	"github.com/realglobe-Inc/edo-id-provider/request"
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
+	"github.com/realglobe-Inc/edo-idp-selector/request"
 	jsonutil "github.com/realglobe-Inc/edo-lib/json"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"net/http"
@@ -75,28 +75,28 @@ func (sys *system) redirectToSelectUi(w http.ResponseWriter, r *http.Request, se
 
 	uri, err := url.Parse(sys.pathSelUi)
 	if err != nil {
-		return sys.redirectError(w, r, erro.Wrap(err), sender, sess)
+		return sys.respondPageError(w, r, erro.Wrap(err), sender, sess)
 	}
 
 	// アカウント選択ページに渡すクエリパラメータを生成。
 	q := uri.Query()
-	q.Set(formIssuer, sys.selfId)
+	q.Set(tagIssuer, sys.selfId)
 	if acnts := sess.SelectedAccounts(); len(acnts) > 0 {
-		q.Set(formUsernames, accountSetForm(acnts))
+		q.Set(tagUsernames, accountSetForm(acnts))
 	}
 	if disp := sess.Request().Display(); disp != "" {
-		q.Set(formDisplay, disp)
+		q.Set(tagDisplay, disp)
 	}
 	if lang, langs := sess.Language(), sess.Request().Languages(); lang != "" || len(langs) > 0 {
-		q.Set(formLocales, languagesForm(lang, langs))
+		q.Set(tagLocales, languagesForm(lang, langs))
 	}
 	if msg != "" {
-		q.Set(formMessage, msg)
+		q.Set(tagMessage, msg)
 	}
 	uri.RawQuery = q.Encode()
 
 	// チケットを発行。
-	uri.Fragment = newId(sys.ticLen)
+	uri.Fragment = randomString(sys.ticLen)
 	sess.SetTicket(uri.Fragment)
 	log.Info(sender, ": Published ticket "+mosaic(uri.Fragment))
 
@@ -107,6 +107,9 @@ func (sys *system) redirectToSelectUi(w http.ResponseWriter, r *http.Request, se
 // アカウント UI ページからの入力を受け付けて続きをする。
 func (sys *system) selectPage(w http.ResponseWriter, r *http.Request) (err error) {
 	sender := request.Parse(r, sys.sessLabel)
+
+	log.Info(sender, ": Received select request")
+	defer log.Info(sender, ": Handled select request")
 
 	var sess *session.Element
 	if sessId := sender.Session(); sessId != "" {
@@ -125,19 +128,25 @@ func (sys *system) selectPage(w http.ResponseWriter, r *http.Request) (err error
 		}
 	}
 
-	now := time.Now()
-	if sess == nil || now.After(sess.Expires()) {
+	if now := time.Now(); sess == nil || now.After(sess.Expires()) {
 		// セッションを新規発行。
-		sess = session.New(newId(sys.sessLen), now.Add(sys.sessExpIn))
+		sess = session.New(randomString(sys.sessLen), now.Add(sys.sessExpIn))
 		log.Info(sender, ": Generated new session "+mosaic(sess.Id())+" but not yet saved")
 	}
 
 	// セッションは決まった。
 
+	if err := sys.selectServe(w, r, sender, sess); err != nil {
+		return sys.respondPageError(w, r, erro.Wrap(err), sender, sess)
+	}
+	return nil
+}
+
+func (sys *system) selectServe(w http.ResponseWriter, r *http.Request, sender *request.Request, sess *session.Element) error {
 	authReq := sess.Request()
 	if authReq == nil {
 		// ユーザー認証・認可処理が始まっていない。
-		return sys.returnError(w, r, erro.Wrap(idperr.New(idperr.Invalid_request, "session is not in authentication process", http.StatusBadRequest, nil)), sender, sess)
+		return erro.Wrap(idperr.New(idperr.Invalid_request, "session is not in authentication process", http.StatusBadRequest, nil))
 	}
 
 	// ユーザー認証中。
@@ -146,10 +155,10 @@ func (sys *system) selectPage(w http.ResponseWriter, r *http.Request) (err error
 	req := newSelectRequest(r)
 	if sess.Ticket() == "" {
 		// アカウント選択中でない。
-		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Access_denied, "not in interactive process", nil)), sender, sess)
+		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, "not in interactive process", nil))
 	} else if req.ticket() != sess.Ticket() {
 		// 無効なアカウント選択券。
-		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Access_denied, "invalid ticket "+mosaic(req.ticket()), nil)), sender, sess)
+		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, "invalid ticket "+mosaic(req.ticket()), nil))
 	}
 
 	// チケットが有効だった。
@@ -166,7 +175,7 @@ func (sys *system) selectPage(w http.ResponseWriter, r *http.Request) (err error
 
 	acnt, err := sys.acntDb.GetByName(req.accountName())
 	if err != nil {
-		return sys.redirectError(w, r, erro.Wrap(err), sender, sess)
+		return erro.Wrap(err)
 	} else if acnt == nil {
 		// アカウントが無い。
 		log.Debug(sender, ": Specified accout "+req.accountName()+" is not exist")
@@ -191,9 +200,9 @@ func (sys *system) selectPage(w http.ResponseWriter, r *http.Request) (err error
 func (sys *system) afterSelect(w http.ResponseWriter, r *http.Request, sender *request.Request, sess *session.Element, ta tadb.Element, acnt account.Element) error {
 
 	prmpts := sess.Request().Prompt()
-	if prmpts[prmptLogin] {
-		if prmpts[prmptNone] {
-			return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Login_required, "cannot login without UI", nil)), sender, sess)
+	if prmpts[tagLogin] {
+		if prmpts[tagNone] {
+			return erro.Wrap(newErrorForRedirect(idperr.Login_required, "cannot login without UI", nil))
 		}
 
 		return sys.redirectToLoginUi(w, r, sender, sess, "Please log in")
@@ -206,8 +215,8 @@ func (sys *system) afterSelect(w http.ResponseWriter, r *http.Request, sender *r
 		}
 	}
 
-	if prmpts[prmptNone] {
-		return sys.redirectError(w, r, erro.Wrap(newErrorForRedirect(idperr.Login_required, "cannot login without UI", nil)), sender, sess)
+	if prmpts[tagNone] {
+		return erro.Wrap(newErrorForRedirect(idperr.Login_required, "cannot login without UI", nil))
 	}
 
 	return sys.redirectToLoginUi(w, r, sender, sess, "Please log in")

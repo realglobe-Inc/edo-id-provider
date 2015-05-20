@@ -18,15 +18,15 @@ limitations under the License.
 <html>
   <head>
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
-    <meta http-equiv="Content-Script-Type" content="text/javascript">
     <title>エラー</title>
-    <script type="text/javascript" src="/ui/query.js"></script>
   </head>
 
   <body>
-    <h1>エラー</h1>
+    <H1>{{.Status}} {{.StatusText}}</H1>
     <p>
-      <script type="text/javascript">display()</script>
+      <b>error:</b> {{.Error}}<br/>
+      <b>error_description:</b> {{.Description}}<br/>
+      <b>debug:</b> {{.Debug}}
     </p>
   </body>
 </html>

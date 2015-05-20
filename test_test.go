@@ -73,9 +73,6 @@ func newTestIdpServer(acnts []account.Element,
 	if err := ioutil.WriteFile(filepath.Join(dir, strings.TrimPrefix(test_pathConsUi, test_pathUi)), html, 0644); err != nil {
 		return nil, erro.Wrap(err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(dir, strings.TrimPrefix(test_pathErrUi, test_pathUi)), html, 0644); err != nil {
-		return nil, erro.Wrap(err)
-	}
 
 	// system を用意。
 	sys := newTestSystem([]jwk.Key{test_idpPriKey}, acnts, tas, idps, webs)
@@ -84,18 +81,18 @@ func newTestIdpServer(acnts []account.Element,
 	s := server.NewStopper()
 
 	mux := http.NewServeMux()
-	mux.HandleFunc(test_pathOk, panicErrorWrapper(s, func(w http.ResponseWriter, r *http.Request) error {
+	mux.HandleFunc(test_pathOk, pagePanicErrorWrapper(s, nil, func(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	}))
-	mux.HandleFunc(test_pathAuth, panicErrorWrapper(s, sys.authPage))
-	mux.HandleFunc(test_pathSel, panicErrorWrapper(s, sys.selectPage))
-	mux.HandleFunc(test_pathLgin, panicErrorWrapper(s, sys.lginPage))
-	mux.HandleFunc(test_pathCons, panicErrorWrapper(s, sys.consentPage))
-	mux.HandleFunc(test_pathTa, panicErrorWrapper(s, sys.taApiHandler().ServeHTTP))
-	mux.HandleFunc(test_pathTok, panicErrorWrapper(s, sys.tokenApi))
-	mux.HandleFunc(test_pathAcnt, panicErrorWrapper(s, sys.accountApi))
-	mux.HandleFunc(test_pathCoopFr, panicErrorWrapper(s, sys.cooperateFromApi))
-	mux.HandleFunc(test_pathCoopTo, panicErrorWrapper(s, sys.cooperateToApi))
+	mux.HandleFunc(test_pathAuth, pagePanicErrorWrapper(s, nil, sys.authPage))
+	mux.HandleFunc(test_pathSel, pagePanicErrorWrapper(s, nil, sys.selectPage))
+	mux.HandleFunc(test_pathLgin, pagePanicErrorWrapper(s, nil, sys.lginPage))
+	mux.HandleFunc(test_pathCons, pagePanicErrorWrapper(s, nil, sys.consentPage))
+	mux.HandleFunc(test_pathTa, apiPanicErrorWrapper(s, sys.taApiHandler().ServeHTTP))
+	mux.HandleFunc(test_pathTok, apiPanicErrorWrapper(s, sys.tokenApi))
+	mux.HandleFunc(test_pathAcnt, apiPanicErrorWrapper(s, sys.accountApi))
+	mux.HandleFunc(test_pathCoopFr, apiPanicErrorWrapper(s, sys.cooperateFromApi))
+	mux.HandleFunc(test_pathCoopTo, apiPanicErrorWrapper(s, sys.cooperateToApi))
 	filer := http.StripPrefix(test_pathUi+"/", http.FileServer(http.Dir(dir)))
 	mux.Handle(test_pathUi+"/", filer)
 
@@ -299,7 +296,7 @@ func testSelectAccountWithoutCheck(idp *testIdpServer, cli *http.Client, authRes
 	if err != nil {
 		return nil, erro.Wrap(err)
 	}
-	req.Header.Set("Content-Type", server.ContentTypeForm)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Connection", "close")
 	resp, err := cli.Do(req)
 	if err != nil {
@@ -352,7 +349,7 @@ func testLoginWithoutCheck(idp *testIdpServer, cli *http.Client, selResp *http.R
 	if err != nil {
 		return nil, erro.Wrap(err)
 	}
-	req.Header.Set("Content-Type", server.ContentTypeForm)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Connection", "close")
 	resp, err := cli.Do(req)
 	if err != nil {
@@ -406,7 +403,7 @@ func testConsentWithoutCheck(idp *testIdpServer, cli *http.Client, lginResp *htt
 	if err != nil {
 		return nil, erro.Wrap(err)
 	}
-	req.Header.Set("Content-Type", server.ContentTypeForm)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Connection", "close")
 	resp, err := cli.Do(req)
 	if err != nil {
@@ -492,7 +489,7 @@ func testGetTokenWithoutCheck(idp *testIdpServer, consResp *http.Response, assHe
 	if err != nil {
 		return nil, erro.Wrap(err)
 	}
-	req.Header.Set("Content-Type", server.ContentTypeForm)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Connection", "close")
 	resp, err := (&http.Client{}).Do(req)
 	if err != nil {

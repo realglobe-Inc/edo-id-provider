@@ -15,8 +15,8 @@
 package main
 
 import (
-	"github.com/realglobe-Inc/edo-id-provider/request"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
+	"github.com/realglobe-Inc/edo-idp-selector/request"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"net/http"
 )
@@ -26,7 +26,7 @@ func (sys *system) accountApi(w http.ResponseWriter, r *http.Request) error {
 
 	req := newAccountRequest(r)
 
-	if req.scheme() != scmBearer {
+	if req.scheme() != tagBearer {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "unsupported authorization scheme "+req.scheme(), http.StatusBadRequest, nil))
 	}
 
@@ -67,10 +67,15 @@ func (sys *system) accountApi(w http.ResponseWriter, r *http.Request) error {
 
 	log.Debug(sender, ": Account "+acnt.Id()+" is exist")
 
+	if err := sys.setSub(acnt, ta); err != nil {
+		return erro.Wrap(err)
+	}
+
 	clms := scopeToClaims(tok.Scope())
 	for clm := range tok.Attributes() {
 		clms[clm] = true
 	}
+	clms[tagSub] = true
 
 	log.Debug(sender, ": Return claims ", clms)
 
@@ -82,7 +87,6 @@ func (sys *system) accountApi(w http.ResponseWriter, r *http.Request) error {
 		}
 		info[clmName] = clm
 	}
-	info[clmSub] = acnt.Id()
 
-	return response(w, info)
+	return respondJson(w, info)
 }

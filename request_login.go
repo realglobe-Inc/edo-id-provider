@@ -28,20 +28,20 @@ type loginRequest struct {
 }
 
 func newLoginRequest(r *http.Request) *loginRequest {
-	psType := r.FormValue(formPass_type)
+	psType := r.FormValue(tagPass_type)
 
 	var pass passInfo
 	switch psType {
 	case account.AuthTypeStr43:
-		pass = newPasswordOnly(r.FormValue(formPassword))
+		pass = newPasswordOnly(r.FormValue(tagPassword))
 	}
 
 	return &loginRequest{
-		tic:      r.FormValue(formTicket),
-		acntName: r.FormValue(formUsername),
+		tic:      r.FormValue(tagTicket),
+		acntName: r.FormValue(tagUsername),
 		psType:   psType,
 		pass:     pass,
-		lang:     r.FormValue(formLocale),
+		lang:     r.FormValue(tagLocale),
 	}
 }
 

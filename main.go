@@ -29,11 +29,14 @@ import (
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
 	webdb "github.com/realglobe-Inc/edo-idp-selector/database/web"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
+	"github.com/realglobe-Inc/edo-idp-selector/request"
 	"github.com/realglobe-Inc/edo-lib/driver"
 	logutil "github.com/realglobe-Inc/edo-lib/log"
 	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"github.com/realglobe-Inc/go-lib/rglog"
+	"github.com/realglobe-Inc/go-lib/rglog/level"
+	"html/template"
 	"net/http"
 	"os"
 	"strings"
@@ -46,7 +49,6 @@ func main() {
 			os.Exit(exitCode)
 		}
 	}()
-
 	defer rglog.Flush()
 
 	logutil.InitConsole("github.com/realglobe-Inc")
@@ -270,6 +272,14 @@ func serve(param *parameters) (err error) {
 		return erro.New("invalid JWT ID DB type " + param.jtiDbType)
 	}
 
+	var errTmpl *template.Template
+	if param.tmplErr != "" {
+		errTmpl, err = template.ParseFiles(param.tmplErr)
+		if err != nil {
+			return erro.Wrap(err)
+		}
+	}
+
 	sys := &system{
 		param.selfId,
 		param.sigAlg,
@@ -280,7 +290,8 @@ func serve(param *parameters) (err error) {
 		param.pathSelUi,
 		param.pathLginUi,
 		param.pathConsUi,
-		param.pathErrUi,
+
+		errTmpl,
 
 		param.pwSaltLen,
 		param.sessLabel,
@@ -333,27 +344,88 @@ func serve(param *parameters) (err error) {
 	}()
 
 	mux := http.NewServeMux()
-
-	mux.HandleFunc("/", panicErrorWrapper(s, func(w http.ResponseWriter, r *http.Request) error {
-		return erro.Wrap(idperr.New(idperr.Invalid_request, "invalid endpoint", http.StatusNotFound, nil))
-	}))
-	mux.HandleFunc(param.pathOk, panicErrorWrapper(s, func(w http.ResponseWriter, r *http.Request) error {
+	routes := map[string]bool{}
+	mux.HandleFunc(param.pathOk, pagePanicErrorWrapper(s, errTmpl, func(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	}))
-	mux.HandleFunc(param.pathAuth, panicErrorWrapper(s, sys.authPage))
-	mux.HandleFunc(param.pathSel, panicErrorWrapper(s, sys.selectPage))
-	mux.HandleFunc(param.pathLgin, panicErrorWrapper(s, sys.lginPage))
-	mux.HandleFunc(param.pathCons, panicErrorWrapper(s, sys.consentPage))
-	mux.HandleFunc(param.pathTa, panicErrorWrapper(s, sys.taApiHandler().ServeHTTP))
-	mux.HandleFunc(param.pathTok, panicErrorWrapper(s, sys.tokenApi))
-	mux.HandleFunc(param.pathAcnt, panicErrorWrapper(s, sys.accountApi))
-	mux.HandleFunc(param.pathCoopFr, panicErrorWrapper(s, sys.cooperateFromApi))
-	mux.HandleFunc(param.pathCoopTo, panicErrorWrapper(s, sys.cooperateToApi))
+	routes[param.pathOk] = true
+	mux.HandleFunc(param.pathAuth, pagePanicErrorWrapper(s, errTmpl, sys.authPage))
+	routes[param.pathAuth] = true
+	mux.HandleFunc(param.pathSel, pagePanicErrorWrapper(s, errTmpl, sys.selectPage))
+	routes[param.pathSel] = true
+	mux.HandleFunc(param.pathLgin, pagePanicErrorWrapper(s, errTmpl, sys.lginPage))
+	routes[param.pathLgin] = true
+	mux.HandleFunc(param.pathCons, pagePanicErrorWrapper(s, errTmpl, sys.consentPage))
+	routes[param.pathCons] = true
+	mux.HandleFunc(param.pathTa, apiPanicErrorWrapper(s, sys.taApiHandler().ServeHTTP))
+	routes[param.pathTa] = true
+	mux.HandleFunc(param.pathTok, apiPanicErrorWrapper(s, sys.tokenApi))
+	routes[param.pathTok] = true
+	mux.HandleFunc(param.pathAcnt, apiPanicErrorWrapper(s, sys.accountApi))
+	routes[param.pathAcnt] = true
+	mux.HandleFunc(param.pathCoopFr, apiPanicErrorWrapper(s, sys.cooperateFromApi))
+	routes[param.pathCoopFr] = true
+	mux.HandleFunc(param.pathCoopTo, apiPanicErrorWrapper(s, sys.cooperateToApi))
+	routes[param.pathCoopTo] = true
 	if param.uiDir != "" {
 		// ファイル配信も自前でやる。
 		pathUi := strings.TrimRight(param.pathUi, "/") + "/"
 		mux.Handle(pathUi, http.StripPrefix(pathUi, http.FileServer(http.Dir(param.uiDir))))
+		routes[param.pathUi] = true
 	}
 
+	if !routes["/"] {
+		mux.HandleFunc("/", pagePanicErrorWrapper(s, errTmpl, func(w http.ResponseWriter, r *http.Request) error {
+			return erro.Wrap(idperr.New(idperr.Invalid_request, "invalid endpoint", http.StatusNotFound, nil))
+		}))
+	}
 	return server.Serve(param, mux)
+}
+
+func pagePanicErrorWrapper(s *server.Stopper, errTmpl *template.Template, f server.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		s.Stop()
+		defer s.Unstop()
+
+		// panic時にプロセス終了しないようにrecoverする
+		defer func() {
+			if rcv := recover(); rcv != nil {
+				idperr.RespondPageError(w, r, erro.New(rcv), request.Parse(r, ""), errTmpl)
+				return
+			}
+		}()
+
+		//////////////////////////////
+		server.LogRequest(level.DEBUG, r, true)
+		//////////////////////////////
+
+		if err := f(w, r); err != nil {
+			idperr.RespondPageError(w, r, erro.Wrap(err), request.Parse(r, ""), errTmpl)
+			return
+		}
+	}
+}
+
+func apiPanicErrorWrapper(s *server.Stopper, f server.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		s.Stop()
+		defer s.Unstop()
+
+		// panic時にプロセス終了しないようにrecoverする
+		defer func() {
+			if rcv := recover(); rcv != nil {
+				idperr.RespondApiError(w, r, erro.New(rcv), request.Parse(r, ""))
+				return
+			}
+		}()
+
+		//////////////////////////////
+		server.LogRequest(level.DEBUG, r, true)
+		//////////////////////////////
+
+		if err := f(w, r); err != nil {
+			idperr.RespondApiError(w, r, erro.Wrap(err), request.Parse(r, ""))
+			return
+		}
+	}
 }

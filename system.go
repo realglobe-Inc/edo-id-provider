@@ -31,6 +31,7 @@ import (
 	webdb "github.com/realglobe-Inc/edo-idp-selector/database/web"
 	"github.com/realglobe-Inc/edo-lib/jwt"
 	"github.com/realglobe-Inc/go-lib/erro"
+	"html/template"
 	"net/http"
 	"time"
 )
@@ -45,7 +46,8 @@ type system struct {
 	pathSelUi  string
 	pathLginUi string
 	pathConsUi string
-	pathErrUi  string
+
+	errTmpl *template.Template
 
 	pwSaltLen    int
 	sessLabel    string
@@ -98,10 +100,10 @@ func (sys *system) newCookie(sess *session.Element) *http.Cookie {
 
 // ID トークンの sub クレームとして TA に通知するアカウント ID を設定する。
 func (sys *system) setSub(acnt account.Element, ta tadb.Element) error {
-	if acnt.Attribute(clmSub) != nil {
+	if acnt.Attribute(tagSub) != nil {
 		return nil
 	} else if !ta.Pairwise() {
-		acnt.SetAttribute(clmSub, acnt.Id())
+		acnt.SetAttribute(tagSub, acnt.Id())
 		return nil
 	}
 
@@ -110,7 +112,7 @@ func (sys *system) setSub(acnt account.Element, ta tadb.Element) error {
 	if err != nil {
 		return erro.Wrap(err)
 	} else if sect == nil {
-		sect = sector.New(ta.Sector(), newIdBytes(sys.pwSaltLen))
+		sect = sector.New(ta.Sector(), randomBytes(sys.pwSaltLen))
 		if existing, err := sys.sectDb.SaveIfAbsent(sect); err != nil {
 			return erro.Wrap(err)
 		} else if existing != nil {
@@ -124,7 +126,7 @@ func (sys *system) setSub(acnt account.Element, ta tadb.Element) error {
 		return erro.Wrap(err)
 	}
 
-	acnt.SetAttribute(clmSub, pw.Pairwise())
+	acnt.SetAttribute(tagSub, pw.Pairwise())
 	return nil
 }
 
@@ -140,15 +142,15 @@ func (sys *system) newIdToken(ta tadb.Element, acnt account.Element, attrs map[s
 
 	now := time.Now()
 	idTok := jwt.New()
-	idTok.SetHeader(jwtAlg, sys.sigAlg)
+	idTok.SetHeader(tagAlg, sys.sigAlg)
 	if sys.sigKid != "" {
-		idTok.SetHeader(jwtKid, sys.sigKid)
+		idTok.SetHeader(tagKid, sys.sigKid)
 	}
-	idTok.SetClaim(clmIss, sys.selfId)
-	idTok.SetClaim(clmSub, acnt.Attribute(clmSub))
-	idTok.SetClaim(clmAud, ta.Id())
-	idTok.SetClaim(clmExp, now.Add(sys.jtiExpIn).Unix())
-	idTok.SetClaim(clmIat, now.Unix())
+	idTok.SetClaim(tagIss, sys.selfId)
+	idTok.SetClaim(tagSub, acnt.Attribute(tagSub))
+	idTok.SetClaim(tagAud, ta.Id())
+	idTok.SetClaim(tagExp, now.Add(sys.jtiExpIn).Unix())
+	idTok.SetClaim(tagIat, now.Unix())
 	for k := range attrs {
 		idTok.SetClaim(k, acnt.Attribute(k))
 	}

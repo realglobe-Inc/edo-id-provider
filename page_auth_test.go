@@ -19,9 +19,9 @@ package main
 import (
 	"encoding/json"
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
-	"github.com/realglobe-Inc/edo-id-provider/request"
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
+	"github.com/realglobe-Inc/edo-idp-selector/request"
 	"github.com/realglobe-Inc/edo-lib/jwt"
 	logutil "github.com/realglobe-Inc/edo-lib/log"
 	"github.com/realglobe-Inc/edo-lib/server"
@@ -140,7 +140,7 @@ func TestDenyOverlapParameterInAuthRequest(t *testing.T) {
 		server.LogResponse(level.ERR, resp, true)
 		t.Error(resp.StatusCode)
 		t.Fatal(http.StatusOK)
-	} else if resp.Request.FormValue(formError) != idperr.Invalid_request {
+	} else if resp.Request.FormValue(tagError) != idperr.Invalid_request {
 		t.Fatal("no error")
 	}
 }
@@ -282,13 +282,9 @@ func TestDenyNoClientIdInAuthRequest(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	// エラー UI にリダイレクトされる。
-	if resp.Request.URL.Path != test_pathErrUi {
-		t.Error(resp.Request.URL.Path)
-		t.Fatal(test_pathErrUi)
-	} else if resp.Request.FormValue("error") != "invalid_request" {
-		t.Error(resp.Request.FormValue("error"))
-		t.Fatal("invalid_request")
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Error(resp.Status)
+		t.Fatal(http.StatusBadRequest)
 	}
 }
 
@@ -328,8 +324,8 @@ func TestDenyNoResponseTypeInAuthRequest(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	if resp.Request.FormValue(formError) != idperr.Invalid_request {
-		t.Error(resp.Request.FormValue(formError))
+	if resp.Request.FormValue(tagError) != idperr.Invalid_request {
+		t.Error(resp.Request.FormValue(tagError))
 		t.Fatal(idperr.Invalid_request)
 	}
 }
@@ -370,8 +366,8 @@ func TestDenyUnknownResponseTypeInAuthRequest(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	if resp.Request.FormValue(formError) != idperr.Unsupported_response_type {
-		t.Error(resp.Request.FormValue(formError))
+	if resp.Request.FormValue(tagError) != idperr.Unsupported_response_type {
+		t.Error(resp.Request.FormValue(tagError))
 		t.Fatal(idperr.Invalid_request)
 	}
 }
@@ -419,8 +415,8 @@ func TestErrorWhenOwnerDenied(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	if resp.Request.FormValue(formError) != idperr.Access_denied {
-		t.Error(resp.Request.FormValue(formError))
+	if resp.Request.FormValue(tagError) != idperr.Access_denied {
+		t.Error(resp.Request.FormValue(tagError))
 		t.Fatal(idperr.Access_denied)
 	}
 }
@@ -563,12 +559,9 @@ func TestDirectErrorResponseInInvalidRedirectUri(t *testing.T) {
 	defer resp.Body.Close()
 
 	// エラー UI にリダイレクトされる。
-	if resp.Request.URL.Path != test_pathErrUi {
-		t.Error(resp.Request.URL.Path)
-		t.Fatal(test_pathErrUi)
-	} else if resp.Request.FormValue("error") != "invalid_request" {
-		t.Error(resp.Request.FormValue("error"))
-		t.Fatal("invalid_request")
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Error(resp.StatusCode)
+		t.Fatal(http.StatusBadRequest)
 	}
 }
 
@@ -607,13 +600,9 @@ func TestDirectErrorResponseInNoRedirectUri(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	// エラー UI にリダイレクトされる。
-	if resp.Request.URL.Path != test_pathErrUi {
-		t.Error(resp.Request.URL.Path)
-		t.Fatal(test_pathErrUi)
-	} else if resp.Request.FormValue("error") != "invalid_request" {
-		t.Error(resp.Request.FormValue("error"))
-		t.Fatal("invalid_request")
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Error(resp.Status)
+		t.Fatal(http.StatusBadRequest)
 	}
 }
 

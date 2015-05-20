@@ -38,7 +38,6 @@ func NewRedisDb(pool *redis.Pool, tag string) Db {
 	}
 }
 
-// 取得。
 func (this *redisDb) Get(id string) (*Element, error) {
 	conn := this.pool.Get()
 	defer conn.Close()
@@ -61,7 +60,6 @@ func (this *redisDb) Get(id string) (*Element, error) {
 	return &elem, nil
 }
 
-// 保存。
 func (this *redisDb) Save(elem *Element, exp time.Time) error {
 	conn := this.pool.Get()
 	defer conn.Close()

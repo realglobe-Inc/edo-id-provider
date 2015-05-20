@@ -26,7 +26,7 @@ type accountRequest struct {
 }
 
 func newAccountRequest(r *http.Request) *accountRequest {
-	scm, tok := parseAuthorizationToken(r.Header.Get(headAuthorization))
+	scm, tok := parseAuthorizationToken(r.Header.Get(tagAuthorization))
 	return &accountRequest{
 		scm: scm,
 		tok: tok,

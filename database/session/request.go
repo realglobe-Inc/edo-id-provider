@@ -16,7 +16,7 @@ package session
 
 import (
 	"encoding/json"
-	"github.com/realglobe-Inc/edo-id-provider/request"
+	"github.com/realglobe-Inc/edo-idp-selector/request"
 	"github.com/realglobe-Inc/edo-lib/duration"
 	"github.com/realglobe-Inc/edo-lib/jwk"
 	"github.com/realglobe-Inc/edo-lib/jwt"
@@ -29,28 +29,24 @@ import (
 )
 
 const (
-	labelScope         = "scope"
-	labelResponse_type = "response_type"
-	labelClient_id     = "client_id"
-	labelRedirect_uri  = "redirect_uri"
-	labelState         = "state"
-	labelNonce         = "nonce"
-	labelDisplay       = "display"
-	labelPrompt        = "prompt"
-	labelMax_age       = "max_age"
-	labelUi_locales    = "ui_locales"
-	labelId_token_hint = "id_token_hint"
-	labelClaims        = "claims"
-	labelRequest       = "request"
-	labelRequest_uri   = "request_uri"
-)
+	tagClaims        = "claims"
+	tagClient_id     = "client_id"
+	tagDisplay       = "display"
+	tagId_token_hint = "id_token_hint"
+	tagMax_age       = "max_age"
+	tagNonce         = "nonce"
+	tagPrompt        = "prompt"
+	tagRedirect_uri  = "redirect_uri"
+	tagRequest       = "request"
+	tagRequest_uri   = "request_uri"
+	tagResponse_type = "response_type"
+	tagScope         = "scope"
+	tagState         = "state"
+	tagUi_locales    = "ui_locales"
 
-const (
 	tagCty = "cty"
-)
 
-const (
-	ctyJwt = "JWT"
+	tagJwt = "JWT"
 )
 
 // セッションに付属させる認証リクエスト。
@@ -86,31 +82,38 @@ type Request struct {
 }
 
 // 途中で失敗したら error と共にそこまでの結果も返す。
-func ParseRequest(r *http.Request) (*Request, error) {
-	var err error
+func ParseRequest(r *http.Request) (req *Request, err error) {
+	// エラー検知は最後にする。
 
-	req := &Request{}
+	req = &Request{}
 
-	req.scop = request.FormValueSet(r.FormValue(labelScope))
-	req.respType = request.FormValueSet(r.FormValue(labelResponse_type))
-	req.ta = r.FormValue(labelClient_id)
-	req.rediUri = r.FormValue(labelRedirect_uri)
-	req.stat = r.FormValue(labelState)
-	req.nonc = r.FormValue(labelNonce)
-	req.disp = r.FormValue(labelDisplay)
-	req.prmpt = request.FormValueSet(r.FormValue(labelPrompt))
-	if req.maxAge, err = parseMaxAge(r.FormValue(labelMax_age)); err != nil {
-		return req, erro.Wrap(err)
-	}
-	req.langs = request.FormValues(r.FormValue(labelUi_locales))
-	req.hint = r.FormValue(labelId_token_hint)
-	if req.reqClm, err = parseClaims(r.FormValue(labelClaims)); err != nil {
-		return req, erro.Wrap(err)
-	}
-	if reqObj := r.FormValue(labelRequest); reqObj != "" {
+	req.scop = request.FormValueSet(r.FormValue(tagScope))
+	req.respType = request.FormValueSet(r.FormValue(tagResponse_type))
+	req.ta = r.FormValue(tagClient_id)
+	req.rediUri = r.FormValue(tagRedirect_uri)
+	req.stat = r.FormValue(tagState)
+	req.nonc = r.FormValue(tagNonce)
+	req.disp = r.FormValue(tagDisplay)
+	req.prmpt = request.FormValueSet(r.FormValue(tagPrompt))
+	req.langs = request.FormValues(r.FormValue(tagUi_locales))
+	req.hint = r.FormValue(tagId_token_hint)
+	if reqObj := r.FormValue(tagRequest); reqObj != "" {
 		req.req = []byte(reqObj)
 	}
-	req.reqUri = r.FormValue(labelRequest_uri)
+	req.reqUri = r.FormValue(tagRequest_uri)
+
+	if req.maxAge, err = parseMaxAge(r.FormValue(tagMax_age)); err != nil {
+		return req, erro.Wrap(err)
+	}
+	if req.reqClm, err = parseClaims(r.FormValue(tagClaims)); err != nil {
+		return req, erro.Wrap(err)
+	}
+
+	if len(req.respType) == 0 {
+		return req, erro.New("no response type")
+	} else if req.ta == "" {
+		return req, erro.New("no TA ID")
+	}
 
 	return req, nil
 }
@@ -202,7 +205,7 @@ func (this *Request) ParseRequest(req []byte, selfKeys, taKeys []jwk.Key) (err e
 				return erro.Wrap(err)
 			}
 			cty, _ := jt.Header(tagCty).(string)
-			if cty == ctyJwt {
+			if cty == tagJwt {
 				raw = jt.RawBody()
 				continue
 			}
@@ -238,9 +241,9 @@ func (this *Request) ParseRequest(req []byte, selfKeys, taKeys []jwk.Key) (err e
 	}
 
 	if buff.Req != "" {
-		return erro.New(labelRequest + " in request object")
+		return erro.New(tagRequest + " in request object")
 	} else if buff.ReqUri != "" {
-		return erro.New(labelRequest_uri + " in request object")
+		return erro.New(tagRequest_uri + " in request object")
 	} else if buff.RespType != "" && !reflect.DeepEqual(request.FormValueSet(buff.RespType), this.respType) {
 		return erro.New("not same response type")
 	} else if buff.Ta != "" && buff.Ta != this.ta {

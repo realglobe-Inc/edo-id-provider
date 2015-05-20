@@ -26,9 +26,9 @@ type selectRequest struct {
 
 func newSelectRequest(r *http.Request) *selectRequest {
 	return &selectRequest{
-		tic:      r.FormValue(formTicket),
-		acntName: r.FormValue(formUsername),
-		lang:     r.FormValue(formLocale),
+		tic:      r.FormValue(tagTicket),
+		acntName: r.FormValue(tagUsername),
+		lang:     r.FormValue(tagLocale),
 	}
 }
 

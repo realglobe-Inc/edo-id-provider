@@ -80,7 +80,6 @@ func (sys *system) redirectToConsentUi(w http.ResponseWriter, r *http.Request, s
 // 同意 UI からの入力を受け付けて続きをする。
 func (sys *system) consentPage(w http.ResponseWriter, r *http.Request) (err error) {
 	sender := request.Parse(r, sys.sessLabel)
-
 	log.Info(sender, ": Received consent request")
 	defer log.Info(sender, ": Handled consent request")
 

@@ -107,7 +107,6 @@ func (sys *system) redirectToSelectUi(w http.ResponseWriter, r *http.Request, se
 // アカウント UI ページからの入力を受け付けて続きをする。
 func (sys *system) selectPage(w http.ResponseWriter, r *http.Request) (err error) {
 	sender := request.Parse(r, sys.sessLabel)
-
 	log.Info(sender, ": Received select request")
 	defer log.Info(sender, ": Handled select request")
 

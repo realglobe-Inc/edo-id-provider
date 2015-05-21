@@ -62,7 +62,6 @@ func (sys *system) respondPageErrorBeforeGetRedirectUriWithTa(w http.ResponseWri
 // ユーザー認証開始。
 func (sys *system) authPage(w http.ResponseWriter, r *http.Request) (err error) {
 	sender := request.Parse(r, sys.sessLabel)
-
 	log.Info(sender, ": Received authentication request")
 	defer log.Info(sender, ": Handled authentication request")
 

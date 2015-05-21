@@ -65,7 +65,6 @@ func (sys *system) redirectToLoginUi(w http.ResponseWriter, r *http.Request, sen
 // ログイン UI からの入力を受け付けて続きをする。
 func (sys *system) lginPage(w http.ResponseWriter, r *http.Request) (err error) {
 	sender := request.Parse(r, sys.sessLabel)
-
 	log.Info(sender, ": Received login request")
 	defer log.Info(sender, ": Handled login request")
 

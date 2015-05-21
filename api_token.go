@@ -127,8 +127,7 @@ func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {
 
 	log.Debug(sender, ": "+tagClient_assertion_type+" is "+cliAssTypeJwt_bearer)
 
-	taAss := req.taAssertion()
-	if taAss == nil {
+	if req.taAssertion() == nil {
 		return erro.Wrap(idperr.New(idperr.Invalid_client, "no "+tagClient_assertion, http.StatusBadRequest, nil))
 	}
 
@@ -177,7 +176,7 @@ func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {
 	}
 	if hGen, err := jwt.HashFunction(sys.sigAlg); err != nil {
 		return erro.Wrap(err)
-	} else if hGen > 0 {
+	} else {
 		h := hGen.New()
 		h.Write([]byte(tokId))
 		sum := h.Sum(nil)

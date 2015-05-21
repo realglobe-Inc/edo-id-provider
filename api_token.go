@@ -27,7 +27,7 @@ import (
 	"time"
 )
 
-func responseToken(w http.ResponseWriter, tok *token.Element, refTok, idTok string) error {
+func respondToken(w http.ResponseWriter, tok *token.Element, refTok, idTok string) error {
 	m := map[string]interface{}{
 		tagAccess_token: tok.Id(),
 		tagToken_type:   tagBearer,
@@ -240,7 +240,7 @@ func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {
 
 	log.Debug(sender, ": Saved token "+mosaic(tok.Id()))
 
-	return responseToken(w, tok, "", idTok)
+	return respondToken(w, tok, "", idTok)
 }
 
 // aud クレーム値が tgt を含むかどうか検査。

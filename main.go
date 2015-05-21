@@ -284,8 +284,10 @@ func serve(param *parameters) (err error) {
 		param.selfId,
 		param.sigAlg,
 		param.sigKid,
+		param.hashAlg,
 
 		param.pathTok,
+		param.pathCoopFr,
 		param.pathTa,
 		param.pathSelUi,
 		param.pathLginUi,

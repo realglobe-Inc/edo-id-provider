@@ -97,3 +97,13 @@ func scopeToClaims(scop map[string]bool) map[string]bool {
 func scopeEssential(scop string) bool {
 	return essScops[scop]
 }
+
+// scop1 が scop2 を含むかどうか。
+func contains(scop1, scop2 map[string]bool) bool {
+	for k := range scop2 {
+		if !scop1[k] {
+			return false
+		}
+	}
+	return true
+}

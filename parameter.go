@@ -55,6 +55,8 @@ type parameters struct {
 	sigAlg string
 	// 署名鍵の ID。
 	sigKid string
+	// related_users 用ハッシュ関数。
+	hashAlg string
 
 	// URI
 	pathOk     string
@@ -226,6 +228,7 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.StringVar(&param.selfId, "selfId", "https://idp.example.org", "IdP ID")
 	flags.StringVar(&param.sigAlg, "sigAlg", "RS256", "Signature algorithm")
 	flags.StringVar(&param.sigKid, "sigKid", "", "Signature key ID")
+	flags.StringVar(&param.hashAlg, "hashAlg", "SHA256", "Hash algorithm")
 
 	flags.StringVar(&param.pathOk, "pathOk", "/ok", "OK URI")
 	flags.StringVar(&param.pathAuth, "pathAuth", "/auth", "Authentication URI")

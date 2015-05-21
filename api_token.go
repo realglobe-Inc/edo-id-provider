@@ -142,7 +142,7 @@ func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {
 	ta, err := sys.taDb.Get(req.ta())
 	if err != nil {
 		return erro.Wrap(err)
-	} else if jti, err := sys.verifyTa(ta, req.taAssertion()); err != nil {
+	} else if jti, err := sys.verifyTa(ta, req.taAssertion(), sys.pathTok); err != nil {
 		return erro.Wrap(idperr.New(idperr.Invalid_client, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
 	} else if ok, err := sys.jtiDb.SaveIfAbsent(jti); err != nil {
 		return erro.Wrap(err)

@@ -37,11 +37,13 @@ import (
 )
 
 type system struct {
-	selfId string
-	sigAlg string
-	sigKid string
+	selfId  string
+	sigAlg  string
+	sigKid  string
+	hashAlg string
 
 	pathTok    string
+	pathCoopFr string
 	pathTa     string
 	pathSelUi  string
 	pathLginUi string
@@ -172,7 +174,7 @@ func (sys *system) taApiHandler() *taapi.Handler {
 	return taapi.NewHandler(sys.pathTa, sys.taDb)
 }
 
-func (sys *system) verifyTa(ta tadb.Element, ass []byte) (*jtidb.Element, error) {
+func (sys *system) verifyTa(ta tadb.Element, ass []byte, audSuffix string) (*jtidb.Element, error) {
 	if jt, err := jwt.Parse(ass); err != nil {
 		return nil, erro.Wrap(err)
 	} else if jt.Header(tagAlg) == tagNone {
@@ -191,7 +193,7 @@ func (sys *system) verifyTa(ta tadb.Element, ass []byte) (*jtidb.Element, error)
 		return nil, erro.New("subject is not " + ta.Id())
 	} else if aud := jt.Claim(tagAud); aud == nil {
 		return nil, erro.New("no audience")
-	} else if !audienceHas(aud, sys.selfId+sys.pathTok) {
+	} else if !audienceHas(aud, sys.selfId+audSuffix) {
 		return nil, erro.New("audience does not contain " + sys.selfId + sys.pathTok)
 	} else {
 		return jtidb.New(ta.Id(), jti, exp), nil

@@ -55,6 +55,8 @@ func respondToken(w http.ResponseWriter, tok *token.Element, refTok, idTok strin
 
 func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {
 	sender := request.Parse(r, "")
+	log.Info(sender, ": Received token request")
+	defer log.Info(sender, ": Handled token request")
 
 	if r.Method != tagPost {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "unsupported method "+r.Method, http.StatusMethodNotAllowed, nil))

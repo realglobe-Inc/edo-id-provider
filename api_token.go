@@ -15,7 +15,6 @@
 package main
 
 import (
-	jtidb "github.com/realglobe-Inc/edo-id-provider/database/jti"
 	"github.com/realglobe-Inc/edo-id-provider/database/token"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
 	"github.com/realglobe-Inc/edo-idp-selector/request"
@@ -142,35 +141,12 @@ func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {
 	ta, err := sys.taDb.Get(req.ta())
 	if err != nil {
 		return erro.Wrap(err)
-	}
-
-	assJt, err := jwt.Parse(taAss)
-	if err != nil {
+	} else if jti, err := sys.verifyTa(ta, req.taAssertion()); err != nil {
 		return erro.Wrap(idperr.New(idperr.Invalid_client, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
-	} else if assJt.Header(tagAlg) == tagNone {
-		return erro.Wrap(idperr.New(idperr.Invalid_client, "asserion algorithm must not be "+tagNone, http.StatusBadRequest, nil))
-	} else if err := assJt.Verify(ta.Keys()); err != nil {
-		return erro.Wrap(idperr.New(idperr.Invalid_client, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
-	}
-
-	if assJt.Claim(tagIss) != req.ta() {
-		return erro.Wrap(idperr.New(idperr.Invalid_client, "JWT issuer is not "+req.ta(), http.StatusBadRequest, nil))
-	} else if jti, _ := assJt.Claim(tagJti).(string); jti == "" {
-		return erro.Wrap(idperr.New(idperr.Invalid_client, "no JWT ID", http.StatusBadRequest, nil))
-	} else if rawExp, _ := assJt.Claim(tagExp).(float64); rawExp == 0 {
-		return erro.Wrap(idperr.New(idperr.Invalid_client, "no expiration date", http.StatusBadRequest, nil))
-	} else if exp := time.Unix(int64(rawExp), 0); now.After(exp) {
-		return erro.Wrap(idperr.New(idperr.Invalid_client, "assertion expired", http.StatusBadRequest, nil))
-	} else if ok, err := sys.jtiDb.SaveIfAbsent(jtidb.New(req.ta(), jti, exp)); err != nil {
+	} else if ok, err := sys.jtiDb.SaveIfAbsent(jti); err != nil {
 		return erro.Wrap(err)
 	} else if !ok {
-		return erro.Wrap(idperr.New(idperr.Invalid_client, "JWT ID overlaps", http.StatusBadRequest, nil))
-	} else if assJt.Claim(tagSub) != req.ta() {
-		return erro.Wrap(idperr.New(idperr.Invalid_client, "JWT subject is not "+req.ta(), http.StatusBadRequest, nil))
-	} else if aud := assJt.Claim(tagAud); aud == nil {
-		return erro.Wrap(idperr.New(idperr.Invalid_client, "no assertion audience", http.StatusBadRequest, nil))
-	} else if !audienceHas(aud, sys.selfId+sys.pathTok) {
-		return erro.Wrap(idperr.New(idperr.Invalid_client, "assertion audience does not contain "+sys.selfId+sys.pathTok, http.StatusBadRequest, nil))
+		return erro.New("JWT ID overlaps")
 	}
 
 	// クライアント認証できた。

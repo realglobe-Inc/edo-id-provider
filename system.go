@@ -171,3 +171,29 @@ func (sys *system) newIdToken(ta tadb.Element, acnt account.Element, attrs map[s
 func (sys *system) taApiHandler() *taapi.Handler {
 	return taapi.NewHandler(sys.pathTa, sys.taDb)
 }
+
+func (sys *system) verifyTa(ta tadb.Element, ass []byte) (*jtidb.Element, error) {
+	if jt, err := jwt.Parse(ass); err != nil {
+		return nil, erro.Wrap(err)
+	} else if jt.Header(tagAlg) == tagNone {
+		return nil, erro.New("algorithm must not be " + tagNone)
+	} else if err := jt.Verify(ta.Keys()); err != nil {
+		return nil, erro.Wrap(err)
+	} else if jt.Claim(tagIss) != ta.Id() {
+		return nil, erro.New("issuer is not " + ta.Id())
+	} else if jti, _ := jt.Claim(tagJti).(string); jti == "" {
+		return nil, erro.New("no ID")
+	} else if rawExp, _ := jt.Claim(tagExp).(float64); rawExp == 0 {
+		return nil, erro.New("no expiration date")
+	} else if exp := time.Unix(int64(rawExp), 0); time.Now().After(exp) {
+		return nil, erro.New("expired")
+	} else if jt.Claim(tagSub) != ta.Id() {
+		return nil, erro.New("subject is not " + ta.Id())
+	} else if aud := jt.Claim(tagAud); aud == nil {
+		return nil, erro.New("no audience")
+	} else if !audienceHas(aud, sys.selfId+sys.pathTok) {
+		return nil, erro.New("audience does not contain " + sys.selfId + sys.pathTok)
+	} else {
+		return jtidb.New(ta.Id(), jti, exp), nil
+	}
+}

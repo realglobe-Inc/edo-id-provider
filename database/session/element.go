@@ -44,6 +44,14 @@ type Element struct {
 	saved bool
 }
 
+func New(id string, exp time.Time) *Element {
+	return &Element{
+		id:        id,
+		exp:       exp,
+		pastAcnts: list.New(),
+	}
+}
+
 // 防御的コピー用。
 func (this *Element) copy() *Element {
 	elem := New(this.id, this.exp)
@@ -57,14 +65,6 @@ func (this *Element) copy() *Element {
 	}
 	elem.lang = this.lang
 	return elem
-}
-
-func New(id string, exp time.Time) *Element {
-	return &Element{
-		id:        id,
-		exp:       exp,
-		pastAcnts: list.New(),
-	}
 }
 
 // 履歴を引き継いだセッションを作成する。

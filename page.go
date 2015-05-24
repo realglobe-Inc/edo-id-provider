@@ -57,7 +57,8 @@ func (sys *system) respondPageError(w http.ResponseWriter, r *http.Request, orig
 		idperr.RedirectError(w, r, origErr, uri, sender)
 	}
 
-	return idperr.RespondPageError(w, r, origErr, sender, sys.errTmpl)
+	idperr.RespondPageError(w, r, origErr, sender, sys.errTmpl)
+	return nil
 }
 
 // セッション処理をしてリダイレクトさせる。

@@ -25,6 +25,7 @@ import (
 	"github.com/realglobe-Inc/edo-id-provider/database/sector"
 	"github.com/realglobe-Inc/edo-id-provider/database/session"
 	"github.com/realglobe-Inc/edo-id-provider/database/token"
+	taapi "github.com/realglobe-Inc/edo-idp-selector/api/ta"
 	idpdb "github.com/realglobe-Inc/edo-idp-selector/database/idp"
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
 	webdb "github.com/realglobe-Inc/edo-idp-selector/database/web"
@@ -359,7 +360,7 @@ func serve(param *parameters) (err error) {
 	routes[param.pathLgin] = true
 	mux.HandleFunc(param.pathCons, pagePanicErrorWrapper(s, errTmpl, sys.consentPage))
 	routes[param.pathCons] = true
-	mux.HandleFunc(param.pathTa, apiPanicErrorWrapper(s, sys.taApiHandler().ServeHTTP))
+	mux.Handle(param.pathTa, taapi.New(s, param.pathTa, taDb))
 	routes[param.pathTa] = true
 	mux.HandleFunc(param.pathTok, apiPanicErrorWrapper(s, sys.tokenApi))
 	routes[param.pathTok] = true

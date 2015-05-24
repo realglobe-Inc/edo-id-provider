@@ -25,7 +25,6 @@ import (
 	"github.com/realglobe-Inc/edo-id-provider/database/sector"
 	"github.com/realglobe-Inc/edo-id-provider/database/session"
 	"github.com/realglobe-Inc/edo-id-provider/database/token"
-	taapi "github.com/realglobe-Inc/edo-idp-selector/api/ta"
 	idpdb "github.com/realglobe-Inc/edo-idp-selector/database/idp"
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
 	webdb "github.com/realglobe-Inc/edo-idp-selector/database/web"
@@ -168,10 +167,6 @@ func (sys *system) newIdToken(ta tadb.Element, acnt account.Element, attrs map[s
 		return "", erro.Wrap(err)
 	}
 	return string(buff), nil
-}
-
-func (sys *system) taApiHandler() *taapi.Handler {
-	return taapi.NewHandler(sys.pathTa, sys.taDb)
 }
 
 func (sys *system) verifyTa(ta tadb.Element, ass []byte, audSuffix string) (*jtidb.Element, error) {

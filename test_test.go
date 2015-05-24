@@ -17,6 +17,7 @@ package main
 import (
 	"encoding/json"
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
+	taapi "github.com/realglobe-Inc/edo-idp-selector/api/ta"
 	idpdb "github.com/realglobe-Inc/edo-idp-selector/database/idp"
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
 	webdb "github.com/realglobe-Inc/edo-idp-selector/database/web"
@@ -88,7 +89,7 @@ func newTestIdpServer(acnts []account.Element,
 	mux.HandleFunc(test_pathSel, pagePanicErrorWrapper(s, nil, sys.selectPage))
 	mux.HandleFunc(test_pathLgin, pagePanicErrorWrapper(s, nil, sys.lginPage))
 	mux.HandleFunc(test_pathCons, pagePanicErrorWrapper(s, nil, sys.consentPage))
-	mux.HandleFunc(test_pathTa, apiPanicErrorWrapper(s, sys.taApiHandler().ServeHTTP))
+	mux.Handle(test_pathTa, taapi.New(nil, sys.pathTa, sys.taDb))
 	mux.HandleFunc(test_pathTok, apiPanicErrorWrapper(s, sys.tokenApi))
 	mux.HandleFunc(test_pathAcnt, apiPanicErrorWrapper(s, sys.accountApi))
 	mux.HandleFunc(test_pathCoopFr, apiPanicErrorWrapper(s, sys.cooperateFromApi))

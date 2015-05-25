@@ -31,7 +31,7 @@ func (sys *system) cooperateFromApi(w http.ResponseWriter, r *http.Request) erro
 	log.Info(sender, ": Received cooperation-from request")
 	defer log.Info(sender, ": Handled cooperation-from request")
 
-	req, err := parseCooperationFromRequest(r)
+	req, err := parseCoopFromRequest(r)
 	if err != nil {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
 	}
@@ -47,7 +47,7 @@ func (sys *system) cooperateFromApi(w http.ResponseWriter, r *http.Request) erro
 }
 
 // 処理の主体が属す ID プロバイダとして対応。
-func (sys *system) cooperateFromServeAsMain(w http.ResponseWriter, r *http.Request, req *cooperationFromRequest, sender *request.Request) error {
+func (sys *system) cooperateFromServeAsMain(w http.ResponseWriter, r *http.Request, req *coopFromRequest, sender *request.Request) error {
 	if len(req.responseType()) > 2 || !req.responseType()[tagCode_token] {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "unsupported response type "+request.ValueSetForm(req.responseType()), http.StatusBadRequest, nil))
 	}
@@ -275,6 +275,6 @@ func (sys *system) cooperateFromServeAsMain(w http.ResponseWriter, r *http.Reque
 }
 
 // 処理の主体が属さない ID プロバイダとして対応。
-func (sys *system) cooperateFromServeAsSub(w http.ResponseWriter, r *http.Request, req *cooperationFromRequest, sender *request.Request) error {
+func (sys *system) cooperateFromServeAsSub(w http.ResponseWriter, r *http.Request, req *coopFromRequest, sender *request.Request) error {
 	panic("not yet implemented")
 }

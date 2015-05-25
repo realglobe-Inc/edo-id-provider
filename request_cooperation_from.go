@@ -23,7 +23,7 @@ import (
 	"time"
 )
 
-type cooperationFromRequest struct {
+type coopFromRequest struct {
 	grntType  string
 	respType  map[string]bool
 	frTa      string
@@ -40,74 +40,74 @@ type cooperationFromRequest struct {
 	taAss     []byte
 }
 
-func parseCooperationFromRequest(r *http.Request) (*cooperationFromRequest, error) {
+func parseCoopFromRequest(r *http.Request) (*coopFromRequest, error) {
 	if r.Header.Get(tagContent_type) != contTypeJson {
 		return nil, erro.New("not json")
 	}
-	var req cooperationFromRequest
+	var req coopFromRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return nil, erro.Wrap(err)
 	}
 	return &req, nil
 }
 
-func (this *cooperationFromRequest) grantType() string {
+func (this *coopFromRequest) grantType() string {
 	return this.grntType
 }
 
-func (this *cooperationFromRequest) responseType() map[string]bool {
+func (this *coopFromRequest) responseType() map[string]bool {
 	return this.respType
 }
 
-func (this *cooperationFromRequest) fromTa() string {
+func (this *coopFromRequest) fromTa() string {
 	return this.frTa
 }
 
-func (this *cooperationFromRequest) toTa() string {
+func (this *coopFromRequest) toTa() string {
 	return this.toTa_
 }
 
-func (this *cooperationFromRequest) accessToken() string {
+func (this *coopFromRequest) accessToken() string {
 	return this.tok
 }
 
-func (this *cooperationFromRequest) scope() map[string]bool {
+func (this *coopFromRequest) scope() map[string]bool {
 	return this.scop
 }
 
-func (this *cooperationFromRequest) expiresIn() time.Duration {
+func (this *coopFromRequest) expiresIn() time.Duration {
 	return this.expIn
 }
 
-func (this *cooperationFromRequest) accountTag() string {
+func (this *coopFromRequest) accountTag() string {
 	return this.acntTag
 }
 
-func (this *cooperationFromRequest) accounts() map[string]string {
+func (this *coopFromRequest) accounts() map[string]string {
 	return this.acnts
 }
 
-func (this *cooperationFromRequest) hashAlgorithm() string {
+func (this *coopFromRequest) hashAlgorithm() string {
 	return this.hashAlg
 }
 
-func (this *cooperationFromRequest) relatedAccounts() map[string]string {
+func (this *coopFromRequest) relatedAccounts() map[string]string {
 	return this.relAcnts
 }
 
-func (this *cooperationFromRequest) relatedIdProviders() []string {
+func (this *coopFromRequest) relatedIdProviders() []string {
 	return this.relIdps
 }
 
-func (this *cooperationFromRequest) taAssertionType() string {
+func (this *coopFromRequest) taAssertionType() string {
 	return this.taAssType
 }
 
-func (this *cooperationFromRequest) taAssertion() []byte {
+func (this *coopFromRequest) taAssertion() []byte {
 	return this.taAss
 }
 
-func (this *cooperationFromRequest) UnmarshalJSON(data []byte) error {
+func (this *coopFromRequest) UnmarshalJSON(data []byte) error {
 	var buff struct {
 		GrntType  string            `json:"grant_type"`
 		RespType  string            `json:"response_type"`

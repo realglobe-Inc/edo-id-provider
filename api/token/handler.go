@@ -12,62 +12,158 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+// トークンエンドポイント。
+package token
 
 import (
+	"github.com/realglobe-Inc/edo-id-provider/database/account"
+	"github.com/realglobe-Inc/edo-id-provider/database/authcode"
+	jtidb "github.com/realglobe-Inc/edo-id-provider/database/jti"
+	keydb "github.com/realglobe-Inc/edo-id-provider/database/key"
+	"github.com/realglobe-Inc/edo-id-provider/database/pairwise"
+	"github.com/realglobe-Inc/edo-id-provider/database/sector"
 	"github.com/realglobe-Inc/edo-id-provider/database/token"
+	"github.com/realglobe-Inc/edo-id-provider/idputil"
+	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
-	"github.com/realglobe-Inc/edo-idp-selector/request"
+	requtil "github.com/realglobe-Inc/edo-idp-selector/request"
 	"github.com/realglobe-Inc/edo-lib/base64url"
 	"github.com/realglobe-Inc/edo-lib/jwt"
+	logutil "github.com/realglobe-Inc/edo-lib/log"
+	"github.com/realglobe-Inc/edo-lib/rand"
+	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/go-lib/erro"
+	"github.com/realglobe-Inc/go-lib/rglog/level"
 	"net/http"
 	"reflect"
 	"time"
 )
 
-func respondToken(w http.ResponseWriter, tok *token.Element, refTok, idTok string) error {
-	m := map[string]interface{}{
-		tagAccess_token: tok.Id(),
-		tagToken_type:   tagBearer,
-	}
-	if !tok.Expires().IsZero() {
-		m[tagExpires_in] = int64(tok.Expires().Sub(time.Now()).Seconds())
-	}
-	if len(tok.Scope()) > 0 {
-		var buff string
-		for scop := range tok.Scope() {
-			if len(buff) > 0 {
-				buff += " "
-			}
-			buff += scop
-		}
-		m[tagScope] = buff
-	}
-	if refTok != "" {
-		m[tagRefresh_token] = refTok
-	}
-	if idTok != "" {
-		m[tagId_token] = idTok
-	}
-	return respondJson(w, m)
+// http.Handler を実装する。
+type Handler struct {
+	stopper *server.Stopper
+
+	selfId string
+	sigAlg string
+	sigKid string
+
+	pathTok string
+
+	pwSaltLen  int
+	tokLen     int
+	tokExpIn   time.Duration
+	tokDbExpIn time.Duration
+	jtiExpIn   time.Duration
+
+	keyDb  keydb.Db
+	acntDb account.Db
+	taDb   tadb.Db
+	sectDb sector.Db
+	pwDb   pairwise.Db
+	codDb  authcode.Db
+	tokDb  token.Db
+	jtiDb  jtidb.Db
+
+	idGen rand.Generator
 }
 
-func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {
-	sender := request.Parse(r, "")
+func New(
+	stopper *server.Stopper,
+	selfId string,
+	sigAlg string,
+	sigKid string,
+	pathTok string,
+	pwSaltLen int,
+	tokLen int,
+	tokExpIn time.Duration,
+	tokDbExpIn time.Duration,
+	jtiExpIn time.Duration,
+	keyDb keydb.Db,
+	acntDb account.Db,
+	taDb tadb.Db,
+	sectDb sector.Db,
+	pwDb pairwise.Db,
+	codDb authcode.Db,
+	tokDb token.Db,
+	jtiDb jtidb.Db,
+	idGen rand.Generator,
+) *Handler {
+	return &Handler{
+		stopper:    stopper,
+		selfId:     selfId,
+		sigAlg:     sigAlg,
+		sigKid:     sigKid,
+		pathTok:    pathTok,
+		pwSaltLen:  pwSaltLen,
+		tokLen:     tokLen,
+		tokExpIn:   tokExpIn,
+		tokDbExpIn: tokDbExpIn,
+		jtiExpIn:   jtiExpIn,
+		keyDb:      keyDb,
+		acntDb:     acntDb,
+		taDb:       taDb,
+		sectDb:     sectDb,
+		pwDb:       pwDb,
+		codDb:      codDb,
+		tokDb:      tokDb,
+		jtiDb:      jtiDb,
+		idGen:      idGen,
+	}
+}
+
+func (this *Handler) PairwiseSaltLength() int       { return this.pwSaltLen }
+func (this *Handler) SectorDb() sector.Db           { return this.sectDb }
+func (this *Handler) PairwiseDb() pairwise.Db       { return this.pwDb }
+func (this *Handler) IdGenerator() rand.Generator   { return this.idGen }
+func (this *Handler) KeyDb() keydb.Db               { return this.keyDb }
+func (this *Handler) SignAlgorithm() string         { return this.sigAlg }
+func (this *Handler) SignKeyId() string             { return this.sigKid }
+func (this *Handler) SelfId() string                { return this.selfId }
+func (this *Handler) JwtIdExpiresIn() time.Duration { return this.jtiExpIn }
+
+// 主にテスト用。
+func (this *Handler) SetSelfId(selfId string) {
+	this.selfId = selfId
+}
+
+func (this *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	var sender *requtil.Request
+
+	// panic 対策。
+	defer func() {
+		if rcv := recover(); rcv != nil {
+			idperr.RespondApiError(w, r, erro.New(rcv), sender)
+			return
+		}
+	}()
+
+	if this.stopper != nil {
+		this.stopper.Stop()
+		defer this.stopper.Unstop()
+	}
+
+	//////////////////////////////
+	server.LogRequest(level.DEBUG, r, true)
+	//////////////////////////////
+
+	sender = requtil.Parse(r, "")
 	log.Info(sender, ": Received token request")
 	defer log.Info(sender, ": Handled token request")
 
+	if err := this.serve(w, r, sender); err != nil {
+		idperr.RespondApiError(w, r, erro.Wrap(err), sender)
+		return
+	}
+}
+
+func (this *Handler) serve(w http.ResponseWriter, r *http.Request, sender *requtil.Request) error {
 	if r.Method != tagPost {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "unsupported method "+r.Method, http.StatusMethodNotAllowed, nil))
 	}
 
-	req := newTokenRequest(r)
-	// 重複パラメータが無いか検査。
-	for k, v := range r.Form {
-		if len(v) > 1 {
-			return erro.Wrap(idperr.New(idperr.Invalid_request, "parameter "+k+" overlaps", http.StatusBadRequest, nil))
-		}
+	req, err := parseRequest(r)
+	if err != nil {
+		return erro.Wrap(idperr.New(idperr.Invalid_request, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
 	}
 
 	if grntType := req.grantType(); grntType == "" {
@@ -83,23 +179,23 @@ func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "no "+tagCode, http.StatusBadRequest, nil))
 	}
 
-	log.Debug(sender, ": Code "+mosaic(codId)+" is declared")
+	log.Debug(sender, ": Code "+logutil.Mosaic(codId)+" is declared")
 
 	now := time.Now()
 
-	cod, err := sys.acodDb.Get(codId)
+	cod, err := this.codDb.Get(codId)
 	if err != nil {
 		return erro.Wrap(err)
 	} else if cod == nil {
-		return erro.Wrap(idperr.New(idperr.Invalid_grant, "code "+mosaic(codId)+" is not exist", http.StatusBadRequest, nil))
+		return erro.Wrap(idperr.New(idperr.Invalid_grant, "code "+logutil.Mosaic(codId)+" is not exist", http.StatusBadRequest, nil))
 	} else if cod.Expires().Before(now) {
-		return erro.Wrap(idperr.New(idperr.Invalid_grant, "code "+mosaic(codId)+" is expired", http.StatusBadRequest, nil))
+		return erro.Wrap(idperr.New(idperr.Invalid_grant, "code "+logutil.Mosaic(codId)+" is expired", http.StatusBadRequest, nil))
 	} else if cod.Token() != "" {
-		disposeCode(sys, codId)
-		return erro.Wrap(idperr.New(idperr.Invalid_grant, "code "+mosaic(codId)+" is invalid", http.StatusBadRequest, nil))
+		disposeCode(this, codId)
+		return erro.Wrap(idperr.New(idperr.Invalid_grant, "code "+logutil.Mosaic(codId)+" is invalid", http.StatusBadRequest, nil))
 	}
 
-	log.Debug(sender, ": Code "+mosaic(codId)+" is exist")
+	log.Debug(sender, ": Code "+logutil.Mosaic(codId)+" is exist")
 	savedCodDate := cod.Date()
 
 	if req.ta() == "" {
@@ -139,12 +235,12 @@ func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// クライアント認証する。
-	ta, err := sys.taDb.Get(req.ta())
+	ta, err := this.taDb.Get(req.ta())
 	if err != nil {
 		return erro.Wrap(err)
-	} else if jti, err := sys.verifyTa(ta, req.taAssertion(), sys.pathTok); err != nil {
+	} else if jti, err := idputil.VerifyAssertion(req.taAssertion(), ta.Id(), ta.Keys(), this.selfId+this.pathTok); err != nil {
 		return erro.Wrap(idperr.New(idperr.Invalid_client, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
-	} else if ok, err := sys.jtiDb.SaveIfAbsent(jti); err != nil {
+	} else if ok, err := this.jtiDb.SaveIfAbsent(jti); err != nil {
 		return erro.Wrap(err)
 	} else if !ok {
 		return erro.New("JWT ID overlaps")
@@ -153,13 +249,13 @@ func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {
 	// クライアント認証できた。
 	log.Debug(sender, ": Authenticated "+req.ta())
 
-	tokId := randomString(sys.tokLen)
+	tokId := this.idGen.String(this.tokLen)
 
 	// アクセストークンが決まった。
-	log.Debug(sender, ": Generated token "+mosaic(tokId))
+	log.Debug(sender, ": Generated token "+logutil.Mosaic(tokId))
 
 	// ID トークンの作成。
-	acnt, err := sys.acntDb.Get(cod.Account())
+	acnt, err := this.acntDb.Get(cod.Account())
 	if err != nil {
 		return erro.Wrap(err)
 	} else if acnt == nil {
@@ -174,7 +270,7 @@ func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {
 	if cod.Nonce() != "" {
 		clms[tagNonce] = cod.Nonce()
 	}
-	if hGen, err := jwt.HashFunction(sys.sigAlg); err != nil {
+	if hGen, err := jwt.HashFunction(this.sigAlg); err != nil {
 		return erro.Wrap(err)
 	} else {
 		h := hGen.New()
@@ -182,7 +278,7 @@ func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {
 		sum := h.Sum(nil)
 		clms[tagAt_hash] = base64url.EncodeToString(sum[:len(sum)/2])
 	}
-	idTok, err := sys.newIdToken(ta, acnt, cod.IdTokenAttributes(), clms)
+	idTok, err := idputil.IdToken(this, ta, acnt, cod.IdTokenAttributes(), clms)
 	if err != nil {
 		return erro.Wrap(err)
 	}
@@ -192,7 +288,7 @@ func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {
 
 	tok := token.New(
 		tokId,
-		now.Add(sys.tokExpIn),
+		now.Add(this.tokExpIn),
 		cod.Account(),
 		cod.Scope(),
 		cod.AccountAttributes(),
@@ -201,23 +297,43 @@ func (sys *system) tokenApi(w http.ResponseWriter, r *http.Request) error {
 
 	// アクセストークンを認可コードに結びつける。
 	cod.SetToken(tokId)
-	if ok, err := sys.acodDb.Replace(cod, savedCodDate); err != nil {
+	if ok, err := this.codDb.Replace(cod, savedCodDate); err != nil {
 		return erro.Wrap(idperr.New(idperr.Server_error, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
 	} else if !ok {
-		disposeCode(sys, codId)
-		return erro.Wrap(idperr.New(idperr.Invalid_grant, "code "+mosaic(codId)+" is used by others", http.StatusBadRequest, nil))
+		disposeCode(this, codId)
+		return erro.Wrap(idperr.New(idperr.Invalid_grant, "code "+logutil.Mosaic(codId)+" is used by others", http.StatusBadRequest, nil))
 	}
 
-	log.Debug(sender, ": Linked token "+mosaic(tok.Id())+" to code "+mosaic(cod.Id()))
+	log.Debug(sender, ": Linked token "+logutil.Mosaic(tok.Id())+" to code "+logutil.Mosaic(cod.Id()))
 
 	// アクセストークンを保存する。
-	if err := sys.tokDb.Save(tok, now.Add(sys.tokDbExpIn)); err != nil {
+	if err := this.tokDb.Save(tok, now.Add(this.tokDbExpIn)); err != nil {
 		return erro.Wrap(err)
 	}
 
-	log.Debug(sender, ": Saved token "+mosaic(tok.Id()))
+	log.Debug(sender, ": Saved token "+logutil.Mosaic(tok.Id()))
 
 	return respondToken(w, tok, "", idTok)
+}
+
+func respondToken(w http.ResponseWriter, tok *token.Element, refTok, idTok string) error {
+	m := map[string]interface{}{
+		tagAccess_token: tok.Id(),
+		tagToken_type:   tagBearer,
+	}
+	if !tok.Expires().IsZero() {
+		m[tagExpires_in] = int64(tok.Expires().Sub(time.Now()).Seconds())
+	}
+	if len(tok.Scope()) > 0 {
+		m[tagScope] = requtil.ValueSetForm(tok.Scope())
+	}
+	if refTok != "" {
+		m[tagRefresh_token] = refTok
+	}
+	if idTok != "" {
+		m[tagId_token] = idTok
+	}
+	return idputil.RespondJson(w, m)
 }
 
 // aud クレーム値が tgt を含むかどうか検査。
@@ -239,8 +355,8 @@ func audienceHas(aud interface{}, tgt string) bool {
 }
 
 // 認可コードを廃棄処分する。
-func disposeCode(sys *system, codId string) {
-	cod, err := sys.acodDb.Get(codId)
+func disposeCode(this *Handler, codId string) {
+	cod, err := this.codDb.Get(codId)
 	if err != nil {
 		// 何もできない。
 		err = erro.Wrap(err)
@@ -254,13 +370,13 @@ func disposeCode(sys *system, codId string) {
 	if cod.Token() == "" {
 		return
 	}
-	disposeToken(sys, cod.Token())
+	disposeToken(this, cod.Token())
 }
 
 // アクセストークンを廃棄処分する。
-func disposeToken(sys *system, tokId string) {
+func disposeToken(this *Handler, tokId string) {
 	for {
-		tok, err := sys.tokDb.Get(tokId)
+		tok, err := this.tokDb.Get(tokId)
 		if err != nil {
 			err = erro.Wrap(err)
 			log.Err(erro.Unwrap(err))
@@ -274,7 +390,7 @@ func disposeToken(sys *system, tokId string) {
 		savedDate := tok.Date()
 
 		tok.Invalidate()
-		if ok, err := sys.tokDb.Replace(tok, savedDate); err != nil {
+		if ok, err := this.tokDb.Replace(tok, savedDate); err != nil {
 			err = erro.Wrap(err)
 			log.Err(erro.Unwrap(err))
 			log.Debug(err)

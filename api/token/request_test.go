@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package token
 
 import (
 	"bytes"
@@ -43,7 +43,9 @@ func TestTokenRequest(t *testing.T) {
 	}
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	if req := newTokenRequest(r); req.grantType() != grntType {
+	if req, err := parseRequest(r); err != nil {
+		t.Fatal(err)
+	} else if req.grantType() != grntType {
 		t.Error(req.grantType())
 		t.Fatal(grntType)
 	} else if req.code() != cod {

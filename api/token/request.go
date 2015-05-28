@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package token
 
 import (
+	"github.com/realglobe-Inc/go-lib/erro"
 	"net/http"
 )
 
-type tokenRequest struct {
+type request struct {
 	grntType  string
 	cod       string
 	ta_       string
@@ -27,42 +28,49 @@ type tokenRequest struct {
 	taAss     []byte
 }
 
-func newTokenRequest(r *http.Request) *tokenRequest {
+func parseRequest(r *http.Request) (*request, error) {
 	var taAss []byte
 	if strTaAss := r.FormValue(tagClient_assertion); strTaAss != "" {
 		taAss = []byte(strTaAss)
 	}
 
-	return &tokenRequest{
+	// 重複パラメータが無いか検査。
+	for k, v := range r.Form {
+		if len(v) > 1 {
+			return nil, erro.New(k + " overlaps")
+		}
+	}
+
+	return &request{
 		grntType:  r.FormValue(tagGrant_type),
 		cod:       r.FormValue(tagCode),
 		ta_:       r.FormValue(tagClient_id),
 		rediUri:   r.FormValue(tagRedirect_uri),
 		taAssType: r.FormValue(tagClient_assertion_type),
 		taAss:     taAss,
-	}
+	}, nil
 }
 
-func (this *tokenRequest) grantType() string {
+func (this *request) grantType() string {
 	return this.grntType
 }
 
-func (this *tokenRequest) code() string {
+func (this *request) code() string {
 	return this.cod
 }
 
-func (this *tokenRequest) ta() string {
+func (this *request) ta() string {
 	return this.ta_
 }
 
-func (this *tokenRequest) redirectUri() string {
+func (this *request) redirectUri() string {
 	return this.rediUri
 }
 
-func (this *tokenRequest) taAssertionType() string {
+func (this *request) taAssertionType() string {
 	return this.taAssType
 }
 
-func (this *tokenRequest) taAssertion() []byte {
+func (this *request) taAssertion() []byte {
 	return this.taAss
 }

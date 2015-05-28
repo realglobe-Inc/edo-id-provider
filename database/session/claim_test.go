@@ -16,61 +16,30 @@ package session
 
 import (
 	"encoding/json"
-	"reflect"
 	"testing"
 )
 
-func TestClaimSample(t *testing.T) {
-	// OpenID Connect Core 1.0 Section 5.5 より。
-	sample := []byte(`
-{
-   "userinfo":
-    {
-     "given_name": {"essential": true},
-     "nickname": null,
-     "email": {"essential": true},
-     "email_verified": {"essential": true},
-     "picture": null,
-     "http://example.info/claims/groups": null
-    },
-   "id_token":
-    {
-     "auth_time": {"essential": true},
-     "acr": {"values": ["urn:mace:incommon:iap:silver"] }
-    }
-  }
-`)
-	var reqClm Claim
-	if err := json.Unmarshal(sample, &reqClm); err != nil {
-		t.Fatal(err)
-	} else if acntInf := reqClm.AccountEntries(); acntInf == nil {
-		t.Fatal(reqClm)
-	} else if v := acntInf["given_name"]; v == nil || !v.Essential() {
-		t.Fatal(v)
-	} else if v, ok := acntInf["nickname"]; !ok || v != nil {
-		t.Fatal(v, ok)
-	} else if v := acntInf["email"]; v == nil || !v.Essential() {
-		t.Fatal(v)
-	} else if v := acntInf["email_verified"]; v == nil || !v.Essential() {
-		t.Fatal(v)
-	} else if v, ok := acntInf["picture"]; !ok || v != nil {
-		t.Fatal(v, ok)
-	} else if v, ok := acntInf["http://example.info/claims/groups"]; !ok || v != nil {
-		t.Fatal(v, ok)
-	} else if idTok := reqClm.IdTokenEntries(); idTok == nil {
-		t.Fatal(reqClm)
-	} else if v := idTok["auth_time"]; v == nil || !v.Essential() {
-		t.Fatal(v)
-	} else if v := idTok["acr"]; v == nil ||
-		!reflect.DeepEqual(toStrings(v.Values()), []string{"urn:mace:incommon:iap:silver"}) {
-		t.Fatal(v)
-	}
-}
+func TestClaims(t *testing.T) {
+	var clms Claims
 
-func toStrings(a []interface{}) []string {
-	b := []string{}
-	for _, v := range a {
-		b = append(b, v.(string))
+	if err := json.Unmarshal([]byte(`{"test-attribute":{"essential":true}}`), &clms); err != nil {
+		t.Fatal(err)
+	} else if clms["test-attribute"] == nil {
+		t.Fatal("no claim")
 	}
-	return b
+
+	if err := json.Unmarshal([]byte(`{"test-attribute":null}`), &clms); err != nil {
+		t.Fatal(err)
+	} else if clms["test-attribute"] == nil {
+		t.Fatal("no claim")
+	}
+
+	if err := json.Unmarshal([]byte(`{"test-attribute#ja":null}`), &clms); err != nil {
+		t.Fatal(err)
+	} else if ent := clms["test-attribute"]; ent == nil {
+		t.Fatal("no claim")
+	} else if ent.Language() != "ja" {
+		t.Error(ent.Language())
+		t.Fatal("ja")
+	}
 }

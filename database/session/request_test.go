@@ -141,7 +141,7 @@ func TestRequestSample2(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var reqClm Claim
+	var reqClm ClaimRequest
 	if err := json.Unmarshal([]byte(`{
     "userinfo": {
         "given_name": {"essential": true},

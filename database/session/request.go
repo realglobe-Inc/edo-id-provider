@@ -74,7 +74,7 @@ type Request struct {
 	// id_token_hint
 	hint string
 	// claims
-	reqClm *Claim
+	reqClm *ClaimRequest
 	// request
 	req []byte
 	// request_uri
@@ -175,7 +175,7 @@ func (this *Request) IdTokenHint() string {
 }
 
 // claims を返す。
-func (this *Request) Claims() *Claim {
+func (this *Request) Claims() *ClaimRequest {
 	return this.reqClm
 }
 
@@ -232,7 +232,7 @@ func (this *Request) ParseRequest(req []byte, selfKeys, taKeys []jwk.Key) (err e
 		MaxAge   *json.RawMessage `json:"max_age"`
 		Langs    string           `json:"ui_locales"`
 		Hint     string           `json:"id_token_hint"`
-		ReqClm   *Claim           `json:"claims"`
+		ReqClm   *ClaimRequest    `json:"claims"`
 		Req      string           `json:"request"`
 		ReqUri   string           `json:"request_uri"`
 	}
@@ -299,11 +299,11 @@ func parseMaxAge(s string) (time.Duration, error) {
 	return time.Duration(sec) * time.Second, nil
 }
 
-func parseClaims(s string) (*Claim, error) {
+func parseClaims(s string) (*ClaimRequest, error) {
 	if s == "" {
 		return nil, nil
 	}
-	var reqClm Claim
+	var reqClm ClaimRequest
 	if err := json.Unmarshal([]byte(s), &reqClm); err != nil {
 		return nil, erro.Wrap(err)
 	}
@@ -341,7 +341,7 @@ func (this *Request) UnmarshalJSON(data []byte) error {
 		MaxAge  duration.Duration `json:"max_age"`
 		Langs   []string          `json:"ui_locales"`
 		Hint    string            `json:"id_token_hint"`
-		ReqClm  *Claim            `json:"claims"`
+		ReqClm  *ClaimRequest     `json:"claims"`
 	}
 	if err := json.Unmarshal(data, &buff); err != nil {
 		return erro.Wrap(err)

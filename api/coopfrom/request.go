@@ -12,18 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package coopfrom
 
 import (
 	"encoding/json"
-	"github.com/realglobe-Inc/edo-idp-selector/request"
+	requtil "github.com/realglobe-Inc/edo-idp-selector/request"
 	"github.com/realglobe-Inc/edo-lib/strset"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"net/http"
 	"time"
 )
 
-type coopFromRequest struct {
+type request struct {
 	grntType  string
 	respType  map[string]bool
 	frTa      string
@@ -40,74 +40,74 @@ type coopFromRequest struct {
 	taAss     []byte
 }
 
-func parseCoopFromRequest(r *http.Request) (*coopFromRequest, error) {
+func parseRequest(r *http.Request) (*request, error) {
 	if r.Header.Get(tagContent_type) != contTypeJson {
 		return nil, erro.New("not json")
 	}
-	var req coopFromRequest
+	var req request
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return nil, erro.Wrap(err)
 	}
 	return &req, nil
 }
 
-func (this *coopFromRequest) grantType() string {
+func (this *request) grantType() string {
 	return this.grntType
 }
 
-func (this *coopFromRequest) responseType() map[string]bool {
+func (this *request) responseType() map[string]bool {
 	return this.respType
 }
 
-func (this *coopFromRequest) fromTa() string {
+func (this *request) fromTa() string {
 	return this.frTa
 }
 
-func (this *coopFromRequest) toTa() string {
+func (this *request) toTa() string {
 	return this.toTa_
 }
 
-func (this *coopFromRequest) accessToken() string {
+func (this *request) accessToken() string {
 	return this.tok
 }
 
-func (this *coopFromRequest) scope() map[string]bool {
+func (this *request) scope() map[string]bool {
 	return this.scop
 }
 
-func (this *coopFromRequest) expiresIn() time.Duration {
+func (this *request) expiresIn() time.Duration {
 	return this.expIn
 }
 
-func (this *coopFromRequest) accountTag() string {
+func (this *request) accountTag() string {
 	return this.acntTag
 }
 
-func (this *coopFromRequest) accounts() map[string]string {
+func (this *request) accounts() map[string]string {
 	return this.acnts
 }
 
-func (this *coopFromRequest) hashAlgorithm() string {
+func (this *request) hashAlgorithm() string {
 	return this.hashAlg
 }
 
-func (this *coopFromRequest) relatedAccounts() map[string]string {
+func (this *request) relatedAccounts() map[string]string {
 	return this.relAcnts
 }
 
-func (this *coopFromRequest) relatedIdProviders() []string {
+func (this *request) relatedIdProviders() []string {
 	return this.relIdps
 }
 
-func (this *coopFromRequest) taAssertionType() string {
+func (this *request) taAssertionType() string {
 	return this.taAssType
 }
 
-func (this *coopFromRequest) taAssertion() []byte {
+func (this *request) taAssertion() []byte {
 	return this.taAss
 }
 
-func (this *coopFromRequest) UnmarshalJSON(data []byte) error {
+func (this *request) UnmarshalJSON(data []byte) error {
 	var buff struct {
 		GrntType  string            `json:"grant_type"`
 		RespType  string            `json:"response_type"`
@@ -129,7 +129,7 @@ func (this *coopFromRequest) UnmarshalJSON(data []byte) error {
 	}
 
 	this.grntType = buff.GrntType
-	this.respType = request.FormValueSet(buff.RespType)
+	this.respType = requtil.FormValueSet(buff.RespType)
 	this.frTa = buff.FrTa
 	this.toTa_ = buff.ToTa
 	this.tok = buff.Tok

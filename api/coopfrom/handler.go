@@ -12,50 +12,165 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+// TA 間連携要請元仲介エンドポイント。
+package coopfrom
 
 import (
+	"github.com/realglobe-Inc/edo-id-provider/database/account"
+	"github.com/realglobe-Inc/edo-id-provider/database/coopcode"
+	jtidb "github.com/realglobe-Inc/edo-id-provider/database/jti"
+	keydb "github.com/realglobe-Inc/edo-id-provider/database/key"
+	"github.com/realglobe-Inc/edo-id-provider/database/token"
+	"github.com/realglobe-Inc/edo-id-provider/idputil"
+	idpdb "github.com/realglobe-Inc/edo-idp-selector/database/idp"
+	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
-	"github.com/realglobe-Inc/edo-idp-selector/request"
+	requtil "github.com/realglobe-Inc/edo-idp-selector/request"
 	"github.com/realglobe-Inc/edo-lib/base64url"
+	"github.com/realglobe-Inc/edo-lib/hash"
 	"github.com/realglobe-Inc/edo-lib/jwk"
 	"github.com/realglobe-Inc/edo-lib/jwt"
+	logutil "github.com/realglobe-Inc/edo-lib/log"
+	"github.com/realglobe-Inc/edo-lib/rand"
+	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/edo-lib/strset"
+	"github.com/realglobe-Inc/edo-lib/strset/strsetutil"
 	"github.com/realglobe-Inc/go-lib/erro"
+	"github.com/realglobe-Inc/go-lib/rglog/level"
 	"net/http"
 	"time"
 )
 
-func (sys *system) cooperateFromApi(w http.ResponseWriter, r *http.Request) error {
-	sender := request.Parse(r, "")
+// http.Handler を実装する。
+type Handler struct {
+	stopper *server.Stopper
+
+	selfId  string
+	sigAlg  string
+	hashAlg string
+
+	pathCoopFr string
+
+	codLen     int
+	codExpIn   time.Duration
+	codDbExpIn time.Duration
+	jtiLen     int
+	jtiExpIn   time.Duration
+
+	keyDb  keydb.Db
+	acntDb account.Db
+	taDb   tadb.Db
+	idpDb  idpdb.Db
+	codDb  coopcode.Db
+	tokDb  token.Db
+	jtiDb  jtidb.Db
+
+	idGen rand.Generator
+}
+
+func New(
+	stopper *server.Stopper,
+	selfId string,
+	sigAlg string,
+	hashAlg string,
+	pathCoopFr string,
+	codLen int,
+	codExpIn time.Duration,
+	codDbExpIn time.Duration,
+	jtiLen int,
+	jtiExpIn time.Duration,
+	keyDb keydb.Db,
+	acntDb account.Db,
+	taDb tadb.Db,
+	idpDb idpdb.Db,
+	codDb coopcode.Db,
+	tokDb token.Db,
+	jtiDb jtidb.Db,
+	idGen rand.Generator,
+) *Handler {
+	return &Handler{
+		stopper:    stopper,
+		selfId:     selfId,
+		sigAlg:     sigAlg,
+		hashAlg:    hashAlg,
+		pathCoopFr: pathCoopFr,
+		codLen:     codLen,
+		codExpIn:   codExpIn,
+		codDbExpIn: codDbExpIn,
+		jtiLen:     jtiLen,
+		jtiExpIn:   jtiExpIn,
+		keyDb:      keyDb,
+		acntDb:     acntDb,
+		taDb:       taDb,
+		idpDb:      idpDb,
+		codDb:      codDb,
+		tokDb:      tokDb,
+		jtiDb:      jtiDb,
+		idGen:      idGen,
+	}
+}
+
+// 主にテスト用。
+func (this *Handler) SetSelfId(selfId string) {
+	this.selfId = selfId
+}
+
+func (this *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	var sender *requtil.Request
+
+	// panic 対策。
+	defer func() {
+		if rcv := recover(); rcv != nil {
+			idperr.RespondApiError(w, r, erro.New(rcv), sender)
+			return
+		}
+	}()
+
+	if this.stopper != nil {
+		this.stopper.Stop()
+		defer this.stopper.Unstop()
+	}
+
+	//////////////////////////////
+	server.LogRequest(level.DEBUG, r, true)
+	//////////////////////////////
+
+	sender = requtil.Parse(r, "")
 	log.Info(sender, ": Received cooperation-from request")
 	defer log.Info(sender, ": Handled cooperation-from request")
 
-	req, err := parseCoopFromRequest(r)
+	if err := this.serve(w, r, sender); err != nil {
+		idperr.RespondApiError(w, r, erro.Wrap(err), sender)
+		return
+	}
+}
+
+func (this *Handler) serve(w http.ResponseWriter, r *http.Request, sender *requtil.Request) error {
+	req, err := parseRequest(r)
 	if err != nil {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
 	}
 
 	switch req.grantType() {
 	case tagAccess_token:
-		return sys.cooperateFromServeAsMain(w, r, req, sender)
+		return this.serveAsMain(w, r, req, sender)
 	case tagReferral:
-		return sys.cooperateFromServeAsMain(w, r, req, sender)
+		return this.serveAsMain(w, r, req, sender)
 	default:
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "unsupported grant "+req.grantType(), http.StatusBadRequest, nil))
 	}
 }
 
 // 処理の主体が属す ID プロバイダとして対応。
-func (sys *system) cooperateFromServeAsMain(w http.ResponseWriter, r *http.Request, req *coopFromRequest, sender *request.Request) error {
+func (this *Handler) serveAsMain(w http.ResponseWriter, r *http.Request, req *request, sender *requtil.Request) error {
 	if len(req.responseType()) > 2 || !req.responseType()[tagCode_token] {
-		return erro.Wrap(idperr.New(idperr.Invalid_request, "unsupported response type "+request.ValueSetForm(req.responseType()), http.StatusBadRequest, nil))
+		return erro.Wrap(idperr.New(idperr.Invalid_request, "unsupported response type "+requtil.ValueSetForm(req.responseType()), http.StatusBadRequest, nil))
 	}
 	var reqRef bool
 	if len(req.responseType()) == 1 {
 		reqRef = false
 	} else if reqRef = req.responseType()[tagReferral]; !reqRef {
-		return erro.Wrap(idperr.New(idperr.Invalid_request, "unsupported response type "+request.ValueSetForm(req.responseType()), http.StatusBadRequest, nil))
+		return erro.Wrap(idperr.New(idperr.Invalid_request, "unsupported response type "+requtil.ValueSetForm(req.responseType()), http.StatusBadRequest, nil))
 	}
 
 	log.Debug(sender, ": Response types ", req.responseType(), " are OK")
@@ -66,14 +181,14 @@ func (sys *system) cooperateFromServeAsMain(w http.ResponseWriter, r *http.Reque
 
 	log.Debug(sender, ": From-TA "+req.fromTa()+" is declared")
 
-	taFr, err := sys.taDb.Get(req.fromTa())
+	taFr, err := this.taDb.Get(req.fromTa())
 	if err != nil {
 		return erro.Wrap(err)
 	} else if taFr == nil {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "from-TA "+req.fromTa()+" is not exist", http.StatusBadRequest, nil))
-	} else if jti, err := sys.verifyTa(taFr, req.taAssertion(), sys.pathCoopFr); err != nil {
+	} else if jti, err := idputil.VerifyAssertion(req.taAssertion(), taFr.Id(), taFr.Keys(), this.selfId+this.pathCoopFr); err != nil {
 		return erro.Wrap(idperr.New(idperr.Invalid_client, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
-	} else if ok, err := sys.jtiDb.SaveIfAbsent(jti); err != nil {
+	} else if ok, err := this.jtiDb.SaveIfAbsent(jti); err != nil {
 		return erro.Wrap(err)
 	} else if !ok {
 		return erro.New("JWT ID overlaps")
@@ -87,7 +202,7 @@ func (sys *system) cooperateFromServeAsMain(w http.ResponseWriter, r *http.Reque
 
 	log.Debug(sender, ": To-TA "+req.fromTa()+" is declared")
 
-	taTo, err := sys.taDb.Get(req.toTa())
+	taTo, err := this.taDb.Get(req.toTa())
 	if err != nil {
 		return erro.Wrap(err)
 	} else if taTo == nil {
@@ -106,10 +221,10 @@ func (sys *system) cooperateFromServeAsMain(w http.ResponseWriter, r *http.Reque
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "no access token", http.StatusBadRequest, nil))
 	}
 
-	log.Debug(sender, ": Access token "+mosaic(req.accessToken())+" is declared")
+	log.Debug(sender, ": Access token "+logutil.Mosaic(req.accessToken())+" is declared")
 
 	now := time.Now()
-	tok, err := sys.tokDb.Get(req.accessToken())
+	tok, err := this.tokDb.Get(req.accessToken())
 	if err != nil {
 		return erro.Wrap(err)
 	} else if tok == nil {
@@ -120,7 +235,7 @@ func (sys *system) cooperateFromServeAsMain(w http.ResponseWriter, r *http.Reque
 		return erro.Wrap(idperr.New(idperr.Invalid_grant, "access token expired", http.StatusBadRequest, nil))
 	}
 
-	log.Debug(sender, ": Access token "+mosaic(req.accessToken())+" is valid")
+	log.Debug(sender, ": Access token "+logutil.Mosaic(req.accessToken())+" is valid")
 
 	var scop map[string]bool
 	if req.scope() == nil {
@@ -128,7 +243,7 @@ func (sys *system) cooperateFromServeAsMain(w http.ResponseWriter, r *http.Reque
 		log.Debug(sender, ": Use token scope ", scop)
 	} else {
 		scop = req.scope()
-		if !contains(tok.Scope(), scop) {
+		if !strsetutil.Contains(tok.Scope(), scop) {
 			return erro.Wrap(idperr.New(idperr.Invalid_scope, "not allowed scopes", http.StatusBadRequest, nil))
 		}
 		log.Debug(sender, ": Use given scope ", scop)
@@ -153,11 +268,15 @@ func (sys *system) cooperateFromServeAsMain(w http.ResponseWriter, r *http.Reque
 
 	allTags := map[string]bool{req.accountTag(): true}
 	acntTags := map[string]bool{}
+	var codAcnts []*coopcode.Account
 	if acnts := req.accounts(); len(acnts) > 0 {
+		codAcnts = []*coopcode.Account{}
 		for tag, acntId := range acnts {
 			if allTags[tag] {
 				return erro.Wrap(idperr.New(idperr.Invalid_request, "account tag "+tag+" overlaps", http.StatusBadRequest, nil))
-			} else if acnt, err := sys.acntDb.Get(acntId); err != nil {
+			}
+			acnt, err := this.acntDb.Get(acntId)
+			if err != nil {
 				return erro.Wrap(err)
 			} else if acnt == nil {
 				return erro.Wrap(idperr.New(idperr.Invalid_request, tag+" tagged account "+acntId+" is not exist", http.StatusBadRequest, nil))
@@ -165,7 +284,8 @@ func (sys *system) cooperateFromServeAsMain(w http.ResponseWriter, r *http.Reque
 
 			allTags[tag] = true
 			acntTags[tag] = true
-			log.Debug(sender, ": "+tag+" tagged account "+acntId+" is exist")
+			codAcnts = append(codAcnts, coopcode.NewAccount(acnt.Id(), tag))
+			log.Debug(sender, ": "+tag+" tagged account "+acnt.Id()+" ("+acntId+") is exist")
 		}
 	}
 
@@ -174,9 +294,9 @@ func (sys *system) cooperateFromServeAsMain(w http.ResponseWriter, r *http.Reque
 	if reqRef {
 		hashAlg := req.hashAlgorithm()
 		if hashAlg == "" {
-			hashAlg = sys.hashAlg
+			hashAlg = this.hashAlg
 		}
-		hashStrSize, err := hashStringSize(hashAlg)
+		hashStrSize, err := hash.StringSize(hashAlg)
 		if err != nil {
 			return erro.Wrap(idperr.New(idperr.Invalid_request, "unsupported hash algorithm "+hashAlg, http.StatusBadRequest, nil))
 		}
@@ -201,7 +321,7 @@ func (sys *system) cooperateFromServeAsMain(w http.ResponseWriter, r *http.Reque
 			return erro.Wrap(idperr.New(idperr.Invalid_request, "no related ID providers", http.StatusBadRequest, nil))
 		}
 		for _, idpId := range req.relatedIdProviders() {
-			if idp, err := sys.idpDb.Get(idpId); err != nil {
+			if idp, err := this.idpDb.Get(idpId); err != nil {
 				return erro.Wrap(err)
 			} else if idp == nil {
 				return erro.Wrap(idperr.New(idperr.Invalid_request, "no related ID provider "+idpId, http.StatusBadRequest, nil))
@@ -209,17 +329,17 @@ func (sys *system) cooperateFromServeAsMain(w http.ResponseWriter, r *http.Reque
 		}
 
 		jt := jwt.New()
-		jt.SetHeader(tagAlg, sys.sigAlg)
-		jt.SetClaim(tagIss, sys.selfId)
+		jt.SetHeader(tagAlg, this.sigAlg)
+		jt.SetClaim(tagIss, this.selfId)
 		jt.SetClaim(tagSub, taFr.Id())
 		jt.SetClaim(tagAud, req.relatedIdProviders())
-		jt.SetClaim(tagExp, now.Add(sys.jtiExpIn).Unix())
-		jt.SetClaim(tagJti, randomString(sys.jtiLen))
+		jt.SetClaim(tagExp, now.Add(this.jtiExpIn).Unix())
+		jt.SetClaim(tagJti, this.idGen.String(this.jtiLen))
 		jt.SetClaim(tagTo_client, taTo.Id())
 		jt.SetClaim(tagRelated_users, req.relatedAccounts())
 		jt.SetClaim(tagHash_alg, hashAlg)
 
-		if keys, err = sys.keyDb.Get(); err != nil {
+		if keys, err = this.keyDb.Get(); err != nil {
 			return erro.Wrap(err)
 		} else if err := jt.Sign(keys); err != nil {
 			return erro.Wrap(err)
@@ -230,18 +350,18 @@ func (sys *system) cooperateFromServeAsMain(w http.ResponseWriter, r *http.Reque
 		log.Info(sender, ": Generated referral")
 	}
 
-	cod := randomString(sys.ccodLen)
+	codId := this.idGen.String(this.codLen)
 	jt := jwt.New()
-	jt.SetHeader(tagAlg, sys.sigAlg)
-	jt.SetClaim(tagIss, sys.selfId)
-	jt.SetClaim(tagSub, cod)
+	jt.SetHeader(tagAlg, this.sigAlg)
+	jt.SetClaim(tagIss, this.selfId)
+	jt.SetClaim(tagSub, codId)
 	jt.SetClaim(tagAud, taTo.Id())
 	jt.SetClaim(tagUser_tag, req.accountTag())
 	if len(acntTags) > 0 {
 		jt.SetClaim(tagUser_tags, strset.Set(acntTags))
 	}
 	if ref != nil {
-		hGen, err := jwt.HashFunction(sys.sigAlg)
+		hGen, err := jwt.HashFunction(this.sigAlg)
 		if err != nil {
 			return erro.Wrap(err)
 		}
@@ -252,7 +372,7 @@ func (sys *system) cooperateFromServeAsMain(w http.ResponseWriter, r *http.Reque
 	}
 
 	if keys == nil {
-		if keys, err = sys.keyDb.Get(); err != nil {
+		if keys, err = this.keyDb.Get(); err != nil {
 			return erro.Wrap(err)
 		}
 	}
@@ -265,16 +385,22 @@ func (sys *system) cooperateFromServeAsMain(w http.ResponseWriter, r *http.Reque
 	}
 	log.Info(sender, ": Generated code token")
 
+	cod := coopcode.New(codId, now.Add(this.codExpIn), coopcode.NewAccount(tok.Account(), req.accountTag()), tok.Id(), scop, exp, codAcnts, taFr.Id(), taTo.Id())
+	if err := this.codDb.Save(cod, now.Add(this.codDbExpIn)); err != nil {
+		return erro.Wrap(err)
+	}
+	log.Info(sender, ": Saved code")
+
 	m := map[string]interface{}{
 		tagCode_token: string(codTok),
 	}
 	if ref != nil {
 		m[tagReferral] = string(ref)
 	}
-	return respondJson(w, m)
+	return idputil.RespondJson(w, m)
 }
 
 // 処理の主体が属さない ID プロバイダとして対応。
-func (sys *system) cooperateFromServeAsSub(w http.ResponseWriter, r *http.Request, req *coopFromRequest, sender *request.Request) error {
+func (this *Handler) serveAsSub(w http.ResponseWriter, r *http.Request, req *request, sender *requtil.Request) error {
 	panic("not yet implemented")
 }

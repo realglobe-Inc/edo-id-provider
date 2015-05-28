@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package scope
 
 import ()
 
@@ -70,7 +70,7 @@ var essScops = map[string]bool{
 }
 
 // 知らないスコープを除く。
-func removeUnknownScope(scops map[string]bool) map[string]bool {
+func RemoveUnknown(scops map[string]bool) map[string]bool {
 	res := map[string]bool{}
 	for scop := range scops {
 		if _, ok := knownScops[scop]; !ok {
@@ -83,27 +83,20 @@ func removeUnknownScope(scops map[string]bool) map[string]bool {
 }
 
 // スコープに対応する属性を返す。
-func scopeToClaims(scop map[string]bool) map[string]bool {
+func Attributes(scop string) map[string]bool {
 	attrs := map[string]bool{}
-	for k := range scop {
-		for attr := range knownScops[k] {
-			attrs[attr] = true
-		}
+	for attr := range knownScops[scop] {
+		attrs[attr] = true
 	}
 	return attrs
 }
 
-// 必須スコープかどうか。
-func scopeEssential(scop string) bool {
-	return essScops[scop]
+// 属性に対応するスコープを返す。
+func FromAttribute(attr string) string {
+	return attrToScop[attr]
 }
 
-// scop1 が scop2 を含むかどうか。
-func contains(scop1, scop2 map[string]bool) bool {
-	for k := range scop2 {
-		if !scop1[k] {
-			return false
-		}
-	}
-	return true
+// 許可が必須かどうか。
+func IsEssential(scop string) bool {
+	return essScops[scop]
 }

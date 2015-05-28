@@ -12,12 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package coopto
 
 import (
-	"net/http"
+	"github.com/realglobe-Inc/go-lib/rglog"
 )
 
-func (sys *system) cooperateToApi(w http.ResponseWriter, r *http.Request) error {
-	panic("not yet implemented")
-}
+var log = rglog.Logger("github.com/realglobe-Inc/edo-id-provider/api/coopto")

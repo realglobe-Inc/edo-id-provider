@@ -12,19 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package auth
 
 import (
-	"testing"
+	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
 )
 
-func TestPasswordOnly(t *testing.T) {
-	passwd := "ltFq9kclPgMK4ilaOF7fNlx2TE9OYFiyrX4x9gwCc9n"
-	pass := newPasswordOnly(passwd)
-	if pass.password() != passwd {
-		t.Error(pass.password())
-		t.Fatal(passwd)
-	} else if len(pass.params()) > 0 {
-		t.Fatal(pass.params())
-	}
+func newErrorForRedirect(errCod string, errDesc string, cause error) *idperr.Error {
+	return idperr.New(errCod, errDesc, 0, cause)
 }

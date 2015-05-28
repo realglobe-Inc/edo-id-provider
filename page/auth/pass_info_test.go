@@ -12,34 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package auth
 
 import (
-	"net/http"
+	"testing"
 )
 
-type selectRequest struct {
-	tic      string
-	acntName string
-	lang     string
-}
-
-func newSelectRequest(r *http.Request) *selectRequest {
-	return &selectRequest{
-		tic:      r.FormValue(tagTicket),
-		acntName: r.FormValue(tagUsername),
-		lang:     r.FormValue(tagLocale),
+func TestPasswordOnly(t *testing.T) {
+	passwd := "ltFq9kclPgMK4ilaOF7fNlx2TE9OYFiyrX4x9gwCc9n"
+	pass := newPasswordOnly(passwd)
+	if pass.password() != passwd {
+		t.Error(pass.password())
+		t.Fatal(passwd)
+	} else if len(pass.params()) > 0 {
+		t.Fatal(pass.params())
 	}
-}
-
-func (this *selectRequest) ticket() string {
-	return this.tic
-}
-
-func (this *selectRequest) accountName() (accName string) {
-	return this.acntName
-}
-
-func (this *selectRequest) language() string {
-	return this.lang
 }

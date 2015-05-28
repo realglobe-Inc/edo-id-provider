@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package auth
 
 import (
 	"fmt"
@@ -20,57 +20,53 @@ import (
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
 	"github.com/realglobe-Inc/edo-idp-selector/request"
+	logutil "github.com/realglobe-Inc/edo-lib/log"
+	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/go-lib/erro"
+	"github.com/realglobe-Inc/go-lib/rglog/level"
 	"net/http"
 	"time"
 )
 
-func (sys *system) respondPageErrorBeforeGetRedirectUri(w http.ResponseWriter, r *http.Request, req *session.Request, origErr error, sender *request.Request, sess *session.Element) error {
-	// リダイレクトエンドポイントが正しければ、リダイレクトでエラーを返す。
-
-	if req == nil || req.Ta() == "" || req.RedirectUri() == "" {
-		return sys.respondPageError(w, r, origErr, sender, sess)
-	}
-
-	// TA とリダイレクトエンドポイントが指定されてる。
-
-	ta, err := sys.taDb.Get(req.Ta())
-	if err != nil {
-		log.Err(sender, ": ", erro.Wrap(err))
-		return sys.respondPageError(w, r, origErr, sender, sess)
-	} else if ta == nil {
-		log.Warn(sender, ": Declared TA "+req.Ta()+" is not exist")
-		return sys.respondPageError(w, r, origErr, sender, sess)
-	}
-
-	// TA は存在する。
-	return sys.respondPageErrorBeforeGetRedirectUriWithTa(w, r, req, ta, origErr, sender, sess)
-}
-
-func (sys *system) respondPageErrorBeforeGetRedirectUriWithTa(w http.ResponseWriter, r *http.Request, req *session.Request, ta tadb.Element, origErr error, sender *request.Request, sess *session.Element) error {
-	if !ta.RedirectUris()[req.RedirectUri()] {
-		log.Warn(sender, ": Declared redirect URI "+req.RedirectUri()+" is not registered")
-		return sys.respondPageError(w, r, origErr, sender, sess)
-	}
-
-	// リダイレクトエンドポイントも正しい。
-
-	sess.SetRequest(req)
-	return sys.respondPageError(w, r, origErr, sender, sess)
-}
-
 // ユーザー認証開始。
-func (sys *system) authPage(w http.ResponseWriter, r *http.Request) (err error) {
-	sender := request.Parse(r, sys.sessLabel)
+func (this *Page) HandleAuth(w http.ResponseWriter, r *http.Request) {
+	var sender *request.Request
+
+	// panic 対策。
+	defer func() {
+		if rcv := recover(); rcv != nil {
+			idperr.RespondPageError(w, r, erro.New(rcv), sender, this.errTmpl)
+			return
+		}
+	}()
+
+	if this.stopper != nil {
+		this.stopper.Stop()
+		defer this.stopper.Unstop()
+	}
+
+	//////////////////////////////
+	server.LogRequest(level.DEBUG, r, true)
+	//////////////////////////////
+
+	sender = request.Parse(r, this.sessLabel)
 	log.Info(sender, ": Received authentication request")
 	defer log.Info(sender, ": Handled authentication request")
 
+	if err := this.authServe(w, r, sender); err != nil {
+		idperr.RespondPageError(w, r, erro.Wrap(err), sender, this.errTmpl)
+		return
+	}
+	return
+}
+
+func (this *Page) authServe(w http.ResponseWriter, r *http.Request, sender *request.Request) (err error) {
 	var sess *session.Element
 	if sessId := sender.Session(); sessId != "" {
 		// セッションが通知された。
 		log.Debug(sender, ": Session is declared")
 
-		if sess, err = sys.sessDb.Get(sessId); err != nil {
+		if sess, err = this.sessDb.Get(sessId); err != nil {
 			log.Err(sender, ": ", erro.Wrap(err))
 			// 新規発行すれば動くので諦めない。
 		} else if sess == nil {
@@ -85,13 +81,13 @@ func (sys *system) authPage(w http.ResponseWriter, r *http.Request) (err error) 
 	now := time.Now()
 	if sess == nil {
 		// セッションを新規発行。
-		sess = session.New(randomString(sys.sessLen), now.Add(sys.sessExpIn))
-		log.Info(sender, ": Generated new session "+mosaic(sess.Id())+" but not yet saved")
-	} else if now.After(sess.Expires().Add(-sys.sessRefDelay)) {
+		sess = session.New(this.idGen.String(this.sessLen), now.Add(this.sessExpIn))
+		log.Info(sender, ": Generated new session "+logutil.Mosaic(sess.Id())+" but not yet saved")
+	} else if now.After(sess.Expires().Add(-this.sessRefDelay)) {
 		// セッションを更新。
 		old := sess
-		sess = sess.New(randomString(sys.sessLen), now.Add(sys.sessExpIn))
-		log.Info(sender, ": Refreshed session "+mosaic(old.Id())+" to "+mosaic(sess.Id())+" but not yet saved")
+		sess = sess.New(this.idGen.String(this.sessLen), now.Add(this.sessExpIn))
+		log.Info(sender, ": Refreshed session "+logutil.Mosaic(old.Id())+" to "+logutil.Mosaic(sess.Id())+" but not yet saved")
 	}
 
 	// セッションは決まった。
@@ -99,29 +95,63 @@ func (sys *system) authPage(w http.ResponseWriter, r *http.Request) (err error) 
 	authReq, err := session.ParseRequest(r)
 	if err != nil {
 		err = erro.Wrap(idperr.New(idperr.Invalid_request, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
-		return sys.respondPageErrorBeforeGetRedirectUri(w, r, authReq, err, sender, sess)
+		return this.respondPageErrorBeforeGetRedirectUri(w, r, authReq, err, sender, sess)
 	}
 
-	if err := sys.afterParseAuthRequest(w, r, authReq, sender, sess); err != nil {
-		return sys.respondPageError(w, r, erro.Wrap(err), sender, sess)
+	if err := this.afterParseAuthRequest(w, r, authReq, sender, sess); err != nil {
+		return this.respondPageError(w, r, erro.Wrap(err), sender, sess)
 	}
 	return nil
 }
 
+func (this *Page) respondPageErrorBeforeGetRedirectUri(w http.ResponseWriter, r *http.Request, req *session.Request, origErr error, sender *request.Request, sess *session.Element) error {
+	// リダイレクトエンドポイントが正しければ、リダイレクトでエラーを返す。
+
+	if req == nil || req.Ta() == "" || req.RedirectUri() == "" {
+		return this.respondPageError(w, r, origErr, sender, sess)
+	}
+
+	// TA とリダイレクトエンドポイントが指定されてる。
+
+	ta, err := this.taDb.Get(req.Ta())
+	if err != nil {
+		log.Err(sender, ": ", erro.Wrap(err))
+		return this.respondPageError(w, r, origErr, sender, sess)
+	} else if ta == nil {
+		log.Warn(sender, ": Declared TA "+req.Ta()+" is not exist")
+		return this.respondPageError(w, r, origErr, sender, sess)
+	}
+
+	// TA は存在する。
+	return this.respondPageErrorBeforeGetRedirectUriWithTa(w, r, req, ta, origErr, sender, sess)
+}
+
+func (this *Page) respondPageErrorBeforeGetRedirectUriWithTa(w http.ResponseWriter, r *http.Request, req *session.Request, ta tadb.Element, origErr error, sender *request.Request, sess *session.Element) error {
+	if !ta.RedirectUris()[req.RedirectUri()] {
+		log.Warn(sender, ": Declared redirect URI "+req.RedirectUri()+" is not registered")
+		return this.respondPageError(w, r, origErr, sender, sess)
+	}
+
+	// リダイレクトエンドポイントも正しい。
+
+	sess.SetRequest(req)
+	return this.respondPageError(w, r, origErr, sender, sess)
+}
+
 // request や request_uri パラメータを読み込む。
-func (sys *system) parseRequestObject(req *session.Request, ta tadb.Element) error {
+func (this *Page) parseRequestObject(req *session.Request, ta tadb.Element) error {
 	if req.Request() != nil {
 		if req.RequestUri() != "" {
 			return erro.Wrap(idperr.New(idperr.Invalid_request, "cannot use "+tagRequest+" and "+tagRequest_uri+" together", http.StatusBadRequest, nil))
-		} else if keys, err := sys.keyDb.Get(); err != nil {
+		} else if keys, err := this.keyDb.Get(); err != nil {
 			return erro.Wrap(err)
 		} else if err := req.ParseRequest(req.Request(), keys, ta.Keys()); err != nil {
 			return erro.Wrap(idperr.New(idperr.Invalid_request, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
 		}
 	} else if req.RequestUri() != "" {
-		if webElem, err := sys.webDb.Get(req.RequestUri()); err != nil {
+		if webElem, err := this.webDb.Get(req.RequestUri()); err != nil {
 			return erro.Wrap(err)
-		} else if keys, err := sys.keyDb.Get(); err != nil {
+		} else if keys, err := this.keyDb.Get(); err != nil {
 			return erro.Wrap(err)
 		} else if err := req.ParseRequest(webElem.Data(), keys, ta.Keys()); err != nil {
 			return erro.Wrap(idperr.New(idperr.Invalid_request, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
@@ -131,8 +161,8 @@ func (sys *system) parseRequestObject(req *session.Request, ta tadb.Element) err
 }
 
 // 正しいリダイレクト URI が分かる前。
-func (sys *system) afterParseAuthRequest(w http.ResponseWriter, r *http.Request, req *session.Request, sender *request.Request, sess *session.Element) error {
-	ta, err := sys.taDb.Get(req.Ta())
+func (this *Page) afterParseAuthRequest(w http.ResponseWriter, r *http.Request, req *session.Request, sender *request.Request, sess *session.Element) error {
+	ta, err := this.taDb.Get(req.Ta())
 	if err != nil {
 		return erro.Wrap(err)
 	} else if ta == nil {
@@ -143,8 +173,8 @@ func (sys *system) afterParseAuthRequest(w http.ResponseWriter, r *http.Request,
 	log.Debug(sender, ": Declared TA "+ta.Id()+" is exist")
 
 	// request と request_uri パラメータの読み込み。
-	if err := sys.parseRequestObject(req, ta); err != nil {
-		return sys.respondPageErrorBeforeGetRedirectUriWithTa(w, r, req, ta, erro.Wrap(err), sender, sess)
+	if err := this.parseRequestObject(req, ta); err != nil {
+		return this.respondPageErrorBeforeGetRedirectUriWithTa(w, r, req, ta, erro.Wrap(err), sender, sess)
 	}
 
 	if req.RedirectUri() == "" {
@@ -157,14 +187,14 @@ func (sys *system) afterParseAuthRequest(w http.ResponseWriter, r *http.Request,
 	log.Debug(sender, ": Declared redirect URI "+req.RedirectUri()+" is registered")
 
 	sess.SetRequest(req)
-	if err := sys.afterGetRedirectUri(w, r, req, ta, sender, sess); err != nil {
-		return sys.respondPageError(w, r, erro.Wrap(err), sender, sess)
+	if err := this.afterGetRedirectUri(w, r, req, ta, sender, sess); err != nil {
+		return this.respondPageError(w, r, erro.Wrap(err), sender, sess)
 	}
 	return nil
 }
 
 // 正しいリダイレクト URI が分かった後。
-func (sys *system) afterGetRedirectUri(w http.ResponseWriter, r *http.Request, req *session.Request, ta tadb.Element, sender *request.Request, sess *session.Element) error {
+func (this *Page) afterGetRedirectUri(w http.ResponseWriter, r *http.Request, req *session.Request, ta tadb.Element, sender *request.Request, sess *session.Element) error {
 	// 重複パラメータが無いか検査。
 	for k, v := range r.Form {
 		if len(v) > 1 {
@@ -200,8 +230,8 @@ func (sys *system) afterGetRedirectUri(w http.ResponseWriter, r *http.Request, r
 			return erro.Wrap(newErrorForRedirect(idperr.Account_selection_required, "cannot select account without UI", nil))
 		}
 
-		return sys.redirectToSelectUi(w, r, sender, sess, "Please select your account")
+		return this.redirectToSelectUi(w, r, sender, sess, "Please select your account")
 	}
 
-	return sys.afterSelect(w, r, sender, sess, ta, nil)
+	return this.afterSelect(w, r, sender, sess, ta, nil)
 }

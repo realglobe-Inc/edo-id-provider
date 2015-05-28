@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package idputil
 
 import (
 	"encoding/json"
@@ -21,42 +21,38 @@ import (
 	"testing"
 )
 
-func TestCheckContradiction(t *testing.T) {
-	var reqClm session.Claim
+func TestCheckClaims(t *testing.T) {
+	var reqClm session.Claims
 	if err := json.Unmarshal([]byte(`{
-    "id_token": {
-        "email": {
-            "value": "tester@example.org"
-        }
+    "email": {
+        "value": "tester@example.org"
     },
-    "userinfo": {
-        "pds": {
-            "essential": true
-        }
+    "pds": {
+        "essential": true
     }
 }`), &reqClm); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := checkContradiction(account.New("EYClXo4mQKwSgPel", "edo-id-provider-tester", nil, map[string]interface{}{
+	if err := CheckClaims(account.New("EYClXo4mQKwSgPel", "edo-id-provider-tester", nil, map[string]interface{}{
 		"email": "tester@example.org",
 		"pds": map[string]interface{}{
 			"type": "single",
 			"uri":  "https://pds.example.org",
 		},
-	}), &reqClm); err != nil {
+	}), reqClm); err != nil {
 		t.Fatal(err)
-	} else if err := checkContradiction(account.New("EYClXo4mQKwSgPel", "edo-id-provider-tester", nil, map[string]interface{}{
+	} else if err := CheckClaims(account.New("EYClXo4mQKwSgPel", "edo-id-provider-tester", nil, map[string]interface{}{
 		"email": "tester2@example.org",
 		"pds": map[string]interface{}{
 			"type": "single",
 			"uri":  "https://pds.example.org",
 		},
-	}), &reqClm); err == nil {
+	}), reqClm); err == nil {
 		t.Fatal("cannot detect email.value contradiction")
-	} else if err := checkContradiction(account.New("EYClXo4mQKwSgPel", "edo-id-provider-tester", nil, map[string]interface{}{
+	} else if err := CheckClaims(account.New("EYClXo4mQKwSgPel", "edo-id-provider-tester", nil, map[string]interface{}{
 		"email": "tester@example.org",
-	}), &reqClm); err == nil {
+	}), reqClm); err == nil {
 		t.Fatal("cannot detect lack of essential")
 	}
 }

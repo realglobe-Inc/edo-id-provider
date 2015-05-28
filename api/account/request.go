@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package account
 
 import (
 	"net/http"
@@ -20,24 +20,24 @@ import (
 )
 
 // アカウント情報リクエスト。
-type accountRequest struct {
+type request struct {
 	scm string
 	tok string
 }
 
-func newAccountRequest(r *http.Request) *accountRequest {
+func parseRequest(r *http.Request) (*request, error) {
 	scm, tok := parseAuthorizationToken(r.Header.Get(tagAuthorization))
-	return &accountRequest{
+	return &request{
 		scm: scm,
 		tok: tok,
-	}
+	}, nil
 }
 
-func (this *accountRequest) scheme() string {
+func (this *request) scheme() string {
 	return this.scm
 }
 
-func (this *accountRequest) token() string {
+func (this *request) token() string {
 	return this.tok
 }
 

@@ -12,28 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package account
 
 import (
-	"net/http"
-	"testing"
+	"github.com/realglobe-Inc/go-lib/rglog"
 )
 
-func TestAccountRequest(t *testing.T) {
-	token := "ZkTPOdBdh_bS2PqWnb1r8A3DqeKGCC"
-
-	r, err := http.NewRequest("GET", "https://idp.example.org/api/info/account", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	r.Header.Set("Authorization", "Bearer "+token)
-
-	req := newAccountRequest(r)
-	if req.scheme() != "Bearer" {
-		t.Error(req.scheme())
-		t.Fatal("Bearer")
-	} else if req.token() != token {
-		t.Error(req.token())
-		t.Fatal(token)
-	}
-}
+var log = rglog.Logger("github.com/realglobe-Inc/edo-id-provider/api/account")

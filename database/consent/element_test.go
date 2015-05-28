@@ -33,25 +33,25 @@ func TestElement(t *testing.T) {
 		t.Fatal(a.Ta())
 	}
 
-	if a.ScopeAllowed(test_scop) {
+	if a.Scope().Allow(test_scop) {
 		t.Fatal(a)
-	} else if a.AttributeAllowed(test_attr) {
-		t.Fatal(a)
-	}
-
-	a.AllowScope(test_scop)
-	a.AllowAttribute(test_attr)
-	if !a.ScopeAllowed(test_scop) {
-		t.Fatal(a)
-	} else if !a.AttributeAllowed(test_attr) {
+	} else if a.Attribute().Allow(test_attr) {
 		t.Fatal(a)
 	}
 
-	a.DenyScope(test_scop)
-	a.DenyAttribute(test_attr)
-	if a.ScopeAllowed(test_scop) {
+	a.Scope().SetAllow(test_scop)
+	a.Attribute().SetAllow(test_attr)
+	if !a.Scope().Allow(test_scop) {
 		t.Fatal(a)
-	} else if a.AttributeAllowed(test_attr) {
+	} else if !a.Attribute().Allow(test_attr) {
+		t.Fatal(a)
+	}
+
+	a.Scope().SetDeny(test_scop)
+	a.Attribute().SetDeny(test_attr)
+	if a.Scope().Allow(test_scop) {
+		t.Fatal(a)
+	} else if a.Attribute().Allow(test_attr) {
 		t.Fatal(a)
 	}
 }

@@ -15,31 +15,22 @@
 package consent
 
 import (
-	"reflect"
 	"testing"
 )
 
-func testDb(t *testing.T, db Db) {
-	if el, err := db.Get(test_acnt, test_ta); err != nil {
-		t.Fatal(err)
-	} else if el != nil {
-		t.Fatal(el)
+func TestConsent(t *testing.T) {
+	cons := NewConsent()
+	if cons.Allow(test_scop) {
+		t.Fatal("allow not allowed")
 	}
 
-	elem := New(test_acnt, test_ta)
-	elem.Scope().SetAllow(test_scop)
-
-	if err := db.Save(elem); err != nil {
-		t.Fatal(err)
+	cons.SetAllow(test_scop)
+	if !cons.Allow(test_scop) {
+		t.Fatal("deny allowed")
 	}
 
-	elem2, err := db.Get(elem.Account(), elem.Ta())
-	if err != nil {
-		t.Fatal(err)
-	} else if elem2 == nil {
-		t.Fatal("no element")
-	} else if !reflect.DeepEqual(elem2, elem) {
-		t.Error(elem2)
-		t.Fatal(elem)
+	cons.SetDeny(test_scop)
+	if cons.Allow(test_scop) {
+		t.Fatal("allow denied")
 	}
 }

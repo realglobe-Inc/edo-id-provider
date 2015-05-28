@@ -17,73 +17,44 @@ package session
 import (
 	"encoding/json"
 	"github.com/realglobe-Inc/go-lib/erro"
+	"strings"
 )
 
-// OpenID Connect Core 1.0 Section 5.5 を参照。
+// 認証リクエストの claims パラメータの id_token や userinfo 要素。
+type Claims map[string]*ClaimEntry
 
-// 認証リクエストの claims パラメータ。
-type Claim struct {
-	// id_token
-	idTok map[string]*ClaimEntry
-	// userinfo
-	acnt map[string]*ClaimEntry
-}
-
-// ID トークンに入れて返すように要求されているクレームの情報を返す。
-func (this *Claim) IdTokenEntries() map[string]*ClaimEntry {
-	return this.idTok
-}
-
-// アカウント情報エンドポイントから返すように要求されているクレームの情報を返す。
-func (this *Claim) AccountEntries() map[string]*ClaimEntry {
-	return this.acnt
-}
-
-// クレーム名を返す。
-// clms: 必須クレーム名。
-// optClms: 必須でないクレーム名。
-func (this *Claim) Names() (clms, optClms map[string]bool) {
-	clms = map[string]bool{}
-	optClms = map[string]bool{}
-	for _, set := range []map[string]*ClaimEntry{this.acnt, this.idTok} {
-		for clm, ent := range set {
-			if ent != nil && ent.Essential() {
-				clms[clm] = true
-				delete(optClms, clm)
-			} else if !clms[clm] {
-				optClms[clm] = true
-			}
+func (this Claims) MarshalJSON() (data []byte, err error) {
+	if this == nil {
+		return json.Marshal(nil)
+	}
+	m := map[string]*ClaimEntry{}
+	for clm, ent := range this {
+		if ent.Language() != "" {
+			clm += "#" + ent.Language()
 		}
+		m[clm] = ent
 	}
-	return clms, optClms
+	return json.Marshal(m)
 }
 
-//  {
-//      "id_token": {
-//          <属性名>: <ClaimEntry>,
-//          ...
-//      },
-//      "userinfo": {
-//          <属性名>: <ClaimEntry>,
-//          ...
-//      }
-//  }
-func (this *Claim) MarshalJSON() (data []byte, err error) {
-	return json.Marshal(map[string]interface{}{
-		"id_token": this.idTok,
-		"userinfo": this.acnt,
-	})
-}
-
-func (this *Claim) UnmarshalJSON(data []byte) error {
-	var buff struct {
-		Acnt  map[string]*ClaimEntry `json:"userinfo"`
-		IdTok map[string]*ClaimEntry `json:"id_token"`
-	}
-	if err := json.Unmarshal(data, &buff); err != nil {
+func (this *Claims) UnmarshalJSON(data []byte) error {
+	m := map[string]*ClaimEntry{}
+	if err := json.Unmarshal(data, &m); err != nil {
 		return erro.Wrap(err)
+	} else if m == nil {
+		return nil
 	}
-	this.acnt = buff.Acnt
-	this.idTok = buff.IdTok
+	m2 := map[string]*ClaimEntry{}
+	for clm, ent := range m {
+		if ent == nil {
+			ent = &ClaimEntry{}
+		}
+		if idx := strings.IndexRune(clm, '#'); idx >= 0 {
+			ent.setLanguage(clm[idx+1:])
+			clm = clm[:idx]
+		}
+		m2[clm] = ent
+	}
+	*this = m2
 	return nil
 }

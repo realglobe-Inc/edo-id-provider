@@ -29,6 +29,9 @@ type ClaimEntry struct {
 	val interface{}
 	// values
 	vals []interface{}
+
+	// 言語タグ。
+	lang string
 }
 
 func (this *ClaimEntry) Essential() bool {
@@ -41,6 +44,14 @@ func (this *ClaimEntry) Value() interface{} {
 
 func (this *ClaimEntry) Values() []interface{} {
 	return this.vals
+}
+
+func (this *ClaimEntry) Language() string {
+	return this.lang
+}
+
+func (this *ClaimEntry) setLanguage(lang string) {
+	this.lang = lang
 }
 
 //  {

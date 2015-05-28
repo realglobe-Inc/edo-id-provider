@@ -52,6 +52,8 @@ func testDb(t *testing.T, db Db) {
 	elem2.saved = false
 	if !reflect.DeepEqual(elem2, elem) {
 		t.Error(fmt.Sprintf("%#v", elem2))
-		t.Fatal(fmt.Sprintf("%#v", elem))
+		t.Error(fmt.Sprintf("%#v", elem))
+		t.Error(fmt.Sprintf("%#v", elem2.Request().Claims()))
+		t.Fatal(fmt.Sprintf("%#v", elem.Request().Claims()))
 	}
 }

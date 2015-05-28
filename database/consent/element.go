@@ -15,7 +15,6 @@
 package consent
 
 import (
-	"github.com/realglobe-Inc/edo-lib/strset"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -25,27 +24,27 @@ type Element struct {
 	acnt string
 	ta   string
 	// 許可スコープ。
-	scops map[string]bool
+	scop Consent
 	// 許可属性。
-	attrs map[string]bool
+	attr Consent
 }
 
 func New(acnt, ta string) *Element {
 	return &Element{
-		acnt:  acnt,
-		ta:    ta,
-		scops: map[string]bool{},
-		attrs: map[string]bool{},
+		acnt: acnt,
+		ta:   ta,
+		scop: map[string]bool{},
+		attr: map[string]bool{},
 	}
 }
 
 func (this *Element) copy() *Element {
 	elem := New(this.acnt, this.ta)
-	for k := range this.scops {
-		elem.scops[k] = true
+	for k := range this.scop {
+		elem.scop[k] = true
 	}
-	for k := range this.attrs {
-		elem.attrs[k] = true
+	for k := range this.attr {
+		elem.attr[k] = true
 	}
 	return elem
 }
@@ -60,61 +59,21 @@ func (this *Element) Ta() string {
 	return this.ta
 }
 
-func (this *Element) scopes() map[string]bool {
-	return this.scops
+// スコープの許可情報を返す。
+func (this *Element) Scope() Consent {
+	return this.scop
 }
 
-// スコープが許可されているかどうか。
-func (this *Element) ScopeAllowed(scop string) bool {
-	return this.scops[scop]
-}
-
-// スコープが許可されたことを反映させる。
-func (this *Element) AllowScope(scop string) {
-	this.scops[scop] = true
-}
-
-// スコープが拒否されたことを反映させる。
-func (this *Element) DenyScope(scop string) {
-	if this.scops == nil {
-		this.scops = map[string]bool{}
-	}
-	delete(this.scops, scop)
-}
-
-func (this *Element) attributes() map[string]bool {
-	return this.attrs
-}
-
-// 属性が許可されているかどうか。
-func (this *Element) AttributeAllowed(attr string) bool {
-	return this.attrs[attr]
-}
-
-// 属性が許可されたことを反映させる。
-func (this *Element) AllowAttribute(attr string) {
-	this.attrs[attr] = true
-}
-
-// 属性が拒否されたことを反映させる。
-func (this *Element) DenyAttribute(attr string) {
-	if this.attrs == nil {
-		this.attrs = map[string]bool{}
-	}
-	delete(this.attrs, attr)
+// 属性の許可情報を返す。
+func (this *Element) Attribute() Consent {
+	return this.attr
 }
 
 //  {
 //      "account": <アカウント ID>,
 //      "ta": <TA の ID>,
-//      "scopes": [
-//          <許可スコープ>,
-//          ...
-//      ],
-//      "attributes": [
-//          <許可属性>
-//          ...
-//      ]
+//      "scopes": <許可スコープ>,
+//      "attributes": <許可属性>
 //  }
 func (this *Element) GetBSON() (interface{}, error) {
 	if this == nil {
@@ -124,17 +83,17 @@ func (this *Element) GetBSON() (interface{}, error) {
 	return map[string]interface{}{
 		"account":    this.acnt,
 		"ta":         this.ta,
-		"scopes":     strset.Set(this.scops),
-		"attributes": strset.Set(this.attrs),
+		"scopes":     this.scop,
+		"attributes": this.attr,
 	}, nil
 }
 
 func (this *Element) SetBSON(raw bson.Raw) error {
 	var buff struct {
-		Acnt  string     `bson:"account"`
-		Ta    string     `bson:"ta"`
-		Scops strset.Set `bson:"scopes"`
-		Attrs strset.Set `bson:"attributes"`
+		Acnt string  `bson:"account"`
+		Ta   string  `bson:"ta"`
+		Scop Consent `bson:"scopes"`
+		Attr Consent `bson:"attributes"`
 	}
 	if err := raw.Unmarshal(&buff); err != nil {
 		return erro.Wrap(err)
@@ -142,7 +101,7 @@ func (this *Element) SetBSON(raw bson.Raw) error {
 
 	this.acnt = buff.Acnt
 	this.ta = buff.Ta
-	this.scops = buff.Scops
-	this.attrs = buff.Attrs
+	this.scop = buff.Scop
+	this.attr = buff.Attr
 	return nil
 }

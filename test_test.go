@@ -16,7 +16,12 @@ package main
 
 import (
 	"encoding/json"
+	acntapi "github.com/realglobe-Inc/edo-id-provider/api/account"
+	"github.com/realglobe-Inc/edo-id-provider/api/coopfrom"
+	"github.com/realglobe-Inc/edo-id-provider/api/coopto"
+	tokapi "github.com/realglobe-Inc/edo-id-provider/api/token"
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
+	authpage "github.com/realglobe-Inc/edo-id-provider/page/auth"
 	idpdb "github.com/realglobe-Inc/edo-idp-selector/database/idp"
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
 	webdb "github.com/realglobe-Inc/edo-idp-selector/database/web"
@@ -41,7 +46,11 @@ type testIdpServer struct {
 	dir string
 	sys *system
 	*httptest.Server
-	stopper *server.Stopper
+	authPage  *authpage.Page
+	tokApi    *tokapi.Handler
+	acntApi   *acntapi.Handler
+	coopFrApi *coopfrom.Handler
+	coopToApi *coopto.Handler
 }
 
 // テスト用の ID プロバイダを立てる。
@@ -78,21 +87,21 @@ func newTestIdpServer(acnts []account.Element,
 	sys := newTestSystem([]jwk.Key{test_idpPriKey}, acnts, tas, idps, webs)
 
 	// サーバーを設定。
-	s := server.NewStopper()
-
+	authPage := sys.authPage()
+	tokApi := sys.tokenApi()
+	acntApi := sys.accountApi()
+	coopFrApi := sys.coopFromApi()
+	coopToApi := sys.coopToApi()
 	mux := http.NewServeMux()
-	mux.HandleFunc(test_pathOk, pagePanicErrorWrapper(s, nil, func(w http.ResponseWriter, r *http.Request) error {
-		return nil
-	}))
-	mux.HandleFunc(test_pathAuth, pagePanicErrorWrapper(s, nil, sys.authPage))
-	mux.HandleFunc(test_pathSel, pagePanicErrorWrapper(s, nil, sys.selectPage))
-	mux.HandleFunc(test_pathLgin, pagePanicErrorWrapper(s, nil, sys.lginPage))
-	mux.HandleFunc(test_pathCons, pagePanicErrorWrapper(s, nil, sys.consentPage))
-	mux.HandleFunc(test_pathTa, apiPanicErrorWrapper(s, sys.taApiHandler().ServeHTTP))
-	mux.HandleFunc(test_pathTok, apiPanicErrorWrapper(s, sys.tokenApi))
-	mux.HandleFunc(test_pathAcnt, apiPanicErrorWrapper(s, sys.accountApi))
-	mux.HandleFunc(test_pathCoopFr, apiPanicErrorWrapper(s, sys.cooperateFromApi))
-	mux.HandleFunc(test_pathCoopTo, apiPanicErrorWrapper(s, sys.cooperateToApi))
+	mux.HandleFunc(test_pathAuth, authPage.HandleAuth)
+	mux.HandleFunc(test_pathSel, authPage.HandleSelect)
+	mux.HandleFunc(test_pathLgin, authPage.HandleLogin)
+	mux.HandleFunc(test_pathCons, authPage.HandleConsent)
+	mux.Handle(test_pathTa, sys.taApi())
+	mux.Handle(test_pathTok, tokApi)
+	mux.Handle(test_pathAcnt, acntApi)
+	mux.Handle(test_pathCoopFr, coopFrApi)
+	mux.Handle(test_pathCoopTo, coopToApi)
 	filer := http.StripPrefix(test_pathUi+"/", http.FileServer(http.Dir(dir)))
 	mux.Handle(test_pathUi+"/", filer)
 
@@ -103,23 +112,25 @@ func newTestIdpServer(acnts []account.Element,
 		}
 	}()
 
-	// これで同期されるかどうかは不明。
 	sys.selfId = server.URL
-	// 念のため叩いてみるけど、これでも同期されるかどうかは不明。
-	if _, err := http.Get(server.URL + test_pathOk); err != nil {
-		return nil, erro.Wrap(err)
-	}
+	authPage.SetSelfId(sys.selfId)
+	tokApi.SetSelfId(sys.selfId)
+	coopFrApi.SetSelfId(sys.selfId)
+	coopToApi.SetSelfId(sys.selfId)
+	// 同期。
+	sys.stopper.Lock()
+	sys.stopper.Unlock()
 
 	failed = false
-	return &testIdpServer{dir, sys, server, s}, nil
+	return &testIdpServer{dir, sys, server, authPage, tokApi, acntApi, coopFrApi, coopToApi}, nil
 }
 
 func (this *testIdpServer) close() {
 	this.Server.Close()
-	this.stopper.Lock()
-	defer this.stopper.Unlock()
-	for this.stopper.Stopped() {
-		this.stopper.Wait()
+	this.sys.stopper.Lock()
+	defer this.sys.stopper.Unlock()
+	for this.sys.stopper.Stopped() {
+		this.sys.stopper.Wait()
 	}
 	os.RemoveAll(this.dir)
 }
@@ -672,4 +683,22 @@ func testFromRequestAuthToGetAccountInfo(idp *testIdpServer, cli *http.Client,
 
 	// アクセストークンを取得してアカウント情報を取得する。
 	return testGetTokenAndAccountInfo(idp, consResp, assHeads, assClms, tokParams, sigKey, accInfHeads)
+}
+
+// aud クレーム値が tgt を含むかどうか検査。
+func audienceHas(aud interface{}, tgt string) bool {
+	switch a := aud.(type) {
+	case string:
+		return a == tgt
+	case []interface{}:
+		for _, elem := range a {
+			s, _ := elem.(string)
+			if s == tgt {
+				return true
+			}
+		}
+		return false
+	default:
+		return false
+	}
 }

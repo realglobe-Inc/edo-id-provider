@@ -27,7 +27,7 @@ func testDb(t *testing.T, db Db) {
 	}
 
 	elem := New(test_acnt, test_ta)
-	elem.AllowScope(test_scop)
+	elem.Scope().SetAllow(test_scop)
 
 	if err := db.Save(elem); err != nil {
 		t.Fatal(err)

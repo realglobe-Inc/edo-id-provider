@@ -55,6 +55,8 @@ type parameters struct {
 	sigAlg string
 	// 署名鍵の ID。
 	sigKid string
+	// related_users 用ハッシュ関数。
+	hashAlg string
 
 	// URI
 	pathOk     string
@@ -226,6 +228,7 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.StringVar(&param.selfId, "selfId", "https://idp.example.org", "IdP ID")
 	flags.StringVar(&param.sigAlg, "sigAlg", "RS256", "Signature algorithm")
 	flags.StringVar(&param.sigKid, "sigKid", "", "Signature key ID")
+	flags.StringVar(&param.hashAlg, "hashAlg", "SHA256", "Hash algorithm")
 
 	flags.StringVar(&param.pathOk, "pathOk", "/ok", "OK URI")
 	flags.StringVar(&param.pathAuth, "pathAuth", "/auth", "Authentication URI")
@@ -235,8 +238,8 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.StringVar(&param.pathTa, "pathTa", "/api/info/ta", "TA info URI")
 	flags.StringVar(&param.pathTok, "pathTok", "/api/token", "Token URI")
 	flags.StringVar(&param.pathAcnt, "pathAcnt", "/api/info/account", "Account info URI")
-	flags.StringVar(&param.pathCoopFr, "pathCoopFr", "/api/cooperation/from", "Cooperation from URI")
-	flags.StringVar(&param.pathCoopTo, "pathCoopTo", "/api/cooperation/to", "Cooperation to URI")
+	flags.StringVar(&param.pathCoopFr, "pathCoopFr", "/api/coop/from", "Cooperation from URI")
+	flags.StringVar(&param.pathCoopTo, "pathCoopTo", "/api/coop/to", "Cooperation to URI")
 	flags.StringVar(&param.pathUi, "pathUi", "/ui", "UI URI")
 	flags.StringVar(&param.pathSelUi, "pathSelUi", "/ui/select.html", "Account selection UI URI")
 	flags.StringVar(&param.pathLginUi, "pathLginUi", "/ui/login.html", "Login UI URI")

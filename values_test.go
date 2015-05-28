@@ -32,8 +32,8 @@ const (
 	test_pathTa     = "/api/info/ta"
 	test_pathTok    = "/api/token"
 	test_pathAcnt   = "/api/info/account"
-	test_pathCoopFr = "/api/cooperation/from"
-	test_pathCoopTo = "/api/cooperation/to"
+	test_pathCoopFr = "/api/coop/from"
+	test_pathCoopTo = "/api/coop/to"
 
 	test_pathUi     = "/ui"
 	test_pathSelUi  = "/ui/select.html"

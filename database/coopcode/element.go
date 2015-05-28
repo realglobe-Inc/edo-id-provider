@@ -16,7 +16,6 @@ package coopcode
 
 import (
 	"encoding/json"
-	"github.com/realglobe-Inc/edo-lib/duration"
 	"github.com/realglobe-Inc/edo-lib/strset"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"time"
@@ -29,12 +28,14 @@ type Element struct {
 	exp time.Time
 	// 主体。
 	acnt *Account
+	// 元になったアクセストークン。
+	srcTok string
 	// 許可スコープ。
 	scop map[string]bool
-	// 発行されるアクセストークンの有効期間。
-	tokExpIn time.Duration
+	// 発行されるアクセストークンの有効期限。
+	tokExp time.Time
 	// 関連アカウント。
-	relAcnts []*Account
+	acnts []*Account
 	// 要請元 TA の ID。
 	taFr string
 	// 要請先 TA の ID。
@@ -46,18 +47,19 @@ type Element struct {
 	date time.Time
 }
 
-func New(id string, exp time.Time, acnt *Account, scop map[string]bool, tokExpIn time.Duration,
-	relAcnts []*Account, taFr, taTo string) *Element {
+func New(id string, exp time.Time, acnt *Account, srcTok string, scop map[string]bool,
+	tokExp time.Time, acnts []*Account, taFr, taTo string) *Element {
 	return &Element{
-		id:       id,
-		exp:      exp,
-		acnt:     acnt,
-		scop:     scop,
-		tokExpIn: tokExpIn,
-		relAcnts: relAcnts,
-		taFr:     taFr,
-		taTo:     taTo,
-		date:     time.Now(),
+		id:     id,
+		exp:    exp,
+		acnt:   acnt,
+		srcTok: srcTok,
+		scop:   scop,
+		tokExp: tokExp,
+		acnts:  acnts,
+		taFr:   taFr,
+		taTo:   taTo,
+		date:   time.Now(),
 	}
 }
 
@@ -76,28 +78,33 @@ func (this *Element) Account() *Account {
 	return this.acnt
 }
 
+// 元になったアクセストークンを返す。
+func (this *Element) SourceToken() string {
+	return this.srcTok
+}
+
 // 許可スコープを返す。
 func (this *Element) Scope() map[string]bool {
 	return this.scop
 }
 
-// 発行されるアクセストークンの有効期間を返す。
-func (this *Element) TokenExpiresIn() time.Duration {
-	return this.tokExpIn
+// 発行されるアクセストークンの有効期限を返す。
+func (this *Element) TokenExpires() time.Time {
+	return this.tokExp
 }
 
 // 関連アカウントを返す。
-func (this *Element) RelatedAccounts() []*Account {
-	return this.relAcnts
+func (this *Element) Accounts() []*Account {
+	return this.acnts
 }
 
 // 要請元 TA の ID を返す。
-func (this *Element) TaFrom() string {
+func (this *Element) FromTa() string {
 	return this.taFr
 }
 
 // 要請先 TA の ID を返す。
-func (this *Element) TaTo() string {
+func (this *Element) ToTa() string {
 	return this.taTo
 }
 
@@ -120,48 +127,58 @@ func (this *Element) Date() time.Time {
 //  {
 //      "id": <ID>,
 //      "expires": <有効期限>,
-//      "account": <主体>,
+//      "user": <主体>,
+//      "source_token": <元になったアクセストークン>,
 //      "scope": [
-//          <許可スコープ>,
+//          <発行されるアクセストークンの許可スコープ>,
 //          ...
 //      ],
-//      "token_expires_in": <発行されるアクセストークンの有効期間>,
-//      "related_accounts": [
+//      "token_expires": <発行されるアクセストークンの有効期限>,
+//      "users": [
 //          <主体でないアカウント>,
 //          ...
 //      ],
-//      "ta_from": <要請元 TA の ID>,
-//      "ta_to": <要請先 TA の ID>,
+//      "client_from": <要請元 TA の ID>,
+//      "client_to": <要請先 TA の ID>,
 //      "token": <アクセストークン>,
 //      "date": <更新日時>,
 //  }
 func (this *Element) MarshalJSON() (data []byte, err error) {
-	return json.Marshal(map[string]interface{}{
-		"id":               this.id,
-		"expires":          this.exp,
-		"account":          this.acnt,
-		"scope":            strset.Set(this.scop),
-		"token_expires_in": duration.Duration(this.tokExpIn),
-		"related_accounts": this.relAcnts,
-		"ta_from":          this.taFr,
-		"ta_to":            this.taTo,
-		"token":            this.tok,
-		"date":             this.date,
-	})
+	m := map[string]interface{}{
+		"id":          this.id,
+		"expires":     this.exp,
+		"user":        this.acnt,
+		"client_from": this.taFr,
+		"client_to":   this.taTo,
+		"date":        this.date,
+	}
+	if this.srcTok != "" {
+		m["source_token"] = this.srcTok
+		m["scope"] = strset.Set(this.scop)
+		m["token_expires"] = this.tokExp
+	}
+	if len(this.acnts) > 0 {
+		m["users"] = this.acnts
+	}
+	if this.tok != "" {
+		m["token"] = this.tok
+	}
+	return json.Marshal(m)
 }
 
 func (this *Element) UnmarshalJSON(data []byte) error {
 	var buff struct {
-		Id       string            `json:"id"`
-		Exp      time.Time         `json:"expires"`
-		Acnt     *Account          `json:"account"`
-		Scop     strset.Set        `json:"scope"`
-		TokExpIn duration.Duration `json:"token_expires_in"`
-		RelAcnts []*Account        `json:"related_accounts"`
-		TaFr     string            `json:"ta_from"`
-		TaTo     string            `json:"ta_to"`
-		Tok      string            `json:"token"`
-		Date     time.Time         `json:"date"`
+		Id     string     `json:"id"`
+		Exp    time.Time  `json:"expires"`
+		Acnt   *Account   `json:"user"`
+		SrcTok string     `json:"source_token"`
+		Scop   strset.Set `json:"scope"`
+		TokExp time.Time  `json:"token_expires"`
+		Acnts  []*Account `json:"users"`
+		TaFr   string     `json:"client_from"`
+		ToTa   string     `json:"client_to"`
+		Tok    string     `json:"token"`
+		Date   time.Time  `json:"date"`
 	}
 	if err := json.Unmarshal(data, &buff); err != nil {
 		return erro.Wrap(err)
@@ -170,11 +187,12 @@ func (this *Element) UnmarshalJSON(data []byte) error {
 	this.id = buff.Id
 	this.exp = buff.Exp
 	this.acnt = buff.Acnt
+	this.srcTok = buff.SrcTok
 	this.scop = buff.Scop
-	this.tokExpIn = time.Duration(buff.TokExpIn)
-	this.relAcnts = buff.RelAcnts
+	this.tokExp = buff.TokExp
+	this.acnts = buff.Acnts
 	this.taFr = buff.TaFr
-	this.taTo = buff.TaTo
+	this.taTo = buff.ToTa
 	this.tok = buff.Tok
 	this.date = buff.Date
 	return nil

@@ -21,10 +21,6 @@ import (
 	"time"
 )
 
-const (
-	tagDate = "date"
-)
-
 type redisDb struct {
 	pool *redis.Pool
 	tag  string

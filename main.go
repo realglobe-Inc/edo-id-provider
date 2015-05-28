@@ -15,6 +15,10 @@
 package main
 
 import (
+	acntapi "github.com/realglobe-Inc/edo-id-provider/api/account"
+	"github.com/realglobe-Inc/edo-id-provider/api/coopfrom"
+	"github.com/realglobe-Inc/edo-id-provider/api/coopto"
+	tokapi "github.com/realglobe-Inc/edo-id-provider/api/token"
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
 	"github.com/realglobe-Inc/edo-id-provider/database/authcode"
 	"github.com/realglobe-Inc/edo-id-provider/database/consent"
@@ -25,6 +29,7 @@ import (
 	"github.com/realglobe-Inc/edo-id-provider/database/sector"
 	"github.com/realglobe-Inc/edo-id-provider/database/session"
 	"github.com/realglobe-Inc/edo-id-provider/database/token"
+	authpage "github.com/realglobe-Inc/edo-id-provider/page/auth"
 	taapi "github.com/realglobe-Inc/edo-idp-selector/api/ta"
 	idpdb "github.com/realglobe-Inc/edo-idp-selector/database/idp"
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
@@ -33,6 +38,7 @@ import (
 	"github.com/realglobe-Inc/edo-idp-selector/request"
 	"github.com/realglobe-Inc/edo-lib/driver"
 	logutil "github.com/realglobe-Inc/edo-lib/log"
+	"github.com/realglobe-Inc/edo-lib/rand"
 	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"github.com/realglobe-Inc/go-lib/rglog"
@@ -41,6 +47,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 )
 
 func main() {
@@ -281,21 +288,29 @@ func serve(param *parameters) (err error) {
 		}
 	}
 
-	sys := &system{
+	idGen := rand.New(time.Minute)
+
+	// バックエンドの準備完了。
+
+	stopper := server.NewStopper()
+	defer func() {
+		// 処理の終了待ち。
+		stopper.Lock()
+		defer stopper.Unlock()
+		for stopper.Stopped() {
+			stopper.Wait()
+		}
+	}()
+
+	authPage := authpage.New(
+		stopper,
 		param.selfId,
 		param.sigAlg,
 		param.sigKid,
-		param.hashAlg,
-
-		param.pathTok,
-		param.pathCoopFr,
-		param.pathTa,
 		param.pathSelUi,
 		param.pathLginUi,
 		param.pathConsUi,
-
 		errTmpl,
-
 		param.pwSaltLen,
 		param.sessLabel,
 		param.sessLen,
@@ -305,17 +320,9 @@ func serve(param *parameters) (err error) {
 		param.acodLen,
 		param.acodExpIn,
 		param.acodDbExpIn,
-		param.tokLen,
 		param.tokExpIn,
-		param.tokDbExpIn,
-		param.ccodLen,
-		param.ccodExpIn,
-		param.ccodDbExpIn,
-		param.jtiLen,
 		param.jtiExpIn,
-		param.jtiDbExpIn,
 		param.ticLen,
-
 		keyDb,
 		webDb,
 		acntDb,
@@ -323,52 +330,109 @@ func serve(param *parameters) (err error) {
 		taDb,
 		sectDb,
 		pwDb,
-		idpDb,
 		sessDb,
 		acodDb,
-		tokDb,
-		ccodDb,
-		jtiDb,
-
 		param.cookPath,
 		param.cookSec,
-	}
-
-	// バックエンドの準備完了。
-
-	s := server.NewStopper()
-	defer func() {
-		// 処理の終了待ち。
-		s.Lock()
-		defer s.Unlock()
-		for s.Stopped() {
-			s.Wait()
-		}
-	}()
+		idGen,
+	)
 
 	mux := http.NewServeMux()
 	routes := map[string]bool{}
-	mux.HandleFunc(param.pathOk, pagePanicErrorWrapper(s, errTmpl, func(w http.ResponseWriter, r *http.Request) error {
+	mux.HandleFunc(param.pathOk, pagePanicErrorWrapper(stopper, errTmpl, func(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	}))
 	routes[param.pathOk] = true
-	mux.HandleFunc(param.pathAuth, pagePanicErrorWrapper(s, errTmpl, sys.authPage))
+	mux.HandleFunc(param.pathAuth, authPage.HandleAuth)
 	routes[param.pathAuth] = true
-	mux.HandleFunc(param.pathSel, pagePanicErrorWrapper(s, errTmpl, sys.selectPage))
+	mux.HandleFunc(param.pathSel, authPage.HandleSelect)
 	routes[param.pathSel] = true
-	mux.HandleFunc(param.pathLgin, pagePanicErrorWrapper(s, errTmpl, sys.lginPage))
+	mux.HandleFunc(param.pathLgin, authPage.HandleLogin)
 	routes[param.pathLgin] = true
-	mux.HandleFunc(param.pathCons, pagePanicErrorWrapper(s, errTmpl, sys.consentPage))
+	mux.HandleFunc(param.pathCons, authPage.HandleConsent)
 	routes[param.pathCons] = true
-	mux.Handle(param.pathTa, taapi.New(s, param.pathTa, taDb))
+	mux.Handle(param.pathTa, taapi.New(
+		stopper,
+		param.pathTa,
+		taDb,
+	))
 	routes[param.pathTa] = true
-	mux.HandleFunc(param.pathTok, apiPanicErrorWrapper(s, sys.tokenApi))
+	mux.Handle(param.pathTok, tokapi.New(
+		stopper,
+		param.selfId,
+		param.sigAlg,
+		param.sigKid,
+		param.pathTok,
+		param.pwSaltLen,
+		param.tokLen,
+		param.tokExpIn,
+		param.tokDbExpIn,
+		param.jtiExpIn,
+		keyDb,
+		acntDb,
+		taDb,
+		sectDb,
+		pwDb,
+		acodDb,
+		tokDb,
+		jtiDb,
+		idGen,
+	))
 	routes[param.pathTok] = true
-	mux.HandleFunc(param.pathAcnt, apiPanicErrorWrapper(s, sys.accountApi))
+	mux.Handle(param.pathAcnt, acntapi.New(
+		stopper,
+		param.pwSaltLen,
+		acntDb,
+		taDb,
+		sectDb,
+		pwDb,
+		tokDb,
+		idGen,
+	))
 	routes[param.pathAcnt] = true
-	mux.HandleFunc(param.pathCoopFr, apiPanicErrorWrapper(s, sys.cooperateFromApi))
+	mux.Handle(param.pathCoopFr, coopfrom.New(
+		stopper,
+		param.selfId,
+		param.sigAlg,
+		param.hashAlg,
+		param.pathCoopFr,
+		param.ccodLen,
+		param.ccodExpIn,
+		param.ccodDbExpIn,
+		param.jtiLen,
+		param.jtiExpIn,
+		keyDb,
+		acntDb,
+		taDb,
+		idpDb,
+		ccodDb,
+		tokDb,
+		jtiDb,
+		idGen,
+	))
 	routes[param.pathCoopFr] = true
-	mux.HandleFunc(param.pathCoopTo, apiPanicErrorWrapper(s, sys.cooperateToApi))
+	mux.Handle(param.pathCoopTo, coopto.New(
+		stopper,
+		param.selfId,
+		param.sigAlg,
+		param.sigKid,
+		param.pathCoopTo,
+		param.pwSaltLen,
+		param.tokLen,
+		param.tokExpIn,
+		param.tokDbExpIn,
+		param.jtiExpIn,
+		keyDb,
+		acntDb,
+		consDb,
+		taDb,
+		sectDb,
+		pwDb,
+		ccodDb,
+		tokDb,
+		jtiDb,
+		idGen,
+	))
 	routes[param.pathCoopTo] = true
 	if param.uiDir != "" {
 		// ファイル配信も自前でやる。
@@ -378,7 +442,7 @@ func serve(param *parameters) (err error) {
 	}
 
 	if !routes["/"] {
-		mux.HandleFunc("/", pagePanicErrorWrapper(s, errTmpl, func(w http.ResponseWriter, r *http.Request) error {
+		mux.HandleFunc("/", pagePanicErrorWrapper(stopper, errTmpl, func(w http.ResponseWriter, r *http.Request) error {
 			return erro.Wrap(idperr.New(idperr.Invalid_request, "invalid endpoint", http.StatusNotFound, nil))
 		}))
 	}

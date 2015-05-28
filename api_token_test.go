@@ -1287,12 +1287,13 @@ func TestDenyExpiredCode(t *testing.T) {
 	}
 	defer idp.close()
 	defer ta.close()
-	// これで同期されるかどうかは不明。
-	idp.sys.acodExpIn = time.Millisecond
-	// 念のため叩いてみるけど、これでも同期されるかどうかは不明。
-	if _, err := http.Get(idp.URL + test_pathOk); err != nil {
-		t.Fatal(err)
-	}
+
+	codExpIn := time.Millisecond
+	idp.authPage.SetCodeExpiresIn(codExpIn)
+	// 同期。
+	idp.sys.stopper.Lock()
+	idp.sys.stopper.Unlock()
+
 	// TA にリダイレクトしたときのレスポンスを設定しておく。
 	ta.AddResponse(http.StatusOK, nil, []byte("success"))
 
@@ -1320,7 +1321,7 @@ func TestDenyExpiredCode(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	time.Sleep(idp.sys.acodExpIn + time.Millisecond)
+	time.Sleep(codExpIn + time.Millisecond)
 
 	resp, err := testGetTokenWithoutCheck(idp, consResp, map[string]interface{}{
 		"alg": "ES384",

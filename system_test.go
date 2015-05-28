@@ -15,6 +15,10 @@
 package main
 
 import (
+	acntapi "github.com/realglobe-Inc/edo-id-provider/api/account"
+	"github.com/realglobe-Inc/edo-id-provider/api/coopfrom"
+	"github.com/realglobe-Inc/edo-id-provider/api/coopto"
+	tokapi "github.com/realglobe-Inc/edo-id-provider/api/token"
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
 	"github.com/realglobe-Inc/edo-id-provider/database/authcode"
 	"github.com/realglobe-Inc/edo-id-provider/database/consent"
@@ -25,59 +29,256 @@ import (
 	"github.com/realglobe-Inc/edo-id-provider/database/sector"
 	"github.com/realglobe-Inc/edo-id-provider/database/session"
 	"github.com/realglobe-Inc/edo-id-provider/database/token"
+	authpage "github.com/realglobe-Inc/edo-id-provider/page/auth"
+	taapi "github.com/realglobe-Inc/edo-idp-selector/api/ta"
 	idpdb "github.com/realglobe-Inc/edo-idp-selector/database/idp"
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
 	webdb "github.com/realglobe-Inc/edo-idp-selector/database/web"
 	"github.com/realglobe-Inc/edo-lib/jwk"
+	"github.com/realglobe-Inc/edo-lib/rand"
+	"github.com/realglobe-Inc/edo-lib/server"
+	"html/template"
+	"net/http"
 	"time"
 )
 
+type system struct {
+	stopper *server.Stopper
+
+	selfId  string
+	sigAlg  string
+	sigKid  string
+	hashAlg string
+
+	pathTok    string
+	pathCoopFr string
+	pathCoopTo string
+	pathTa     string
+	pathSelUi  string
+	pathLginUi string
+	pathConsUi string
+
+	errTmpl *template.Template
+
+	pwSaltLen    int
+	sessLabel    string
+	sessLen      int
+	sessExpIn    time.Duration
+	sessRefDelay time.Duration
+	sessDbExpIn  time.Duration
+	acodLen      int
+	acodExpIn    time.Duration
+	acodDbExpIn  time.Duration
+	tokLen       int
+	tokExpIn     time.Duration
+	tokDbExpIn   time.Duration
+	ccodLen      int
+	ccodExpIn    time.Duration
+	ccodDbExpIn  time.Duration
+	jtiLen       int
+	jtiExpIn     time.Duration
+	jtiDbExpIn   time.Duration
+	ticLen       int
+
+	keyDb  keydb.Db
+	webDb  webdb.Db
+	acntDb account.Db
+	consDb consent.Db
+	taDb   tadb.Db
+	sectDb sector.Db
+	pwDb   pairwise.Db
+	idpDb  idpdb.Db
+	sessDb session.Db
+	acodDb authcode.Db
+	tokDb  token.Db
+	ccodDb coopcode.Db
+	jtiDb  jtidb.Db
+
+	cookPath string
+	cookSec  bool
+
+	idGen rand.Generator
+}
+
 func newTestSystem(selfKeys []jwk.Key, acnts []account.Element, tas []tadb.Element, idps []idpdb.Element, webs []webdb.Element) *system {
 	return &system{
-		//selfId:    "",
-		sigAlg: "ES256",
-		//sigKid:    "",
-		pathTok:    test_pathTok,
-		pathTa:     test_pathTa,
-		pathSelUi:  test_pathSelUi,
-		pathLginUi: test_pathLginUi,
-		pathConsUi: test_pathConsUi,
-
-		pwSaltLen:    20,
-		sessLabel:    "Id-Provider",
-		sessLen:      30,
-		sessExpIn:    time.Minute,
-		sessRefDelay: time.Minute / 2,
-		sessDbExpIn:  10 * time.Minute,
-		acodLen:      30,
-		acodExpIn:    time.Minute,
-		acodDbExpIn:  10 * time.Minute,
-		tokLen:       30,
-		tokExpIn:     time.Minute,
-		tokDbExpIn:   10 * time.Minute,
-		ccodLen:      30,
-		ccodExpIn:    time.Minute,
-		ccodDbExpIn:  10 * time.Minute,
-		jtiLen:       20,
-		jtiExpIn:     time.Minute,
-		jtiDbExpIn:   10 * time.Minute,
-		ticLen:       10,
-
-		keyDb:  keydb.NewMemoryDb(selfKeys),
-		acntDb: account.NewMemoryDb(acnts),
-		consDb: consent.NewMemoryDb(),
-		taDb:   tadb.NewMemoryDb(tas),
-		sectDb: sector.NewMemoryDb(),
-		pwDb:   pairwise.NewMemoryDb(),
-		idpDb:  idpdb.NewMemoryDb(idps),
-		sessDb: session.NewMemoryDb(),
-		acodDb: authcode.NewMemoryDb(),
-		tokDb:  token.NewMemoryDb(),
-		ccodDb: coopcode.NewMemoryDb(),
-		jtiDb:  jtidb.NewMemoryDb(),
-		webDb:  webdb.NewMemoryDb(webs),
-
-		cookPath: "/",
-		cookSec:  false,
+		server.NewStopper(),
+		"",
+		"ES256",
+		"",
+		"SHA256",
+		test_pathTok,
+		test_pathCoopFr,
+		test_pathCoopTo,
+		test_pathTa,
+		test_pathSelUi,
+		test_pathLginUi,
+		test_pathConsUi,
+		nil,
+		20,
+		"Id-Provider",
+		30,
+		time.Minute,
+		time.Minute / 2,
+		10 * time.Minute,
+		30,
+		time.Minute,
+		10 * time.Minute,
+		30,
+		time.Minute,
+		10 * time.Minute,
+		30,
+		time.Minute,
+		10 * time.Minute,
+		20,
+		time.Minute,
+		10 * time.Minute,
+		10,
+		keydb.NewMemoryDb(selfKeys),
+		webdb.NewMemoryDb(webs),
+		account.NewMemoryDb(acnts),
+		consent.NewMemoryDb(),
+		tadb.NewMemoryDb(tas),
+		sector.NewMemoryDb(),
+		pairwise.NewMemoryDb(),
+		idpdb.NewMemoryDb(idps),
+		session.NewMemoryDb(),
+		authcode.NewMemoryDb(),
+		token.NewMemoryDb(),
+		coopcode.NewMemoryDb(),
+		jtidb.NewMemoryDb(),
+		"/",
+		false,
+		rand.New(time.Millisecond),
 	}
+}
+
+func (this *system) authPage() *authpage.Page {
+	return authpage.New(
+		this.stopper,
+		this.selfId,
+		this.sigAlg,
+		this.sigKid,
+		this.pathSelUi,
+		this.pathLginUi,
+		this.pathConsUi,
+		this.errTmpl,
+		this.pwSaltLen,
+		this.sessLabel,
+		this.sessLen,
+		this.sessExpIn,
+		this.sessRefDelay,
+		this.sessDbExpIn,
+		this.acodLen,
+		this.acodExpIn,
+		this.acodDbExpIn,
+		this.tokExpIn,
+		this.jtiExpIn,
+		this.ticLen,
+		this.keyDb,
+		this.webDb,
+		this.acntDb,
+		this.consDb,
+		this.taDb,
+		this.sectDb,
+		this.pwDb,
+		this.sessDb,
+		this.acodDb,
+		this.cookPath,
+		this.cookSec,
+		this.idGen,
+	)
+}
+
+func (this *system) taApi() http.Handler {
+	return taapi.New(
+		this.stopper,
+		this.pathTa,
+		this.taDb,
+	)
+}
+
+func (this *system) tokenApi() *tokapi.Handler {
+	return tokapi.New(
+		this.stopper,
+		this.selfId,
+		this.sigAlg,
+		this.sigKid,
+		this.pathTok,
+		this.pwSaltLen,
+		this.tokLen,
+		this.tokExpIn,
+		this.tokDbExpIn,
+		this.jtiExpIn,
+		this.keyDb,
+		this.acntDb,
+		this.taDb,
+		this.sectDb,
+		this.pwDb,
+		this.acodDb,
+		this.tokDb,
+		this.jtiDb,
+		this.idGen,
+	)
+}
+
+func (this *system) accountApi() *acntapi.Handler {
+	return acntapi.New(
+		this.stopper,
+		this.pwSaltLen,
+		this.acntDb,
+		this.taDb,
+		this.sectDb,
+		this.pwDb,
+		this.tokDb,
+		this.idGen,
+	)
+}
+
+func (this *system) coopFromApi() *coopfrom.Handler {
+	return coopfrom.New(
+		this.stopper,
+		this.selfId,
+		this.sigAlg,
+		this.hashAlg,
+		this.pathCoopFr,
+		this.ccodLen,
+		this.ccodExpIn,
+		this.ccodDbExpIn,
+		this.jtiLen,
+		this.jtiExpIn,
+		this.keyDb,
+		this.acntDb,
+		this.taDb,
+		this.idpDb,
+		this.ccodDb,
+		this.tokDb,
+		this.jtiDb,
+		this.idGen,
+	)
+}
+
+func (this *system) coopToApi() *coopto.Handler {
+	return coopto.New(
+		this.stopper,
+		this.selfId,
+		this.sigAlg,
+		this.sigKid,
+		this.pathCoopTo,
+		this.pwSaltLen,
+		this.tokLen,
+		this.tokExpIn,
+		this.tokDbExpIn,
+		this.jtiExpIn,
+		this.keyDb,
+		this.acntDb,
+		this.consDb,
+		this.taDb,
+		this.sectDb,
+		this.pwDb,
+		this.ccodDb,
+		this.tokDb,
+		this.jtiDb,
+		this.idGen,
+	)
 }

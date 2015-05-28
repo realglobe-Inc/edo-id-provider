@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// スコープ周りの関数
 package scope
 
 import ()
@@ -84,6 +85,7 @@ func RemoveUnknown(scops map[string]bool) map[string]bool {
 
 // スコープに対応する属性を返す。
 func Attributes(scop string) map[string]bool {
+	// 防御的コピー。
 	attrs := map[string]bool{}
 	for attr := range knownScops[scop] {
 		attrs[attr] = true

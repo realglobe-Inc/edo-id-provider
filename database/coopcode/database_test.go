@@ -27,8 +27,9 @@ func testDb(t *testing.T, db Db) {
 		t.Fatal(elem)
 	}
 
-	exp := time.Now().Add(time.Second)
-	elem := New(test_id, exp, test_acnt, test_scop, test_tokExpIn, test_relAcnts, test_taFr, test_taTo)
+	exp := time.Now().Add(time.Minute)
+	tokExp := time.Now().Add(time.Minute)
+	elem := New(test_id, exp, test_acnt, test_srcTok, test_scop, tokExp, test_relAcnts, test_taFr, test_taTo)
 	saveExp := exp.Add(time.Minute)
 
 	if err := db.Save(elem, saveExp); err != nil {

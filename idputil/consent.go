@@ -51,6 +51,9 @@ func ProvidedScopes(scopCons Consent, reqScops map[string]bool) (scops map[strin
 func ProvidedAttributes(scopCons, attrCons Consent, scops map[string]bool, reqClms session.Claims) (attrs map[string]bool, err error) {
 	attrs = map[string]bool{}
 
+	// アカウント ID は必須。
+	attrs[tagSub] = true
+
 	// スコープで許可された属性を加える。
 	for scop := range scops {
 		for attr := range scope.Attributes(scop) {

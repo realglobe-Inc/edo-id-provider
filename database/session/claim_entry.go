@@ -34,6 +34,16 @@ type ClaimEntry struct {
 	lang string
 }
 
+// 主にテスト用。
+func NewClaimEntry(ess bool, val interface{}, vals []interface{}, lang string) *ClaimEntry {
+	return &ClaimEntry{
+		ess:  ess,
+		val:  val,
+		vals: vals,
+		lang: lang,
+	}
+}
+
 func (this *ClaimEntry) Essential() bool {
 	return this.ess
 }

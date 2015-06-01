@@ -49,10 +49,16 @@ func (this *element) Authenticator() Authenticator {
 }
 
 func (this *element) Attribute(attrName string) interface{} {
+	if this.attrs == nil {
+		return nil
+	}
 	return this.attrs[attrName]
 }
 
 func (this *element) SetAttribute(attrName string, attr interface{}) {
+	if this.attrs == nil {
+		this.attrs = map[string]interface{}{}
+	}
 	this.attrs[attrName] = attr
 }
 

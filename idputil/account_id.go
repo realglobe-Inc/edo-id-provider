@@ -30,7 +30,7 @@ type SetSubSystem interface {
 	IdGenerator() rand.Generator
 }
 
-// ID トークンの sub クレームとして TA に通知するアカウント ID を設定する。
+// sub 属性として TA に通知するアカウント ID を設定する。
 // 結果は acnt.SetAttribute にて登録される。
 func SetSub(sys SetSubSystem, acnt account.Element, ta tadb.Element) error {
 	if acnt.Attribute(tagSub) != nil {

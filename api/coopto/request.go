@@ -26,6 +26,7 @@ type request struct {
 	cod      string
 	clmReq   *session.ClaimRequest
 	subClms  map[string]session.Claims
+	assType  string
 	ass      []byte
 }
 
@@ -39,6 +40,7 @@ func parseRequest(r *http.Request) (*request, error) {
 		Cod      string                    `json:"code"`
 		ClmReq   *session.ClaimRequest     `json:"claims"`
 		SubClms  map[string]session.Claims `json:"user_claims"`
+		AssType  string                    `json:"client_assertion_type"`
 		Ass      string                    `json:"client_assertion"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&buff); err != nil {
@@ -57,6 +59,7 @@ func parseRequest(r *http.Request) (*request, error) {
 		cod:      buff.Cod,
 		clmReq:   buff.ClmReq,
 		subClms:  buff.SubClms,
+		assType:  buff.AssType,
 		ass:      ass,
 	}, nil
 }
@@ -75,6 +78,10 @@ func (this *request) claims() *session.ClaimRequest {
 
 func (this *request) subClaims() map[string]session.Claims {
 	return this.subClms
+}
+
+func (this *request) taAssertionType() string {
+	return this.assType
 }
 
 func (this *request) taAssertion() []byte {

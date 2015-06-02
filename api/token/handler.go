@@ -312,22 +312,13 @@ func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 
 	log.Debug(sender, ": Saved token "+logutil.Mosaic(tok.Id()))
 
-	return respondToken(w, tok, "", idTok)
-}
-
-func respondToken(w http.ResponseWriter, tok *token.Element, refTok, idTok string) error {
 	m := map[string]interface{}{
 		tagAccess_token: tok.Id(),
 		tagToken_type:   tagBearer,
 	}
-	if !tok.Expires().IsZero() {
-		m[tagExpires_in] = int64(tok.Expires().Sub(time.Now()).Seconds())
-	}
+	m[tagExpires_in] = int64(this.tokExpIn / time.Second)
 	if len(tok.Scope()) > 0 {
 		m[tagScope] = requtil.ValueSetForm(tok.Scope())
-	}
-	if refTok != "" {
-		m[tagRefresh_token] = refTok
 	}
 	if idTok != "" {
 		m[tagId_token] = idTok

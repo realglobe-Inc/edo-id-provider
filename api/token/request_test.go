@@ -28,7 +28,7 @@ func TestTokenRequest(t *testing.T) {
 	ta := "https://ta.example.org"
 	rediUri := "https://ta.example.org/callback"
 	taAssType := "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
-	taAss := "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+	taAss := "eyJhbGciOiJFUzI1NiJ9.eyJhdWQiOiJodHRwczovL2lkcC5leGFtcGxlLm9yZy90b2tlbiIsImV4cCI6MTQyNTQ1MzI2MywiaWF0IjoxNDI1NDUyNjYzLCJpc3MiOiJodHRwczovL3RhLmV4YW1wbGUub3JnIiwianRpIjoiNkwzZ3RPTF9jc3pyX1RKSWVkWlciLCJzdWIiOiJodHRwczovL3RhLmV4YW1wbGUub3JnIn0.Q3UA2dpNLgrvk4SL5-9zXH_aSA2_OQX7ixfgnxKbGoF0W0YpyRHwYQu1N-4MXKHAQbaVo-1cH7UIAv1PcT6-2A"
 
 	r, err := http.NewRequest("POST", "https://idp.example.org/auth/login", strings.NewReader(""+
 		"grant_type="+url.QueryEscape(grntType)+

@@ -198,7 +198,7 @@ func (this *system) taApi() http.Handler {
 	)
 }
 
-func (this *system) tokenApi() *tokapi.Handler {
+func (this *system) tokenApi() http.Handler {
 	return tokapi.New(
 		this.stopper,
 		this.selfId,
@@ -222,7 +222,7 @@ func (this *system) tokenApi() *tokapi.Handler {
 	)
 }
 
-func (this *system) accountApi() *acntapi.Handler {
+func (this *system) accountApi() http.Handler {
 	return acntapi.New(
 		this.stopper,
 		this.pwSaltLen,
@@ -235,7 +235,7 @@ func (this *system) accountApi() *acntapi.Handler {
 	)
 }
 
-func (this *system) coopFromApi() *coopfrom.Handler {
+func (this *system) coopFromApi() http.Handler {
 	return coopfrom.New(
 		this.stopper,
 		this.selfId,
@@ -258,7 +258,7 @@ func (this *system) coopFromApi() *coopfrom.Handler {
 	)
 }
 
-func (this *system) coopToApi() *coopto.Handler {
+func (this *system) coopToApi() http.Handler {
 	return coopto.New(
 		this.stopper,
 		this.selfId,

@@ -39,8 +39,7 @@ import (
 	"time"
 )
 
-// http.Handler を実装する。
-type Handler struct {
+type handler struct {
 	stopper *server.Stopper
 
 	selfId string
@@ -89,8 +88,8 @@ func New(
 	tokDb token.Db,
 	jtiDb jtidb.Db,
 	idGen rand.Generator,
-) *Handler {
-	return &Handler{
+) http.Handler {
+	return &handler{
 		stopper:    stopper,
 		selfId:     selfId,
 		sigAlg:     sigAlg,
@@ -114,17 +113,17 @@ func New(
 	}
 }
 
-func (this *Handler) PairwiseSaltLength() int     { return this.pwSaltLen }
-func (this *Handler) SectorDb() sector.Db         { return this.sectDb }
-func (this *Handler) PairwiseDb() pairwise.Db     { return this.pwDb }
-func (this *Handler) IdGenerator() rand.Generator { return this.idGen }
+func (this *handler) PairwiseSaltLength() int     { return this.pwSaltLen }
+func (this *handler) SectorDb() sector.Db         { return this.sectDb }
+func (this *handler) PairwiseDb() pairwise.Db     { return this.pwDb }
+func (this *handler) IdGenerator() rand.Generator { return this.idGen }
 
 // 主にテスト用。
-func (this *Handler) SetSelfId(selfId string) {
+func (this *handler) SetSelfId(selfId string) {
 	this.selfId = selfId
 }
 
-func (this *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var sender *requtil.Request
 
 	// panic 対策。
@@ -154,7 +153,7 @@ func (this *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (this *Handler) serve(w http.ResponseWriter, r *http.Request, sender *requtil.Request) error {
+func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requtil.Request) error {
 	req, err := parseRequest(r)
 	if err != nil {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
@@ -203,7 +202,7 @@ func (this *Handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 	}
 }
 
-func (this *Handler) serveAsMain(w http.ResponseWriter, r *http.Request, req *request, cod *coopcode.Element, taTo tadb.Element, sender *requtil.Request) error {
+func (this *handler) serveAsMain(w http.ResponseWriter, r *http.Request, req *request, cod *coopcode.Element, taTo tadb.Element, sender *requtil.Request) error {
 	ids := map[string]map[string]interface{}{}
 
 	var tok *token.Element
@@ -334,6 +333,6 @@ func (this *Handler) serveAsMain(w http.ResponseWriter, r *http.Request, req *re
 	return idputil.RespondJson(w, respParams)
 }
 
-func (this *Handler) serveAsSub(w http.ResponseWriter, r *http.Request, req *request, cod *coopcode.Element, taTo tadb.Element, sender *requtil.Request) error {
+func (this *handler) serveAsSub(w http.ResponseWriter, r *http.Request, req *request, cod *coopcode.Element, taTo tadb.Element, sender *requtil.Request) error {
 	panic("not yet implemented")
 }

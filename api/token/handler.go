@@ -39,8 +39,7 @@ import (
 	"time"
 )
 
-// http.Handler を実装する。
-type Handler struct {
+type handler struct {
 	stopper *server.Stopper
 
 	selfId string
@@ -87,8 +86,8 @@ func New(
 	tokDb token.Db,
 	jtiDb jtidb.Db,
 	idGen rand.Generator,
-) *Handler {
-	return &Handler{
+) http.Handler {
+	return &handler{
 		stopper:    stopper,
 		selfId:     selfId,
 		sigAlg:     sigAlg,
@@ -111,22 +110,22 @@ func New(
 	}
 }
 
-func (this *Handler) PairwiseSaltLength() int       { return this.pwSaltLen }
-func (this *Handler) SectorDb() sector.Db           { return this.sectDb }
-func (this *Handler) PairwiseDb() pairwise.Db       { return this.pwDb }
-func (this *Handler) IdGenerator() rand.Generator   { return this.idGen }
-func (this *Handler) KeyDb() keydb.Db               { return this.keyDb }
-func (this *Handler) SignAlgorithm() string         { return this.sigAlg }
-func (this *Handler) SignKeyId() string             { return this.sigKid }
-func (this *Handler) SelfId() string                { return this.selfId }
-func (this *Handler) JwtIdExpiresIn() time.Duration { return this.jtiExpIn }
+func (this *handler) PairwiseSaltLength() int       { return this.pwSaltLen }
+func (this *handler) SectorDb() sector.Db           { return this.sectDb }
+func (this *handler) PairwiseDb() pairwise.Db       { return this.pwDb }
+func (this *handler) IdGenerator() rand.Generator   { return this.idGen }
+func (this *handler) KeyDb() keydb.Db               { return this.keyDb }
+func (this *handler) SignAlgorithm() string         { return this.sigAlg }
+func (this *handler) SignKeyId() string             { return this.sigKid }
+func (this *handler) SelfId() string                { return this.selfId }
+func (this *handler) JwtIdExpiresIn() time.Duration { return this.jtiExpIn }
 
 // 主にテスト用。
-func (this *Handler) SetSelfId(selfId string) {
+func (this *handler) SetSelfId(selfId string) {
 	this.selfId = selfId
 }
 
-func (this *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var sender *requtil.Request
 
 	// panic 対策。
@@ -156,7 +155,7 @@ func (this *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (this *Handler) serve(w http.ResponseWriter, r *http.Request, sender *requtil.Request) error {
+func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requtil.Request) error {
 	if r.Method != tagPost {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "unsupported method "+r.Method, http.StatusMethodNotAllowed, nil))
 	}
@@ -355,7 +354,7 @@ func audienceHas(aud interface{}, tgt string) bool {
 }
 
 // 認可コードを廃棄処分する。
-func disposeCode(this *Handler, codId string) {
+func disposeCode(this *handler, codId string) {
 	cod, err := this.codDb.Get(codId)
 	if err != nil {
 		// 何もできない。
@@ -374,7 +373,7 @@ func disposeCode(this *Handler, codId string) {
 }
 
 // アクセストークンを廃棄処分する。
-func disposeToken(this *Handler, tokId string) {
+func disposeToken(this *handler, tokId string) {
 	for {
 		tok, err := this.tokDb.Get(tokId)
 		if err != nil {

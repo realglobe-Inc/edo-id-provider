@@ -41,8 +41,7 @@ import (
 	"time"
 )
 
-// http.Handler を実装する。
-type Handler struct {
+type handler struct {
 	stopper *server.Stopper
 
 	selfId  string
@@ -87,8 +86,8 @@ func New(
 	tokDb token.Db,
 	jtiDb jtidb.Db,
 	idGen rand.Generator,
-) *Handler {
-	return &Handler{
+) http.Handler {
+	return &handler{
 		stopper:    stopper,
 		selfId:     selfId,
 		sigAlg:     sigAlg,
@@ -111,11 +110,11 @@ func New(
 }
 
 // 主にテスト用。
-func (this *Handler) SetSelfId(selfId string) {
+func (this *handler) SetSelfId(selfId string) {
 	this.selfId = selfId
 }
 
-func (this *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var sender *requtil.Request
 
 	// panic 対策。
@@ -145,7 +144,7 @@ func (this *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (this *Handler) serve(w http.ResponseWriter, r *http.Request, sender *requtil.Request) error {
+func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requtil.Request) error {
 	req, err := parseRequest(r)
 	if err != nil {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
@@ -162,7 +161,7 @@ func (this *Handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 }
 
 // 処理の主体が属す ID プロバイダとして対応。
-func (this *Handler) serveAsMain(w http.ResponseWriter, r *http.Request, req *request, sender *requtil.Request) error {
+func (this *handler) serveAsMain(w http.ResponseWriter, r *http.Request, req *request, sender *requtil.Request) error {
 	if len(req.responseType()) > 2 || !req.responseType()[tagCode_token] {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "unsupported response type "+requtil.ValueSetForm(req.responseType()), http.StatusBadRequest, nil))
 	}
@@ -401,6 +400,6 @@ func (this *Handler) serveAsMain(w http.ResponseWriter, r *http.Request, req *re
 }
 
 // 処理の主体が属さない ID プロバイダとして対応。
-func (this *Handler) serveAsSub(w http.ResponseWriter, r *http.Request, req *request, sender *requtil.Request) error {
+func (this *handler) serveAsSub(w http.ResponseWriter, r *http.Request, req *request, sender *requtil.Request) error {
 	panic("not yet implemented")
 }

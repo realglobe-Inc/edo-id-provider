@@ -16,10 +16,6 @@ package main
 
 import (
 	"encoding/json"
-	acntapi "github.com/realglobe-Inc/edo-id-provider/api/account"
-	"github.com/realglobe-Inc/edo-id-provider/api/coopfrom"
-	"github.com/realglobe-Inc/edo-id-provider/api/coopto"
-	tokapi "github.com/realglobe-Inc/edo-id-provider/api/token"
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
 	authpage "github.com/realglobe-Inc/edo-id-provider/page/auth"
 	idpdb "github.com/realglobe-Inc/edo-idp-selector/database/idp"
@@ -47,10 +43,10 @@ type testIdpServer struct {
 	sys *system
 	*httptest.Server
 	authPage  *authpage.Page
-	tokApi    *tokapi.Handler
-	acntApi   *acntapi.Handler
-	coopFrApi *coopfrom.Handler
-	coopToApi *coopto.Handler
+	tokApi    http.Handler
+	acntApi   http.Handler
+	coopFrApi http.Handler
+	coopToApi http.Handler
 }
 
 // テスト用の ID プロバイダを立てる。
@@ -114,9 +110,15 @@ func newTestIdpServer(acnts []account.Element,
 
 	sys.selfId = server.URL
 	authPage.SetSelfId(sys.selfId)
-	tokApi.SetSelfId(sys.selfId)
-	coopFrApi.SetSelfId(sys.selfId)
-	coopToApi.SetSelfId(sys.selfId)
+	tokApi.(interface {
+		SetSelfId(string)
+	}).SetSelfId(sys.selfId)
+	coopFrApi.(interface {
+		SetSelfId(string)
+	}).SetSelfId(sys.selfId)
+	coopToApi.(interface {
+		SetSelfId(string)
+	}).SetSelfId(sys.selfId)
 	// 同期。
 	sys.stopper.Lock()
 	sys.stopper.Unlock()

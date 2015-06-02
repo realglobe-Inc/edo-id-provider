@@ -33,7 +33,7 @@ type Element struct {
 	// 許可スコープ。
 	scop map[string]bool
 	// ID トークンで提供可能な許可属性。
-	tokAttrs map[string]bool
+	idTokAttrs map[string]bool
 	// アカウント情報エンドポイントで提供可能な許可属性。
 	acntAttrs map[string]bool
 	// 要請元 TA の ID。
@@ -49,25 +49,25 @@ type Element struct {
 	date time.Time
 }
 
-func New(id string, exp time.Time, acnt string, lginDate time.Time, scop, tokAttrs,
+func New(id string, exp time.Time, acnt string, lginDate time.Time, scop, idTokAttrs,
 	acntAttrs map[string]bool, ta, rediUri, nonc string) *Element {
-	return newElement(id, exp, acnt, lginDate, scop, tokAttrs, acntAttrs, ta, rediUri, nonc, time.Now())
+	return newElement(id, exp, acnt, lginDate, scop, idTokAttrs, acntAttrs, ta, rediUri, nonc, time.Now())
 }
 
-func newElement(id string, exp time.Time, acnt string, lginDate time.Time, scop, tokAttrs,
+func newElement(id string, exp time.Time, acnt string, lginDate time.Time, scop, idTokAttrs,
 	acntAttrs map[string]bool, ta, rediUri, nonc string, date time.Time) *Element {
 	return &Element{
-		id:        id,
-		exp:       exp,
-		acnt:      acnt,
-		lginDate:  lginDate,
-		scop:      scop,
-		tokAttrs:  tokAttrs,
-		acntAttrs: acntAttrs,
-		ta:        ta,
-		rediUri:   rediUri,
-		nonc:      nonc,
-		date:      date,
+		id:         id,
+		exp:        exp,
+		acnt:       acnt,
+		lginDate:   lginDate,
+		scop:       scop,
+		idTokAttrs: idTokAttrs,
+		acntAttrs:  acntAttrs,
+		ta:         ta,
+		rediUri:    rediUri,
+		nonc:       nonc,
+		date:       date,
 	}
 }
 
@@ -98,7 +98,7 @@ func (this *Element) Scope() map[string]bool {
 
 // ID トークンでの提供可能属性を返す。
 func (this *Element) IdTokenAttributes() map[string]bool {
-	return this.tokAttrs
+	return this.idTokAttrs
 }
 
 // アカウント情報エンドポイントでの提供可能属性を返す。
@@ -166,7 +166,7 @@ func (this *Element) MarshalJSON() (data []byte, err error) {
 		"account":      this.acnt,
 		"login_date":   this.lginDate,
 		"scope":        strset.Set(this.scop),
-		"id_token":     strset.Set(this.tokAttrs),
+		"id_token":     strset.Set(this.idTokAttrs),
 		"userinfo":     strset.Set(this.acntAttrs),
 		"client_id":    this.ta,
 		"redirect_uri": this.rediUri,
@@ -178,18 +178,18 @@ func (this *Element) MarshalJSON() (data []byte, err error) {
 
 func (this *Element) UnmarshalJSON(data []byte) error {
 	var buff struct {
-		Id        string     `json:"id"`
-		Exp       time.Time  `json:"expires"`
-		Acnt      string     `json:"account"`
-		LginDate  time.Time  `json:"login_date"`
-		Scop      strset.Set `json:"scope"`
-		TokAttrs  strset.Set `json:"id_token"`
-		AcntAttrs strset.Set `json:"userinfo"`
-		Ta        string     `json:"client_id"`
-		RediUri   string     `json:"redirect_uri"`
-		Nonc      string     `json:"nonce"`
-		Tok       string     `json:"token"`
-		Date      time.Time  `json:"date"`
+		Id         string     `json:"id"`
+		Exp        time.Time  `json:"expires"`
+		Acnt       string     `json:"account"`
+		LginDate   time.Time  `json:"login_date"`
+		Scop       strset.Set `json:"scope"`
+		IdTokAttrs strset.Set `json:"id_token"`
+		AcntAttrs  strset.Set `json:"userinfo"`
+		Ta         string     `json:"client_id"`
+		RediUri    string     `json:"redirect_uri"`
+		Nonc       string     `json:"nonce"`
+		Tok        string     `json:"token"`
+		Date       time.Time  `json:"date"`
 	}
 	if err := json.Unmarshal(data, &buff); err != nil {
 		return erro.Wrap(err)
@@ -200,7 +200,7 @@ func (this *Element) UnmarshalJSON(data []byte) error {
 	this.acnt = buff.Acnt
 	this.lginDate = buff.LginDate
 	this.scop = buff.Scop
-	this.tokAttrs = buff.TokAttrs
+	this.idTokAttrs = buff.IdTokAttrs
 	this.acntAttrs = buff.AcntAttrs
 	this.ta = buff.Ta
 	this.rediUri = buff.RediUri

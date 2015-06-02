@@ -33,8 +33,7 @@ import (
 	"net/http"
 )
 
-// http.Handler を実装する。
-type Handler struct {
+type handler struct {
 	stopper *server.Stopper
 
 	pwSaltLen int
@@ -57,8 +56,8 @@ func New(
 	pwDb pairwise.Db,
 	tokDb token.Db,
 	idGen rand.Generator,
-) *Handler {
-	return &Handler{
+) http.Handler {
+	return &handler{
 		stopper:   stopper,
 		pwSaltLen: pwSaltLen,
 		acntDb:    acntDb,
@@ -70,12 +69,12 @@ func New(
 	}
 }
 
-func (this *Handler) PairwiseSaltLength() int     { return this.pwSaltLen }
-func (this *Handler) SectorDb() sector.Db         { return this.sectDb }
-func (this *Handler) PairwiseDb() pairwise.Db     { return this.pwDb }
-func (this *Handler) IdGenerator() rand.Generator { return this.idGen }
+func (this *handler) PairwiseSaltLength() int     { return this.pwSaltLen }
+func (this *handler) SectorDb() sector.Db         { return this.sectDb }
+func (this *handler) PairwiseDb() pairwise.Db     { return this.pwDb }
+func (this *handler) IdGenerator() rand.Generator { return this.idGen }
 
-func (this *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var sender *requtil.Request
 
 	// panic 対策。
@@ -105,7 +104,7 @@ func (this *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (this *Handler) serve(w http.ResponseWriter, r *http.Request, sender *requtil.Request) error {
+func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requtil.Request) error {
 	req, err := parseRequest(r)
 	if err != nil {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, erro.Unwrap(err).Error(), http.StatusBadRequest, err))

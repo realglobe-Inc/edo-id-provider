@@ -29,6 +29,11 @@ type ClaimRequest struct {
 	acnt map[string]*ClaimEntry
 }
 
+// 主にテスト用。
+func NewClaimRequest(idTok, acnt map[string]*ClaimEntry) *ClaimRequest {
+	return &ClaimRequest{idTok, acnt}
+}
+
 // ID トークンに入れて返すように要求されているクレームの情報を返す。
 func (this *ClaimRequest) IdTokenEntries() map[string]*ClaimEntry {
 	if this == nil { // あんまり良くないと思うが。

@@ -1120,7 +1120,7 @@ func TestDenyInvalidRedirectUri(t *testing.T) {
 	}
 }
 
-// 複数のクライアント認証方式が使われていたら違っていたら拒否できるか。
+// 複数のクライアント認証方式が使われていたら拒否できるか。
 // error は invalid_request か。
 func TestDenyManyClientAuthAlgorithms(t *testing.T) {
 	// ////////////////////////////////

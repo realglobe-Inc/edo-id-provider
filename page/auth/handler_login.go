@@ -229,6 +229,7 @@ func (this *Page) afterLogin(w http.ResponseWriter, r *http.Request, sender *req
 			return erro.Wrap(newErrorForRedirect(idperr.Consent_required, "cannot consent without UI", nil))
 		}
 
+		log.Debug(sender, ": Consent is forced")
 		return this.redirectToConsentUi(w, r, sender, sess, "Please allow to provide these scope and attributes")
 	}
 
@@ -245,6 +246,8 @@ func (this *Page) afterLogin(w http.ResponseWriter, r *http.Request, sender *req
 		if prmpts[tagNone] {
 			return erro.Wrap(newErrorForRedirect(idperr.Consent_required, "cannot consent without UI", nil))
 		}
+
+		log.Debug(sender, ": Consent is required: ", erro.Unwrap(err))
 		return this.redirectToConsentUi(w, r, sender, sess, "Please allow to provide these scope and attributes")
 	}
 	idTokAttrs, err := idputil.ProvidedAttributes(cons.Scope(), cons.Attribute(), nil, sess.Request().Claims().IdTokenEntries())
@@ -252,6 +255,8 @@ func (this *Page) afterLogin(w http.ResponseWriter, r *http.Request, sender *req
 		if prmpts[tagNone] {
 			return erro.Wrap(newErrorForRedirect(idperr.Consent_required, "cannot consent without UI", nil))
 		}
+
+		log.Debug(sender, ": Consent is required: ", erro.Unwrap(err))
 		return this.redirectToConsentUi(w, r, sender, sess, "Please allow to provide these scope and attributes")
 	}
 	acntAttrs, err := idputil.ProvidedAttributes(cons.Scope(), cons.Attribute(), scop, sess.Request().Claims().AccountEntries())
@@ -259,6 +264,8 @@ func (this *Page) afterLogin(w http.ResponseWriter, r *http.Request, sender *req
 		if prmpts[tagNone] {
 			return erro.Wrap(newErrorForRedirect(idperr.Consent_required, "cannot consent without UI", nil))
 		}
+
+		log.Debug(sender, ": Consent is required: ", erro.Unwrap(err))
 		return this.redirectToConsentUi(w, r, sender, sess, "Please allow to provide these scope and attributes")
 	}
 

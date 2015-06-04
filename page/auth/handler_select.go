@@ -213,7 +213,10 @@ func (this *Page) selectServeWithSession(w http.ResponseWriter, r *http.Request,
 	// アカウント選択できた。
 	log.Info(sender, ": Specified account "+req.accountName()+" is exist")
 
-	sess.SelectAccount(session.NewAccount(acnt.Id(), acnt.Name()))
+	if cur := sess.Account(); cur == nil || cur.Id() != acnt.Id() {
+		sess.SelectAccount(session.NewAccount(acnt.Id(), acnt.Name()))
+	}
+
 	if lang := req.language(); lang != "" {
 		sess.SetLanguage(lang)
 

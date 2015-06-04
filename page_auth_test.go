@@ -246,7 +246,6 @@ func TestIgnoreUnknownScopes(t *testing.T) {
 }
 
 // 認証リクエストに client_id が無い時に拒否できるか。
-// 必須パラメータ無しで error は invalid_request か。
 func TestDenyNoClientIdInAuthRequest(t *testing.T) {
 	// ////////////////////////////////
 	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)

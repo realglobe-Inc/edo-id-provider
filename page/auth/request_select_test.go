@@ -36,7 +36,9 @@ func TestSelectRequest(t *testing.T) {
 	}
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	if req := newSelectRequest(r); req.ticket() != tic {
+	if req, err := parseSelectRequest(r); err != nil {
+		t.Fatal(err)
+	} else if req.ticket() != tic {
 		t.Error(req.ticket())
 		t.Fatal(tic)
 	} else if req.accountName() != name {

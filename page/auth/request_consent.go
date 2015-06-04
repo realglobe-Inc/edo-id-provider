@@ -16,6 +16,7 @@ package auth
 
 import (
 	"github.com/realglobe-Inc/edo-idp-selector/request"
+	"github.com/realglobe-Inc/go-lib/erro"
 	"net/http"
 )
 
@@ -28,7 +29,17 @@ type consentRequest struct {
 	lang       string
 }
 
-func newConsentRequest(r *http.Request) *consentRequest {
+func parseConsentRequest(r *http.Request) (*consentRequest, error) {
+	tic := r.FormValue(tagTicket)
+	if tic == "" {
+		return nil, erro.New("no ticket")
+	}
+	for k, vs := range r.Form {
+		if len(vs) != 1 {
+			return nil, erro.New(k + " overlaps")
+		}
+	}
+
 	return &consentRequest{
 		tic:        r.FormValue(tagTicket),
 		allowScop:  request.FormValueSet(r.FormValue(tagAllowed_scope)),
@@ -36,7 +47,7 @@ func newConsentRequest(r *http.Request) *consentRequest {
 		denyScop:   request.FormValueSet(r.FormValue(tagDenied_scope)),
 		denyAttrs:  request.FormValueSet(r.FormValue(tagDenied_claims)),
 		lang:       r.FormValue(tagLocale),
-	}
+	}, nil
 }
 
 func (this *consentRequest) ticket() string {

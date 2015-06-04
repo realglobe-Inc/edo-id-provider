@@ -39,7 +39,9 @@ func TestLoginRequest(t *testing.T) {
 	}
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	if req := newLoginRequest(r); req.ticket() != tic {
+	if req, err := parseLoginRequest(r); err != nil {
+		t.Fatal(err)
+	} else if req.ticket() != tic {
 		t.Error(req.ticket())
 		t.Fatal(tic)
 	} else if req.accountName() != name {

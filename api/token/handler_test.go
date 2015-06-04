@@ -15,6 +15,7 @@
 package token
 
 import (
+	"bytes"
 	"encoding/json"
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
 	"github.com/realglobe-Inc/edo-id-provider/database/authcode"
@@ -24,6 +25,8 @@ import (
 	"github.com/realglobe-Inc/edo-id-provider/database/sector"
 	"github.com/realglobe-Inc/edo-id-provider/database/token"
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
+	requtil "github.com/realglobe-Inc/edo-idp-selector/request"
+	"github.com/realglobe-Inc/edo-lib/base64url"
 	"github.com/realglobe-Inc/edo-lib/jwk"
 	"github.com/realglobe-Inc/edo-lib/jwt"
 	logutil "github.com/realglobe-Inc/edo-lib/log"
@@ -35,6 +38,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -71,6 +75,12 @@ func newTestHandler(keys []jwk.Key, acnts []account.Element, tas []tadb.Element)
 // 正常系。
 // レスポンスが access_token, token_type, expires_in を含むことの検査。
 // レスポンスが Cache-Control: no-store, Pragma: no-cache ヘッダを含むことの検査。
+// レスポンスが scope を含むことの検査。
+// ID トークンが署名されていることの検査。
+// ID トークンが iss, sub, aud, exp, iat クレームを含むことの検査。
+// ID トークンが nonce クレームを含むことの検査。
+// ID トークンが auth_time クレームを含むことの検査。
+// ID トークンが at_hash クレームを含むことの検査。
 func TestNormal(t *testing.T) {
 	// ////////////////////////////////
 	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
@@ -111,6 +121,7 @@ func TestNormal(t *testing.T) {
 		Token_type   string
 		Expires_in   int
 		Id_token     string
+		Scope        string
 	}
 	if err := json.NewDecoder(w.Body).Decode(&buff); err != nil {
 		t.Fatal(err)
@@ -122,6 +133,9 @@ func TestNormal(t *testing.T) {
 	} else if expIn := int(hndl.tokExpIn / time.Second); buff.Expires_in != expIn {
 		t.Error(buff.Expires_in)
 		t.Fatal(expIn)
+	} else if scop := requtil.FormValueSet(buff.Scope); !reflect.DeepEqual(scop, cod.Scope()) {
+		t.Error(scop)
+		t.Fatal(cod.Scope())
 	}
 	idTok, err := jwt.Parse([]byte(buff.Id_token))
 	if err != nil {
@@ -129,6 +143,52 @@ func TestNormal(t *testing.T) {
 	} else if alg, _ := idTok.Header("alg").(string); alg != hndl.sigAlg {
 		t.Error(alg)
 		t.Fatal(hndl.sigAlg)
+	} else if !idTok.IsSigned() {
+		t.Fatal("not signed ID token")
+	} else if err := idTok.Verify([]jwk.Key{test_idpKey}); err != nil {
+		t.Fatal(err)
+	} else if iss, _ := idTok.Claim("iss").(string); iss != hndl.selfId {
+		t.Error(iss)
+		t.Fatal(hndl.selfId)
+	} else if sub, _ := idTok.Claim("sub").(string); sub != acnt.Id() {
+		t.Error(sub)
+		t.Fatal(acnt.Id())
+	} else if aud, ok := idTok.Claim("aud").(string); ok && aud != test_ta.Id() {
+		t.Error(aud)
+		t.Fatal(test_ta.Id())
+	} else if aud, ok := idTok.Claim("aud").([]interface{}); ok && aud[0] != test_ta.Id() {
+		t.Error(aud[0])
+		t.Fatal(test_ta.Id())
+	} else if exp, _ := idTok.Claim("exp").(float64); exp == 0 {
+		t.Fatal("no exp")
+	} else if iat, _ := idTok.Claim("iat").(float64); iat == 0 {
+		t.Fatal("no iat")
+	} else if exp < iat {
+		t.Error("exp before iat")
+		t.Error(exp)
+		t.Fatal(iat)
+	} else if nonc, _ := idTok.Claim("nonce").(string); nonc != test_nonc {
+		t.Error(nonc)
+		t.Fatal(test_nonc)
+	} else if lginDate, _ := idTok.Claim("auth_time").(float64); lginDate == 0 {
+		t.Fatal("no auth_time")
+	} else if lginDate > iat {
+		t.Error("auth_time after iat")
+		t.Error(lginDate)
+		t.Fatal(iat)
+	}
+	hashAlg, _ := jwt.HashFunction(hndl.sigAlg)
+	h := hashAlg.New()
+	h.Write([]byte(buff.Access_token))
+	atHash := h.Sum(nil)
+	atHash = atHash[:len(atHash)/2]
+	if rawAtHash, _ := idTok.Claim("at_hash").(string); rawAtHash == "" {
+		t.Fatal("no at_hash")
+	} else if atHash2, err := base64url.DecodeString(rawAtHash); err != nil {
+		t.Fatal(err)
+	} else if !bytes.Equal(atHash2, atHash) {
+		t.Error(atHash2)
+		t.Fatal(atHash)
 	}
 }
 
@@ -513,7 +573,6 @@ func TestDenyNonCodeHolder(t *testing.T) {
 
 	acnt := newTestAccount()
 	ta := tadb.New(test_ta.Id()+"a", nil, strsetutil.New(test_rediUri), []jwk.Key{test_taKey}, false, "")
-
 	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{acnt}, []tadb.Element{test_ta, ta})
 
 	cod := newCode()
@@ -550,5 +609,279 @@ func TestDenyNonCodeHolder(t *testing.T) {
 	} else if err := "invalid_grant"; buff.Error != err {
 		t.Error(buff.Error)
 		t.Fatal(err)
+	}
+}
+
+// 認可コードがおかしかったら拒否できることの検査。
+func TestDenyInvalidCode(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	acnt := newTestAccount()
+	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{acnt}, []tadb.Element{test_ta})
+
+	cod := newCode()
+	now := time.Now()
+	hndl.codDb.Save(cod, now.Add(time.Minute))
+
+	r, err := newRequest(cod.Id()+"a", hndl.selfId+hndl.pathTok)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	w := httptest.NewRecorder()
+	hndl.ServeHTTP(w, r)
+
+	if w.Code != http.StatusBadRequest {
+		t.Error(w.Code)
+		t.Fatal(http.StatusBadRequest)
+	}
+	var buff struct{ Error string }
+	if err := json.NewDecoder(w.Body).Decode(&buff); err != nil {
+		t.Fatal(err)
+	} else if err := "invalid_grant"; buff.Error != err {
+		t.Error(buff.Error)
+		t.Fatal(err)
+	}
+}
+
+// 認証リクエストのときと違う redirect_uri を拒否できることの検査。
+func TestDenyInvalidRedirectUri(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	acnt := newTestAccount()
+	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{acnt}, []tadb.Element{test_ta})
+
+	cod := newCode()
+	now := time.Now()
+	hndl.codDb.Save(cod, now.Add(time.Minute))
+
+	r, err := newRequest(cod.Id(), hndl.selfId+hndl.pathTok)
+	if err != nil {
+		t.Fatal(err)
+	}
+	{
+		buff, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		q, err := url.ParseQuery(string(buff))
+		if err != nil {
+			t.Fatal(err)
+		}
+		q.Set("redirect_uri", test_rediUri+"a")
+		r.Body = ioutil.NopCloser(strings.NewReader(q.Encode()))
+	}
+
+	w := httptest.NewRecorder()
+	hndl.ServeHTTP(w, r)
+
+	if w.Code != http.StatusBadRequest {
+		t.Error(w.Code)
+		t.Fatal(http.StatusBadRequest)
+	}
+	var buff struct{ Error string }
+	if err := json.NewDecoder(w.Body).Decode(&buff); err != nil {
+		t.Fatal(err)
+	} else if err := "invalid_grant"; buff.Error != err {
+		t.Error(buff.Error)
+		t.Fatal(err)
+	}
+}
+
+// 複数のクライアント認証方式が使われていたら拒否できることの検査。
+func TestDenyMultiClientAuth(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	acnt := newTestAccount()
+	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{acnt}, []tadb.Element{test_ta})
+
+	cod := newCode()
+	now := time.Now()
+	hndl.codDb.Save(cod, now.Add(time.Minute))
+
+	r, err := newRequest(cod.Id(), hndl.selfId+hndl.pathTok)
+	if err != nil {
+		t.Fatal(err)
+	}
+	{
+		buff, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		q, err := url.ParseQuery(string(buff))
+		if err != nil {
+			t.Fatal(err)
+		}
+		q.Set("client_secret", "abcde")
+		r.Body = ioutil.NopCloser(strings.NewReader(q.Encode()))
+	}
+
+	w := httptest.NewRecorder()
+	hndl.ServeHTTP(w, r)
+
+	if w.Code != http.StatusBadRequest {
+		t.Error(w.Code)
+		t.Fatal(http.StatusBadRequest)
+	}
+	var buff struct{ Error string }
+	if err := json.NewDecoder(w.Body).Decode(&buff); err != nil {
+		t.Fatal(err)
+	} else if err := "invalid_request"; buff.Error != err {
+		t.Error(buff.Error)
+		t.Fatal(err)
+	}
+}
+
+// クライアント認証できなかったら拒否できることの検査。
+func TestDenyInvalidClient(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	acnt := newTestAccount()
+	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{acnt}, []tadb.Element{test_ta})
+
+	cod := newCode()
+	now := time.Now()
+	hndl.codDb.Save(cod, now.Add(time.Minute))
+
+	r, err := newRequest(cod.Id(), hndl.selfId+hndl.pathTok)
+	if err != nil {
+		t.Fatal(err)
+	}
+	{
+		buff, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		q, err := url.ParseQuery(string(buff))
+		if err != nil {
+			t.Fatal(err)
+		}
+		q.Set("client_assertion", "abcde")
+		r.Body = ioutil.NopCloser(strings.NewReader(q.Encode()))
+	}
+
+	w := httptest.NewRecorder()
+	hndl.ServeHTTP(w, r)
+
+	if w.Code != http.StatusBadRequest {
+		t.Error(w.Code)
+		t.Fatal(http.StatusBadRequest)
+	}
+	var buff struct{ Error string }
+	if err := json.NewDecoder(w.Body).Decode(&buff); err != nil {
+		t.Fatal(err)
+	} else if err := "invalid_client"; buff.Error != err {
+		t.Error(buff.Error)
+		t.Fatal(err)
+	}
+}
+
+// 期限切れの認可コードを拒否できることの検査。
+func TestDenyExpiredCode(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	acnt := newTestAccount()
+	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{acnt}, []tadb.Element{test_ta})
+
+	now := time.Now()
+	cod := authcode.New(test_codId, now.Add(time.Nanosecond), test_acntId, now, strsetutil.New("openid"),
+		nil, strsetutil.New("email"), test_ta.Id(), test_rediUri, test_nonc)
+	hndl.codDb.Save(cod, now.Add(time.Minute))
+
+	r, err := newRequest(cod.Id(), hndl.selfId+hndl.pathTok)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	time.Sleep(time.Millisecond)
+
+	w := httptest.NewRecorder()
+	hndl.ServeHTTP(w, r)
+
+	if w.Code != http.StatusBadRequest {
+		t.Error(w.Code)
+		t.Fatal(http.StatusBadRequest)
+	}
+	var buff struct{ Error string }
+	if err := json.NewDecoder(w.Body).Decode(&buff); err != nil {
+		t.Fatal(err)
+	} else if err := "invalid_grant"; buff.Error != err {
+		t.Error(buff.Error)
+		t.Fatal(err)
+	}
+}
+
+// 認可コードが 2 回使われたら拒否できることの検査。
+// 2 回使われた認可コードで発行したアクセストークンを無効にできるか。
+func TestDenyUsedCode(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	acnt := newTestAccount()
+	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{acnt}, []tadb.Element{test_ta})
+
+	cod := newCode()
+	now := time.Now()
+	hndl.codDb.Save(cod, now.Add(time.Minute))
+
+	r, err := newRequest(cod.Id(), hndl.selfId+hndl.pathTok)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var tokId string
+	{
+		w := httptest.NewRecorder()
+		hndl.ServeHTTP(w, r)
+
+		if w.Code != http.StatusOK {
+			t.Error(w.Code)
+			t.Fatal(http.StatusOK)
+		}
+		var buff struct{ Access_token string }
+		if err := json.NewDecoder(w.Body).Decode(&buff); err != nil {
+			t.Fatal(err)
+		} else if buff.Access_token == "" {
+			t.Fatal("no token")
+		}
+		tokId = buff.Access_token
+	}
+
+	w := httptest.NewRecorder()
+	hndl.ServeHTTP(w, r)
+
+	if w.Code != http.StatusBadRequest {
+		t.Error(w.Code)
+		t.Fatal(http.StatusBadRequest)
+	}
+	var buff struct{ Error string }
+	if err := json.NewDecoder(w.Body).Decode(&buff); err != nil {
+		t.Fatal(err)
+	} else if err := "invalid_grant"; buff.Error != err {
+		t.Error(buff.Error)
+		t.Fatal(err)
+	}
+	tok, _ := hndl.tokDb.Get(tokId)
+	if tok == nil {
+		t.Fatal("no token")
+	} else if !tok.Invalid() {
+		t.Fatal("valid token")
 	}
 }

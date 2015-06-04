@@ -326,24 +326,6 @@ func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 	return idputil.RespondJson(w, m)
 }
 
-// aud クレーム値が tgt を含むかどうか検査。
-func audienceHas(aud interface{}, tgt string) bool {
-	switch a := aud.(type) {
-	case string:
-		return a == tgt
-	case []interface{}:
-		for _, elem := range a {
-			s, _ := elem.(string)
-			if s == tgt {
-				return true
-			}
-		}
-		return false
-	default:
-		return false
-	}
-}
-
 // 認可コードを廃棄処分する。
 func disposeCode(this *handler, codId string) {
 	cod, err := this.codDb.Get(codId)

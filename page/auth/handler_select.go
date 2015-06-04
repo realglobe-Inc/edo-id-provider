@@ -181,10 +181,9 @@ func (this *Page) selectServeWithSession(w http.ResponseWriter, r *http.Request,
 	// ユーザー認証中。
 	log.Debug(sender, ": Session is in authentication process")
 
-	req := newSelectRequest(r)
-	if sess.Ticket() == "" {
-		// アカウント選択中でない。
-		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, "not in interactive process", nil))
+	req, err := parseSelectRequest(r)
+	if err != nil {
+		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, erro.Unwrap(err).Error(), err))
 	} else if req.ticket() != sess.Ticket() {
 		// 無効なアカウント選択券。
 		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, "invalid ticket "+logutil.Mosaic(req.ticket()), nil))
@@ -214,7 +213,10 @@ func (this *Page) selectServeWithSession(w http.ResponseWriter, r *http.Request,
 	// アカウント選択できた。
 	log.Info(sender, ": Specified account "+req.accountName()+" is exist")
 
-	sess.SelectAccount(session.NewAccount(acnt.Id(), acnt.Name()))
+	if cur := sess.Account(); cur == nil || cur.Id() != acnt.Id() {
+		sess.SelectAccount(session.NewAccount(acnt.Id(), acnt.Name()))
+	}
+
 	if lang := req.language(); lang != "" {
 		sess.SetLanguage(lang)
 

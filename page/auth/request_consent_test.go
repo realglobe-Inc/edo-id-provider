@@ -39,7 +39,9 @@ func TestConsentRequest(t *testing.T) {
 	}
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	if req := newConsentRequest(r); req.ticket() != tic {
+	if req, err := parseConsentRequest(r); err != nil {
+		t.Fatal(err)
+	} else if req.ticket() != tic {
 		t.Error(req.ticket())
 		t.Fatal(tic)
 	} else if ans := map[string]bool{"openid": true, "email": true}; !reflect.DeepEqual(req.allowedScope(), ans) {

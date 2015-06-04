@@ -155,10 +155,9 @@ func (this *Page) consentServeWithSession(w http.ResponseWriter, r *http.Request
 	// ユーザー認証・認可処理中。
 	log.Debug(sender, ": Session is in authentication process")
 
-	req := newConsentRequest(r)
-	if sess.Ticket() == "" {
-		// 同意中でない。
-		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, "not in interaction process", nil))
+	req, err := parseConsentRequest(r)
+	if err != nil {
+		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, erro.Unwrap(err).Error(), err))
 	} else if req.ticket() != sess.Ticket() {
 		// 無効な同意券。
 		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, "invalid ticket "+logutil.Mosaic(req.ticket()), nil))

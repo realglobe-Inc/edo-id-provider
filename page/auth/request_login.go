@@ -16,33 +16,55 @@ package auth
 
 import (
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
+	"github.com/realglobe-Inc/go-lib/erro"
 	"net/http"
 )
 
 type loginRequest struct {
-	tic      string
-	acntName string
-	psType   string
-	pass     passInfo
-	lang     string
+	tic       string
+	acntName  string
+	passType_ string
+	pass      passInfo
+	lang      string
 }
 
-func newLoginRequest(r *http.Request) *loginRequest {
-	psType := r.FormValue(tagPass_type)
-
+func parseLoginRequest(r *http.Request) (*loginRequest, error) {
+	tic := r.FormValue(tagTicket)
+	if tic == "" {
+		return nil, erro.New("no ticket")
+	}
+	acntName := r.FormValue(tagUsername)
+	if acntName == "" {
+		return nil, erro.New("no account name")
+	}
+	passType := r.FormValue(tagPass_type)
+	if passType == "" {
+		return nil, erro.New("no pass type")
+	}
 	var pass passInfo
-	switch psType {
+	switch passType {
 	case account.AuthTypeStr43:
-		pass = newPasswordOnly(r.FormValue(tagPassword))
+		passwd := r.FormValue(tagPassword)
+		if passwd == "" {
+			return nil, erro.New("no password")
+		}
+		pass = newPasswordOnly(passwd)
+	default:
+		return nil, erro.New("unsupported pass type " + passType)
+	}
+	for k, vs := range r.Form {
+		if len(vs) != 1 {
+			return nil, erro.New(k + " overlaps")
+		}
 	}
 
 	return &loginRequest{
-		tic:      r.FormValue(tagTicket),
-		acntName: r.FormValue(tagUsername),
-		psType:   psType,
-		pass:     pass,
-		lang:     r.FormValue(tagLocale),
-	}
+		tic:       tic,
+		acntName:  acntName,
+		passType_: passType,
+		pass:      pass,
+		lang:      r.FormValue(tagLocale),
+	}, nil
 }
 
 func (this *loginRequest) ticket() string {
@@ -54,7 +76,7 @@ func (this *loginRequest) accountName() string {
 }
 
 func (this *loginRequest) passType() string {
-	return this.psType
+	return this.passType_
 }
 
 func (this *loginRequest) passInfo() passInfo {

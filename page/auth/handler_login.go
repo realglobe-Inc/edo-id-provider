@@ -140,10 +140,9 @@ func (this *Page) loginServeWithSession(w http.ResponseWriter, r *http.Request, 
 	// ユーザー認証中。
 	log.Debug(sender, ": Session is in authentication process")
 
-	req := newLoginRequest(r)
-	if sess.Ticket() == "" {
-		// ログイン中でない。
-		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, "not in interactive process", nil))
+	req, err := parseLoginRequest(r)
+	if err != nil {
+		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, erro.Unwrap(err).Error(), err))
 	} else if req.ticket() != sess.Ticket() {
 		// 無効なログイン券。
 		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, "invalid ticket "+logutil.Mosaic(req.ticket()), nil))

@@ -15,6 +15,7 @@
 package auth
 
 import (
+	"github.com/realglobe-Inc/go-lib/erro"
 	"net/http"
 )
 
@@ -24,12 +25,25 @@ type selectRequest struct {
 	lang     string
 }
 
-func newSelectRequest(r *http.Request) *selectRequest {
-	return &selectRequest{
-		tic:      r.FormValue(tagTicket),
-		acntName: r.FormValue(tagUsername),
-		lang:     r.FormValue(tagLocale),
+func parseSelectRequest(r *http.Request) (*selectRequest, error) {
+	tic := r.FormValue(tagTicket)
+	if tic == "" {
+		return nil, erro.New("no ticket")
 	}
+	acntName := r.FormValue(tagUsername)
+	if acntName == "" {
+		return nil, erro.New("no account name")
+	}
+	for k, vs := range r.Form {
+		if len(vs) != 1 {
+			return nil, erro.New(k + " overlaps")
+		}
+	}
+	return &selectRequest{
+		tic:      tic,
+		acntName: acntName,
+		lang:     r.FormValue(tagLocale),
+	}, nil
 }
 
 func (this *selectRequest) ticket() string {

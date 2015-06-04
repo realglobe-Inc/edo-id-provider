@@ -181,10 +181,9 @@ func (this *Page) selectServeWithSession(w http.ResponseWriter, r *http.Request,
 	// ユーザー認証中。
 	log.Debug(sender, ": Session is in authentication process")
 
-	req := newSelectRequest(r)
-	if sess.Ticket() == "" {
-		// アカウント選択中でない。
-		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, "not in interactive process", nil))
+	req, err := parseSelectRequest(r)
+	if err != nil {
+		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, erro.Unwrap(err).Error(), err))
 	} else if req.ticket() != sess.Ticket() {
 		// 無効なアカウント選択券。
 		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, "invalid ticket "+logutil.Mosaic(req.ticket()), nil))

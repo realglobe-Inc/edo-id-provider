@@ -165,7 +165,7 @@ func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 	if err != nil {
 		return erro.Wrap(err)
 	} else if cod == nil {
-		return erro.Wrap(idperr.New(idperr.Invalid_grant, "declared code is not exist", http.StatusForbidden, nil))
+		return erro.Wrap(idperr.New(idperr.Invalid_grant, "declared code is not exist", http.StatusBadRequest, nil))
 	}
 
 	log.Debug(sender, ": Declared code is exist")

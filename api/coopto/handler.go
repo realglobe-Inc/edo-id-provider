@@ -195,7 +195,7 @@ func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 	}
 	for tag := range req.subClaims() {
 		if tagToId[tag] == "" {
-			return erro.Wrap(idperr.New(idperr.Invalid_grant, "invalid user tag "+tag, http.StatusForbidden, nil))
+			return erro.Wrap(idperr.New(idperr.Invalid_grant, "invalid user tag "+tag, http.StatusBadRequest, nil))
 		}
 	}
 

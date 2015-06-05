@@ -68,9 +68,8 @@ func TestRequestSample(t *testing.T) {
 	} else if tok := "cYcFjo0EF7FiN8Jx1NJ8Wn51gcYl84"; req.accessToken() != tok {
 		t.Error(req.accessToken())
 		t.Fatal(tok)
-	} else if scop := map[string]bool(nil); !reflect.DeepEqual(req.scope(), scop) {
-		t.Error(req.scope())
-		t.Fatal(scop)
+	} else if req.scope() != nil {
+		t.Fatal("scope is exist")
 	} else if expIn := time.Duration(0); req.expiresIn() != expIn {
 		t.Error(req.expiresIn())
 		t.Fatal(expIn)

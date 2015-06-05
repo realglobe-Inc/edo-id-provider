@@ -83,13 +83,13 @@ func clone(m map[string]interface{}) map[string]interface{} {
 	return m2
 }
 
-func newCode() *authcode.Element {
+func newTestCode() *authcode.Element {
 	now := time.Now()
 	return authcode.New(test_codId, now.Add(time.Minute), test_acntId, now, strsetutil.New("openid"),
 		nil, strsetutil.New("email"), test_ta.Id(), test_rediUri, test_nonc)
 }
 
-func newRequest(codId, aud string) (*http.Request, error) {
+func newTestRequest(codId, aud string) (*http.Request, error) {
 	q := url.Values{}
 	q.Set("grant_type", "authorization_code")
 	q.Set("code", codId)

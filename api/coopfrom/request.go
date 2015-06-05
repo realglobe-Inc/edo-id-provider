@@ -46,6 +46,10 @@ func parseRequest(r *http.Request) (*request, error) {
 	var req request
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return nil, erro.Wrap(err)
+	} else if len(req.respType) == 0 {
+		return nil, erro.New("no response type")
+	} else if req.grntType == "" {
+		return nil, erro.New("no grant type")
 	}
 	return &req, nil
 }

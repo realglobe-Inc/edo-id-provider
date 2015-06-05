@@ -355,6 +355,7 @@ func (this *handler) serveAsMain(w http.ResponseWriter, r *http.Request, req *re
 	jt.SetClaim(tagIss, this.selfId)
 	jt.SetClaim(tagSub, codId)
 	jt.SetClaim(tagAud, taTo.Id())
+	jt.SetClaim(tagFrom_client, taFr.Id())
 	jt.SetClaim(tagUser_tag, req.accountTag())
 	if len(acntTags) > 0 {
 		jt.SetClaim(tagUser_tags, strset.Set(acntTags))

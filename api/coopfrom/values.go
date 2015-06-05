@@ -23,6 +23,7 @@ const (
 	tagAud           = "aud"
 	tagCode_token    = "code_token"
 	tagExp           = "exp"
+	tagFrom_client   = "from_client"
 	tagHash_alg      = "hash_alg"
 	tagIss           = "iss"
 	tagJti           = "jti"

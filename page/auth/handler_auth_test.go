@@ -1422,3 +1422,89 @@ func TestAuthRequestUriParameter(t *testing.T) {
 		t.Fatal(test_nonc)
 	}
 }
+
+// response_type が code id_token で動作することの検査。
+func TestAuthIdToken(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	page := newTestPage([]jwk.Key{test_idpKey}, nil, []account.Element{test_acnt}, []tadb.Element{test_ta})
+	now := time.Now()
+	sess := session.New(test_sessId, now.Add(page.sessExpIn))
+	acnt := session.NewAccount(test_acnt.Id(), test_acnt.Name())
+	acnt.Login()
+	sess.SelectAccount(acnt)
+	page.sessDb.Save(sess, now.Add(page.sessDbExpIn))
+
+	cons := consent.New(test_acnt.Id(), test_ta.Id())
+	cons.Scope().SetAllow("openid")
+	page.consDb.Save(cons)
+
+	r, err := http.NewRequest("GET", page.selfId+"/auth?"+test_authQuery, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.AddCookie(&http.Cookie{
+		Name:  page.sessLabel,
+		Value: sess.Id(),
+	})
+	{
+		q := r.URL.Query()
+		q.Set("response_type", request.ValueSetForm(strsetutil.New("code", "id_token")))
+		r.URL.RawQuery = q.Encode()
+	}
+
+	w := httptest.NewRecorder()
+	page.HandleAuth(w, r)
+
+	if w.Code != http.StatusFound {
+		t.Error(w.Code)
+		t.Fatal(http.StatusFound)
+	} else if uri, err := url.Parse(w.HeaderMap.Get("Location")); err != nil {
+		t.Fatal(err)
+	} else if rediUri := uri.Scheme + "://" + uri.Host + uri.Path; rediUri != test_rediUri {
+		t.Error(w.HeaderMap.Get("Location"))
+		t.Error(rediUri)
+		t.Fatal(test_rediUri)
+	} else if q := uri.Query(); len(q) == 0 {
+		t.Fatal("no query")
+	} else if q.Get("code") == "" {
+		t.Fatal("no code")
+	} else if rawIdTok := q.Get("id_token"); rawIdTok == "" {
+		t.Fatal("no ID token")
+	} else if idTok, err := jwt.Parse([]byte(rawIdTok)); err != nil {
+		t.Fatal(err)
+	} else if alg, _ := idTok.Header("alg").(string); alg != page.sigAlg {
+		t.Error(alg)
+		t.Fatal(page.sigAlg)
+	} else if !idTok.IsSigned() {
+		t.Fatal("not signed ID token")
+	} else if err := idTok.Verify([]jwk.Key{test_idpKey}); err != nil {
+		t.Fatal(err)
+	} else if iss, _ := idTok.Claim("iss").(string); iss != page.selfId {
+		t.Error(iss)
+		t.Fatal(page.selfId)
+	} else if sub, _ := idTok.Claim("sub").(string); sub != acnt.Id() {
+		t.Error(sub)
+		t.Fatal(acnt.Id())
+	} else if aud, ok := idTok.Claim("aud").(string); ok && aud != test_ta.Id() {
+		t.Error(aud)
+		t.Fatal(test_ta.Id())
+	} else if aud, ok := idTok.Claim("aud").([]interface{}); ok && aud[0] != test_ta.Id() {
+		t.Error(aud[0])
+		t.Fatal(test_ta.Id())
+	} else if exp, _ := idTok.Claim("exp").(float64); exp == 0 {
+		t.Fatal("no exp")
+	} else if iat, _ := idTok.Claim("iat").(float64); iat == 0 {
+		t.Fatal("no iat")
+	} else if exp < iat {
+		t.Error("exp before iat")
+		t.Error(exp)
+		t.Fatal(iat)
+	} else if nonc, _ := idTok.Claim("nonce").(string); nonc != test_nonc {
+		t.Error(nonc)
+		t.Fatal(test_nonc)
+	}
+}

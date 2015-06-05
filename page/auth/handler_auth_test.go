@@ -212,6 +212,10 @@ func TestAuthPageRedirectClient(t *testing.T) {
 		t.Error(w.HeaderMap.Get("Location"))
 		t.Error(rediUri)
 		t.Fatal(test_rediUri)
+	} else if q := uri.Query(); len(q) == 0 {
+		t.Fatal("no query")
+	} else if q.Get("code") == "" {
+		t.Fatal("no code")
 	}
 }
 

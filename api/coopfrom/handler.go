@@ -197,6 +197,8 @@ func (this *handler) serveAsMain(w http.ResponseWriter, r *http.Request, req *re
 
 	if req.toTa() == "" {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "no to-TA ID", http.StatusBadRequest, nil))
+	} else if req.toTa() == req.fromTa() {
+		return erro.Wrap(idperr.New(idperr.Invalid_request, "to-TA is from-TA", http.StatusBadRequest, nil))
 	}
 
 	log.Debug(sender, ": To-TA "+req.fromTa()+" is declared")

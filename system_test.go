@@ -248,6 +248,7 @@ func (this *system) coopFromApi() http.Handler {
 		this.jtiLen,
 		this.jtiExpIn,
 		this.keyDb,
+		this.pwDb,
 		this.acntDb,
 		this.taDb,
 		this.idpDb,

@@ -20,6 +20,7 @@ import (
 	"github.com/realglobe-Inc/edo-id-provider/database/coopcode"
 	jtidb "github.com/realglobe-Inc/edo-id-provider/database/jti"
 	keydb "github.com/realglobe-Inc/edo-id-provider/database/key"
+	"github.com/realglobe-Inc/edo-id-provider/database/pairwise"
 	"github.com/realglobe-Inc/edo-id-provider/database/token"
 	"github.com/realglobe-Inc/edo-id-provider/idputil"
 	idpdb "github.com/realglobe-Inc/edo-idp-selector/database/idp"
@@ -57,6 +58,7 @@ type handler struct {
 	jtiExpIn   time.Duration
 
 	keyDb  keydb.Db
+	pwDb   pairwise.Db
 	acntDb account.Db
 	taDb   tadb.Db
 	idpDb  idpdb.Db
@@ -79,6 +81,7 @@ func New(
 	jtiLen int,
 	jtiExpIn time.Duration,
 	keyDb keydb.Db,
+	pwDb pairwise.Db,
 	acntDb account.Db,
 	taDb tadb.Db,
 	idpDb idpdb.Db,
@@ -99,6 +102,7 @@ func New(
 		jtiLen:     jtiLen,
 		jtiExpIn:   jtiExpIn,
 		keyDb:      keyDb,
+		pwDb:       pwDb,
 		acntDb:     acntDb,
 		taDb:       taDb,
 		idpDb:      idpDb,
@@ -275,6 +279,15 @@ func (this *handler) serveAsMain(w http.ResponseWriter, r *http.Request, req *re
 		for tag, acntId := range acnts {
 			if allTags[tag] {
 				return erro.Wrap(idperr.New(idperr.Invalid_request, "account tag "+tag+" overlaps", http.StatusBadRequest, nil))
+			}
+			if taFr.Pairwise() {
+				pw, err := this.pwDb.GetByPairwise(taFr.Sector(), acntId)
+				if err != nil {
+					return erro.Wrap(err)
+				} else if pw == nil {
+					return erro.Wrap(idperr.New(idperr.Invalid_request, "no pairwise ID", http.StatusBadRequest, nil))
+				}
+				acntId = pw.Account()
 			}
 			acnt, err := this.acntDb.Get(acntId)
 			if err != nil {

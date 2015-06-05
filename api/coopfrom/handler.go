@@ -47,6 +47,7 @@ type handler struct {
 
 	selfId  string
 	sigAlg  string
+	sigKid  string
 	hashAlg string
 
 	pathCoopFr string
@@ -73,6 +74,7 @@ func New(
 	stopper *server.Stopper,
 	selfId string,
 	sigAlg string,
+	sigKid string,
 	hashAlg string,
 	pathCoopFr string,
 	codLen int,
@@ -94,6 +96,7 @@ func New(
 		stopper:    stopper,
 		selfId:     selfId,
 		sigAlg:     sigAlg,
+		sigKid:     sigKid,
 		hashAlg:    hashAlg,
 		pathCoopFr: pathCoopFr,
 		codLen:     codLen,
@@ -344,6 +347,9 @@ func (this *handler) serveAsMain(w http.ResponseWriter, r *http.Request, req *re
 
 		jt := jwt.New()
 		jt.SetHeader(tagAlg, this.sigAlg)
+		if this.sigKid != "" {
+			jt.SetHeader(tagKid, this.sigKid)
+		}
 		jt.SetClaim(tagIss, this.selfId)
 		jt.SetClaim(tagSub, taFr.Id())
 		jt.SetClaim(tagAud, req.relatedIdProviders())
@@ -367,6 +373,9 @@ func (this *handler) serveAsMain(w http.ResponseWriter, r *http.Request, req *re
 	codId := this.idGen.String(this.codLen)
 	jt := jwt.New()
 	jt.SetHeader(tagAlg, this.sigAlg)
+	if this.sigKid != "" {
+		jt.SetHeader(tagKid, this.sigKid)
+	}
 	jt.SetClaim(tagIss, this.selfId)
 	jt.SetClaim(tagSub, codId)
 	jt.SetClaim(tagAud, taTo.Id())

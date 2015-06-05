@@ -240,6 +240,7 @@ func (this *system) coopFromApi() http.Handler {
 		this.stopper,
 		this.selfId,
 		this.sigAlg,
+		this.sigKid,
 		this.hashAlg,
 		this.pathCoopFr,
 		this.ccodLen,

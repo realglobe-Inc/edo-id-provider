@@ -27,6 +27,7 @@ const (
 	tagHash_alg      = "hash_alg"
 	tagIss           = "iss"
 	tagJti           = "jti"
+	tagKid           = "kid"
 	tagRef_hash      = "ref_hash"
 	tagReferral      = "referral"
 	tagRelated_users = "related_users"

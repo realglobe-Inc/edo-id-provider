@@ -12,35 +12,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package token
+package coopfrom
 
 import (
+	"bytes"
+	"encoding/json"
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
-	"github.com/realglobe-Inc/edo-id-provider/database/authcode"
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
 	"github.com/realglobe-Inc/edo-lib/jwk"
 	"github.com/realglobe-Inc/edo-lib/jwt"
 	"github.com/realglobe-Inc/edo-lib/jwt/audience"
-	"github.com/realglobe-Inc/edo-lib/strset/strsetutil"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"net/http"
-	"net/url"
-	"strings"
 	"time"
 )
 
 const (
-	test_codId = "ZkTPOdBdh_bS2PqWnb1r8A3DqeKGCC"
+	test_tokId = "ZkTPOdBdh_bS2PqWnb1r8A3DqeKGCC"
 
-	test_acntId     = "EYClXo4mQKwSgPel"
-	test_acntName   = "edo-id-provider-tester"
-	test_acntPasswd = "ltFq9kclPgMK4ilaOF7fNlx2TE9OYFiyrX4x9gwCc9n"
-	test_email      = "tester@example.org"
+	test_acntTag   = "main-user"
+	test_acntId    = "EYClXo4mQKwSgPel"
+	test_acntEmail = "tester@example.org"
 
-	test_taSigAlg = "ES384"
-	test_rediUri  = "https://ta.example.org/callback"
-	test_nonc     = "Wjj1_YUOlR"
-	test_jti      = "R-seIeMPBly4xPAh"
+	test_subAcnt1Tag   = "sub-user1"
+	test_subAcnt1Id    = "U7pdvT8dYbBFWXdc"
+	test_subAcnt1Email = "subtester1@example.org"
+
+	test_frTaSigAlg = "ES384"
+	test_jti        = "R-seIeMPBly4xPAh"
 )
 
 var (
@@ -52,26 +51,38 @@ var (
 		"d":   "3BhkCluOkm8d8gvaPD5FDG2zeEw2JKf3D5LwN-mYmsw",
 	})
 
-	test_acntAuth, _ = account.GenerateStr43Authenticator(test_acntPasswd, 20)
-	test_acntAttrs   = map[string]interface{}{
-		"email": test_email,
+	test_acntAttrs = map[string]interface{}{
+		"email": test_acntEmail,
 		"pds": map[string]interface{}{
 			"type": "single",
 			"uri":  "https://pds.example.org",
 		},
 	}
-	test_taKey, _ = jwk.FromMap(map[string]interface{}{
+	test_subAcnt1Attrs = map[string]interface{}{
+		"email": test_subAcnt1Email,
+		"pds": map[string]interface{}{
+			"type": "single",
+			"uri":  "https://pds.example.org",
+		},
+	}
+
+	test_frTaKey, _ = jwk.FromMap(map[string]interface{}{
 		"kty": "EC",
 		"crv": "P-384",
 		"x":   "HlrMhzZww_AkmHV-2gDR5n7t75673UClnC7V2GewWva_sg-4GSUguFalVgwnK0tQ",
 		"y":   "fxS48Fy50SZFZ-RAQRWUZXZgRSWwiKVkqPTd6gypfpQNkXSwE69BXYIAQcfaLcf2",
 		"d":   "Gp-7eC0G7PjGzKoiAmTQ1iLsLU3AEy3h-bKFWSZOanXqSWI6wqJVPEUsatNYBJoG",
 	})
-	test_ta = tadb.New("https://ta.example.org", nil, strsetutil.New(test_rediUri), []jwk.Key{test_taKey}, false, "")
+	test_frTa = tadb.New("https://from.example.org", nil, nil, []jwk.Key{test_frTaKey}, false, "")
+	test_toTa = tadb.New("https://to.example.org", nil, nil, nil, false, "")
 )
 
-func newTestAccount() account.Element {
-	return account.New(test_acntId, test_acntName, test_acntAuth, clone(test_acntAttrs))
+func newTestMainAccount() account.Element {
+	return account.New(test_acntId, "", nil, clone(test_acntAttrs))
+}
+
+func newTestSubAccount1() account.Element {
+	return account.New(test_subAcnt1Id, "", nil, clone(test_subAcnt1Attrs))
 }
 
 // 1 段目だけのコピー。
@@ -83,42 +94,44 @@ func clone(m map[string]interface{}) map[string]interface{} {
 	return m2
 }
 
-func newTestCode() *authcode.Element {
-	now := time.Now()
-	return authcode.New(test_codId, now.Add(time.Minute), test_acntId, now, strsetutil.New("openid"),
-		nil, strsetutil.New("email"), test_ta.Id(), test_rediUri, test_nonc)
-}
-
-func newTestRequest(codId, aud string) (*http.Request, error) {
-	q := url.Values{}
-	q.Set("grant_type", "authorization_code")
-	q.Set("code", codId)
-	q.Set("redirect_uri", test_rediUri)
-	q.Set("client_id", test_ta.Id())
-	q.Set("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer")
+func newTestSingleRequest(aud string) (*http.Request, error) {
+	m := map[string]interface{}{
+		"response_type":         "code_token",
+		"from_client":           test_frTa.Id(),
+		"to_client":             test_toTa.Id(),
+		"grant_type":            "access_token",
+		"access_token":          test_tokId,
+		"user_tag":              test_acntTag,
+		"users":                 map[string]string{test_subAcnt1Tag: test_subAcnt1Id},
+		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+	}
 	{
 		jt := jwt.New()
-		jt.SetHeader("alg", test_taSigAlg)
-		jt.SetClaim("iss", test_ta.Id())
-		jt.SetClaim("sub", test_ta.Id())
+		jt.SetHeader("alg", test_frTaSigAlg)
+		jt.SetClaim("iss", test_frTa.Id())
+		jt.SetClaim("sub", test_frTa.Id())
 		jt.SetClaim("aud", audience.New(aud))
 		jt.SetClaim("jti", test_jti)
 		now := time.Now()
 		jt.SetClaim("exp", now.Add(time.Minute).Unix())
 		jt.SetClaim("iat", now.Unix())
-		if err := jt.Sign(test_ta.Keys()); err != nil {
+		if err := jt.Sign(test_frTa.Keys()); err != nil {
 			return nil, erro.Wrap(err)
 		}
 		buff, err := jt.Encode()
 		if err != nil {
 			return nil, erro.Wrap(err)
 		}
-		q.Set("client_assertion", string(buff))
+		m["client_assertion"] = string(buff)
 	}
-	r, err := http.NewRequest("POST", aud, strings.NewReader(q.Encode()))
+	body, err := json.Marshal(m)
 	if err != nil {
 		return nil, erro.Wrap(err)
 	}
-	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	r, err := http.NewRequest("POST", aud, bytes.NewReader(body))
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
+	r.Header.Set("Content-Type", "application/json")
 	return r, nil
 }

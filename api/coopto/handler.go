@@ -165,7 +165,7 @@ func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 	if err != nil {
 		return erro.Wrap(err)
 	} else if cod == nil {
-		return erro.Wrap(idperr.New(idperr.Invalid_grant, "declared code is not exist", http.StatusForbidden, nil))
+		return erro.Wrap(idperr.New(idperr.Invalid_grant, "declared code is not exist", http.StatusBadRequest, nil))
 	}
 
 	log.Debug(sender, ": Declared code is exist")
@@ -175,9 +175,13 @@ func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 		return erro.Wrap(err)
 	} else if taTo == nil {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "to-TA "+cod.ToTa()+" is not exist", http.StatusBadRequest, nil))
-	} else if jti, err := idputil.VerifyAssertion(req.taAssertion(), taTo.Id(), taTo.Keys(), this.selfId+this.pathCoopTo); err != nil {
+	} else if ass, err := idputil.ParseTaAssertion(req.taAssertion()); err != nil {
 		return erro.Wrap(idperr.New(idperr.Invalid_client, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
-	} else if ok, err := this.jtiDb.SaveIfAbsent(jti); err != nil {
+	} else if ass.Issuer() != taTo.Id() {
+		return erro.Wrap(idperr.New(idperr.Invalid_grant, ass.Issuer()+" is not code holder", http.StatusBadRequest, nil))
+	} else if err := ass.Verify(taTo.Keys(), taTo.Id(), this.selfId+this.pathCoopTo); err != nil {
+		return erro.Wrap(idperr.New(idperr.Invalid_client, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
+	} else if ok, err := this.jtiDb.SaveIfAbsent(jtidb.New(taTo.Id(), ass.Id(), ass.Expires())); err != nil {
 		return erro.Wrap(err)
 	} else if !ok {
 		return erro.New("JWT ID overlaps")
@@ -191,7 +195,7 @@ func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 	}
 	for tag := range req.subClaims() {
 		if tagToId[tag] == "" {
-			return erro.Wrap(idperr.New(idperr.Invalid_grant, "invalid user tag "+tag, http.StatusForbidden, nil))
+			return erro.Wrap(idperr.New(idperr.Invalid_grant, "invalid user tag "+tag, http.StatusBadRequest, nil))
 		}
 	}
 

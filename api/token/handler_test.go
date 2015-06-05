@@ -90,11 +90,11 @@ func TestNormal(t *testing.T) {
 	acnt := newTestAccount()
 	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{acnt}, []tadb.Element{test_ta})
 
-	cod := newCode()
+	cod := newTestCode()
 	now := time.Now()
 	hndl.codDb.Save(cod, now.Add(time.Minute))
 
-	r, err := newRequest(cod.Id(), hndl.selfId+hndl.pathTok)
+	r, err := newTestRequest(cod.Id(), hndl.selfId+hndl.pathTok)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -202,11 +202,11 @@ func TestDenyNonPost(t *testing.T) {
 	acnt := newTestAccount()
 	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{acnt}, []tadb.Element{test_ta})
 
-	cod := newCode()
+	cod := newTestCode()
 	now := time.Now()
 	hndl.codDb.Save(cod, now.Add(time.Minute))
 
-	r, err := newRequest(cod.Id(), hndl.selfId+hndl.pathTok)
+	r, err := newTestRequest(cod.Id(), hndl.selfId+hndl.pathTok)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -246,11 +246,11 @@ func TestIgnoreUnknownParameter(t *testing.T) {
 	acnt := newTestAccount()
 	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{acnt}, []tadb.Element{test_ta})
 
-	cod := newCode()
+	cod := newTestCode()
 	now := time.Now()
 	hndl.codDb.Save(cod, now.Add(time.Minute))
 
-	r, err := newRequest(cod.Id(), hndl.selfId+hndl.pathTok)
+	r, err := newTestRequest(cod.Id(), hndl.selfId+hndl.pathTok)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -292,11 +292,11 @@ func TestDenyOverlappedParameter(t *testing.T) {
 	acnt := newTestAccount()
 	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{acnt}, []tadb.Element{test_ta})
 
-	cod := newCode()
+	cod := newTestCode()
 	now := time.Now()
 	hndl.codDb.Save(cod, now.Add(time.Minute))
 
-	r, err := newRequest(cod.Id(), hndl.selfId+hndl.pathTok)
+	r, err := newTestRequest(cod.Id(), hndl.selfId+hndl.pathTok)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -339,11 +339,11 @@ func TestDenyNoClientId(t *testing.T) {
 	acnt := newTestAccount()
 	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{acnt}, []tadb.Element{test_ta})
 
-	cod := newCode()
+	cod := newTestCode()
 	now := time.Now()
 	hndl.codDb.Save(cod, now.Add(time.Minute))
 
-	r, err := newRequest(cod.Id(), hndl.selfId+hndl.pathTok)
+	r, err := newTestRequest(cod.Id(), hndl.selfId+hndl.pathTok)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -386,11 +386,11 @@ func TestDenyNoGrantType(t *testing.T) {
 	acnt := newTestAccount()
 	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{acnt}, []tadb.Element{test_ta})
 
-	cod := newCode()
+	cod := newTestCode()
 	now := time.Now()
 	hndl.codDb.Save(cod, now.Add(time.Minute))
 
-	r, err := newRequest(cod.Id(), hndl.selfId+hndl.pathTok)
+	r, err := newTestRequest(cod.Id(), hndl.selfId+hndl.pathTok)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -433,11 +433,11 @@ func TestDenyNoCode(t *testing.T) {
 	acnt := newTestAccount()
 	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{acnt}, []tadb.Element{test_ta})
 
-	cod := newCode()
+	cod := newTestCode()
 	now := time.Now()
 	hndl.codDb.Save(cod, now.Add(time.Minute))
 
-	r, err := newRequest(cod.Id(), hndl.selfId+hndl.pathTok)
+	r, err := newTestRequest(cod.Id(), hndl.selfId+hndl.pathTok)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -480,11 +480,11 @@ func TestDenyNoRedirectUri(t *testing.T) {
 	acnt := newTestAccount()
 	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{acnt}, []tadb.Element{test_ta})
 
-	cod := newCode()
+	cod := newTestCode()
 	now := time.Now()
 	hndl.codDb.Save(cod, now.Add(time.Minute))
 
-	r, err := newRequest(cod.Id(), hndl.selfId+hndl.pathTok)
+	r, err := newTestRequest(cod.Id(), hndl.selfId+hndl.pathTok)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -527,11 +527,11 @@ func TestDenyUnknownGrantType(t *testing.T) {
 	acnt := newTestAccount()
 	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{acnt}, []tadb.Element{test_ta})
 
-	cod := newCode()
+	cod := newTestCode()
 	now := time.Now()
 	hndl.codDb.Save(cod, now.Add(time.Minute))
 
-	r, err := newRequest(cod.Id(), hndl.selfId+hndl.pathTok)
+	r, err := newTestRequest(cod.Id(), hndl.selfId+hndl.pathTok)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -575,11 +575,11 @@ func TestDenyNonCodeHolder(t *testing.T) {
 	ta := tadb.New(test_ta.Id()+"a", nil, strsetutil.New(test_rediUri), []jwk.Key{test_taKey}, false, "")
 	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{acnt}, []tadb.Element{test_ta, ta})
 
-	cod := newCode()
+	cod := newTestCode()
 	now := time.Now()
 	hndl.codDb.Save(cod, now.Add(time.Minute))
 
-	r, err := newRequest(cod.Id(), hndl.selfId+hndl.pathTok)
+	r, err := newTestRequest(cod.Id(), hndl.selfId+hndl.pathTok)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -622,11 +622,11 @@ func TestDenyInvalidCode(t *testing.T) {
 	acnt := newTestAccount()
 	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{acnt}, []tadb.Element{test_ta})
 
-	cod := newCode()
+	cod := newTestCode()
 	now := time.Now()
 	hndl.codDb.Save(cod, now.Add(time.Minute))
 
-	r, err := newRequest(cod.Id()+"a", hndl.selfId+hndl.pathTok)
+	r, err := newTestRequest(cod.Id()+"a", hndl.selfId+hndl.pathTok)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -657,11 +657,11 @@ func TestDenyInvalidRedirectUri(t *testing.T) {
 	acnt := newTestAccount()
 	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{acnt}, []tadb.Element{test_ta})
 
-	cod := newCode()
+	cod := newTestCode()
 	now := time.Now()
 	hndl.codDb.Save(cod, now.Add(time.Minute))
 
-	r, err := newRequest(cod.Id(), hndl.selfId+hndl.pathTok)
+	r, err := newTestRequest(cod.Id(), hndl.selfId+hndl.pathTok)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -704,11 +704,11 @@ func TestDenyMultiClientAuth(t *testing.T) {
 	acnt := newTestAccount()
 	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{acnt}, []tadb.Element{test_ta})
 
-	cod := newCode()
+	cod := newTestCode()
 	now := time.Now()
 	hndl.codDb.Save(cod, now.Add(time.Minute))
 
-	r, err := newRequest(cod.Id(), hndl.selfId+hndl.pathTok)
+	r, err := newTestRequest(cod.Id(), hndl.selfId+hndl.pathTok)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -751,11 +751,11 @@ func TestDenyInvalidClient(t *testing.T) {
 	acnt := newTestAccount()
 	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{acnt}, []tadb.Element{test_ta})
 
-	cod := newCode()
+	cod := newTestCode()
 	now := time.Now()
 	hndl.codDb.Save(cod, now.Add(time.Minute))
 
-	r, err := newRequest(cod.Id(), hndl.selfId+hndl.pathTok)
+	r, err := newTestRequest(cod.Id(), hndl.selfId+hndl.pathTok)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -803,7 +803,7 @@ func TestDenyExpiredCode(t *testing.T) {
 		nil, strsetutil.New("email"), test_ta.Id(), test_rediUri, test_nonc)
 	hndl.codDb.Save(cod, now.Add(time.Minute))
 
-	r, err := newRequest(cod.Id(), hndl.selfId+hndl.pathTok)
+	r, err := newTestRequest(cod.Id(), hndl.selfId+hndl.pathTok)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -837,11 +837,11 @@ func TestDenyUsedCode(t *testing.T) {
 	acnt := newTestAccount()
 	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{acnt}, []tadb.Element{test_ta})
 
-	cod := newCode()
+	cod := newTestCode()
 	now := time.Now()
 	hndl.codDb.Save(cod, now.Add(time.Minute))
 
-	r, err := newRequest(cod.Id(), hndl.selfId+hndl.pathTok)
+	r, err := newTestRequest(cod.Id(), hndl.selfId+hndl.pathTok)
 	if err != nil {
 		t.Fatal(err)
 	}

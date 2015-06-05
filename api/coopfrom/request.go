@@ -17,7 +17,6 @@ package coopfrom
 import (
 	"encoding/json"
 	requtil "github.com/realglobe-Inc/edo-idp-selector/request"
-	"github.com/realglobe-Inc/edo-lib/strset"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"net/http"
 	"time"
@@ -47,6 +46,10 @@ func parseRequest(r *http.Request) (*request, error) {
 	var req request
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return nil, erro.Wrap(err)
+	} else if len(req.respType) == 0 {
+		return nil, erro.New("no response type")
+	} else if req.grntType == "" {
+		return nil, erro.New("no grant type")
 	}
 	return &req, nil
 }
@@ -114,7 +117,7 @@ func (this *request) UnmarshalJSON(data []byte) error {
 		FrTa      string            `json:"from_client"`
 		ToTa      string            `json:"to_client"`
 		Tok       string            `json:"access_token"`
-		Scop      strset.Set        `json:"scope"`
+		Scop      string            `json:"scope"`
 		ExpIn     int               `json:"expires_in"`
 		AcntTag   string            `json:"user_tag"`
 		Acnts     map[string]string `json:"users"`
@@ -128,12 +131,16 @@ func (this *request) UnmarshalJSON(data []byte) error {
 		return erro.Wrap(err)
 	}
 
+	var scop map[string]bool
+	if buff.Scop != "" {
+		scop = requtil.FormValueSet(buff.Scop)
+	}
 	this.grntType = buff.GrntType
 	this.respType = requtil.FormValueSet(buff.RespType)
 	this.frTa = buff.FrTa
 	this.toTa_ = buff.ToTa
 	this.tok = buff.Tok
-	this.scop = buff.Scop
+	this.scop = scop
 	this.expIn = time.Duration(buff.ExpIn) * time.Second
 	this.acntTag = buff.AcntTag
 	this.acnts = buff.Acnts

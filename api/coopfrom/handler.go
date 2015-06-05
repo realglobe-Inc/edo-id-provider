@@ -20,6 +20,7 @@ import (
 	"github.com/realglobe-Inc/edo-id-provider/database/coopcode"
 	jtidb "github.com/realglobe-Inc/edo-id-provider/database/jti"
 	keydb "github.com/realglobe-Inc/edo-id-provider/database/key"
+	"github.com/realglobe-Inc/edo-id-provider/database/pairwise"
 	"github.com/realglobe-Inc/edo-id-provider/database/token"
 	"github.com/realglobe-Inc/edo-id-provider/idputil"
 	idpdb "github.com/realglobe-Inc/edo-idp-selector/database/idp"
@@ -46,6 +47,7 @@ type handler struct {
 
 	selfId  string
 	sigAlg  string
+	sigKid  string
 	hashAlg string
 
 	pathCoopFr string
@@ -57,6 +59,7 @@ type handler struct {
 	jtiExpIn   time.Duration
 
 	keyDb  keydb.Db
+	pwDb   pairwise.Db
 	acntDb account.Db
 	taDb   tadb.Db
 	idpDb  idpdb.Db
@@ -71,6 +74,7 @@ func New(
 	stopper *server.Stopper,
 	selfId string,
 	sigAlg string,
+	sigKid string,
 	hashAlg string,
 	pathCoopFr string,
 	codLen int,
@@ -79,6 +83,7 @@ func New(
 	jtiLen int,
 	jtiExpIn time.Duration,
 	keyDb keydb.Db,
+	pwDb pairwise.Db,
 	acntDb account.Db,
 	taDb tadb.Db,
 	idpDb idpdb.Db,
@@ -91,6 +96,7 @@ func New(
 		stopper:    stopper,
 		selfId:     selfId,
 		sigAlg:     sigAlg,
+		sigKid:     sigKid,
 		hashAlg:    hashAlg,
 		pathCoopFr: pathCoopFr,
 		codLen:     codLen,
@@ -99,6 +105,7 @@ func New(
 		jtiLen:     jtiLen,
 		jtiExpIn:   jtiExpIn,
 		keyDb:      keyDb,
+		pwDb:       pwDb,
 		acntDb:     acntDb,
 		taDb:       taDb,
 		idpDb:      idpDb,
@@ -197,6 +204,8 @@ func (this *handler) serveAsMain(w http.ResponseWriter, r *http.Request, req *re
 
 	if req.toTa() == "" {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "no to-TA ID", http.StatusBadRequest, nil))
+	} else if req.toTa() == req.fromTa() {
+		return erro.Wrap(idperr.New(idperr.Invalid_request, "to-TA is from-TA", http.StatusBadRequest, nil))
 	}
 
 	log.Debug(sender, ": To-TA "+req.fromTa()+" is declared")
@@ -274,6 +283,15 @@ func (this *handler) serveAsMain(w http.ResponseWriter, r *http.Request, req *re
 			if allTags[tag] {
 				return erro.Wrap(idperr.New(idperr.Invalid_request, "account tag "+tag+" overlaps", http.StatusBadRequest, nil))
 			}
+			if taFr.Pairwise() {
+				pw, err := this.pwDb.GetByPairwise(taFr.Sector(), acntId)
+				if err != nil {
+					return erro.Wrap(err)
+				} else if pw == nil {
+					return erro.Wrap(idperr.New(idperr.Invalid_request, "no pairwise ID", http.StatusBadRequest, nil))
+				}
+				acntId = pw.Account()
+			}
 			acnt, err := this.acntDb.Get(acntId)
 			if err != nil {
 				return erro.Wrap(err)
@@ -329,6 +347,9 @@ func (this *handler) serveAsMain(w http.ResponseWriter, r *http.Request, req *re
 
 		jt := jwt.New()
 		jt.SetHeader(tagAlg, this.sigAlg)
+		if this.sigKid != "" {
+			jt.SetHeader(tagKid, this.sigKid)
+		}
 		jt.SetClaim(tagIss, this.selfId)
 		jt.SetClaim(tagSub, taFr.Id())
 		jt.SetClaim(tagAud, req.relatedIdProviders())
@@ -352,9 +373,13 @@ func (this *handler) serveAsMain(w http.ResponseWriter, r *http.Request, req *re
 	codId := this.idGen.String(this.codLen)
 	jt := jwt.New()
 	jt.SetHeader(tagAlg, this.sigAlg)
+	if this.sigKid != "" {
+		jt.SetHeader(tagKid, this.sigKid)
+	}
 	jt.SetClaim(tagIss, this.selfId)
 	jt.SetClaim(tagSub, codId)
 	jt.SetClaim(tagAud, taTo.Id())
+	jt.SetClaim(tagFrom_client, taFr.Id())
 	jt.SetClaim(tagUser_tag, req.accountTag())
 	if len(acntTags) > 0 {
 		jt.SetClaim(tagUser_tags, strset.Set(acntTags))

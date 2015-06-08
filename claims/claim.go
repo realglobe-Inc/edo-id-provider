@@ -74,11 +74,26 @@ func (this *Claim) setLanguage(lang string) {
 //      ]
 //  }
 func (this *Claim) MarshalJSON() (data []byte, err error) {
-	return json.Marshal(map[string]interface{}{
-		"essential": this.ess,
-		"value":     this.val,
-		"values":    this.vals,
-	})
+	var m map[string]interface{}
+	if this.ess {
+		if m == nil {
+			m = map[string]interface{}{}
+		}
+		m["essential"] = true
+	}
+	if this.val != nil {
+		if m == nil {
+			m = map[string]interface{}{}
+		}
+		m["value"] = this.val
+	}
+	if this.vals != nil {
+		if m == nil {
+			m = map[string]interface{}{}
+		}
+		m["values"] = this.vals
+	}
+	return json.Marshal(m)
 }
 
 func (this *Claim) UnmarshalJSON(data []byte) error {

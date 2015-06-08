@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package session
+package claims
 
 import (
 	"encoding/json"
@@ -20,7 +20,7 @@ import (
 	"testing"
 )
 
-func TestClaimSample(t *testing.T) {
+func TestRequestSample(t *testing.T) {
 	// OpenID Connect Core 1.0 Section 5.5 より。
 	sample := []byte(`
 {
@@ -40,7 +40,7 @@ func TestClaimSample(t *testing.T) {
     }
   }
 `)
-	var reqClm ClaimRequest
+	var reqClm Request
 	if err := json.Unmarshal(sample, &reqClm); err != nil {
 		t.Fatal(err)
 	} else if acntInf := reqClm.AccountEntries(); acntInf == nil {

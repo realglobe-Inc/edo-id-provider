@@ -16,6 +16,7 @@ package session
 
 import (
 	"encoding/json"
+	"github.com/realglobe-Inc/edo-id-provider/claims"
 	"github.com/realglobe-Inc/edo-idp-selector/request"
 	"github.com/realglobe-Inc/edo-lib/duration"
 	"github.com/realglobe-Inc/edo-lib/jwk"
@@ -26,27 +27,6 @@ import (
 	"reflect"
 	"strconv"
 	"time"
-)
-
-const (
-	tagClaims        = "claims"
-	tagClient_id     = "client_id"
-	tagDisplay       = "display"
-	tagId_token_hint = "id_token_hint"
-	tagMax_age       = "max_age"
-	tagNonce         = "nonce"
-	tagPrompt        = "prompt"
-	tagRedirect_uri  = "redirect_uri"
-	tagRequest       = "request"
-	tagRequest_uri   = "request_uri"
-	tagResponse_type = "response_type"
-	tagScope         = "scope"
-	tagState         = "state"
-	tagUi_locales    = "ui_locales"
-
-	tagCty = "cty"
-
-	tagJwt = "JWT"
 )
 
 // セッションに付属させる認証リクエスト。
@@ -74,7 +54,7 @@ type Request struct {
 	// id_token_hint
 	hint string
 	// claims
-	reqClm *ClaimRequest
+	reqClm *claims.Request
 	// request
 	req []byte
 	// request_uri
@@ -175,7 +155,7 @@ func (this *Request) IdTokenHint() string {
 }
 
 // claims を返す。
-func (this *Request) Claims() *ClaimRequest {
+func (this *Request) Claims() *claims.Request {
 	return this.reqClm
 }
 
@@ -232,7 +212,7 @@ func (this *Request) ParseRequest(req []byte, selfKeys, taKeys []jwk.Key) (err e
 		MaxAge   *json.RawMessage `json:"max_age"`
 		Langs    string           `json:"ui_locales"`
 		Hint     string           `json:"id_token_hint"`
-		ReqClm   *ClaimRequest    `json:"claims"`
+		ReqClm   *claims.Request  `json:"claims"`
 		Req      string           `json:"request"`
 		ReqUri   string           `json:"request_uri"`
 	}
@@ -299,11 +279,11 @@ func parseMaxAge(s string) (time.Duration, error) {
 	return time.Duration(sec) * time.Second, nil
 }
 
-func parseClaims(s string) (*ClaimRequest, error) {
+func parseClaims(s string) (*claims.Request, error) {
 	if s == "" {
 		return nil, nil
 	}
-	var reqClm ClaimRequest
+	var reqClm claims.Request
 	if err := json.Unmarshal([]byte(s), &reqClm); err != nil {
 		return nil, erro.Wrap(err)
 	}
@@ -341,7 +321,7 @@ func (this *Request) UnmarshalJSON(data []byte) error {
 		MaxAge  duration.Duration `json:"max_age"`
 		Langs   []string          `json:"ui_locales"`
 		Hint    string            `json:"id_token_hint"`
-		ReqClm  *ClaimRequest     `json:"claims"`
+		ReqClm  *claims.Request   `json:"claims"`
 	}
 	if err := json.Unmarshal(data, &buff); err != nil {
 		return erro.Wrap(err)

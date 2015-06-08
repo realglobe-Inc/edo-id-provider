@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package session
+package claims
 
 import (
 	"encoding/json"
@@ -22,20 +22,20 @@ import (
 // OpenID Connect Core 1.0 Section 5.5 を参照。
 
 // 認証リクエストの claims パラメータ。
-type ClaimRequest struct {
+type Request struct {
 	// id_token
-	idTok map[string]*ClaimEntry
+	idTok map[string]*Claim
 	// userinfo
-	acnt map[string]*ClaimEntry
+	acnt map[string]*Claim
 }
 
 // 主にテスト用。
-func NewClaimRequest(idTok, acnt map[string]*ClaimEntry) *ClaimRequest {
-	return &ClaimRequest{idTok, acnt}
+func NewRequest(idTok, acnt map[string]*Claim) *Request {
+	return &Request{idTok, acnt}
 }
 
 // ID トークンに入れて返すように要求されているクレームの情報を返す。
-func (this *ClaimRequest) IdTokenEntries() map[string]*ClaimEntry {
+func (this *Request) IdTokenEntries() map[string]*Claim {
 	if this == nil { // あんまり良くないと思うが。
 		return nil
 	}
@@ -43,7 +43,7 @@ func (this *ClaimRequest) IdTokenEntries() map[string]*ClaimEntry {
 }
 
 // アカウント情報エンドポイントから返すように要求されているクレームの情報を返す。
-func (this *ClaimRequest) AccountEntries() map[string]*ClaimEntry {
+func (this *Request) AccountEntries() map[string]*Claim {
 	if this == nil { // あんまり良くないと思うが。
 		return nil
 	}
@@ -53,10 +53,10 @@ func (this *ClaimRequest) AccountEntries() map[string]*ClaimEntry {
 // クレーム名を返す。
 // clms: 必須クレーム名。
 // optClms: 必須でないクレーム名。
-func (this *ClaimRequest) Names() (clms, optClms map[string]bool) {
+func (this *Request) Names() (clms, optClms map[string]bool) {
 	clms = map[string]bool{}
 	optClms = map[string]bool{}
-	for _, set := range []map[string]*ClaimEntry{this.acnt, this.idTok} {
+	for _, set := range []map[string]*Claim{this.acnt, this.idTok} {
 		for clm, ent := range set {
 			if ent != nil && ent.Essential() {
 				clms[clm] = true
@@ -71,22 +71,22 @@ func (this *ClaimRequest) Names() (clms, optClms map[string]bool) {
 
 //  {
 //      "id_token": {
-//          <属性名>: <ClaimEntry>,
+//          <属性名>: <Claim>,
 //          ...
 //      },
 //      "userinfo": {
-//          <属性名>: <ClaimEntry>,
+//          <属性名>: <Claim>,
 //          ...
 //      }
 //  }
-func (this *ClaimRequest) MarshalJSON() (data []byte, err error) {
+func (this *Request) MarshalJSON() (data []byte, err error) {
 	return json.Marshal(map[string]interface{}{
 		"id_token": Claims(this.idTok),
 		"userinfo": Claims(this.acnt),
 	})
 }
 
-func (this *ClaimRequest) UnmarshalJSON(data []byte) error {
+func (this *Request) UnmarshalJSON(data []byte) error {
 	var buff struct {
 		Acnt  Claims `json:"userinfo"`
 		IdTok Claims `json:"id_token"`

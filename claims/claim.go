@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package session
+// claims パラメータ関係。
+package claims
 
 import (
 	"encoding/json"
@@ -22,7 +23,7 @@ import (
 // OpenID Connect Core 1.0 Section 5.5 を参照。
 
 // 認証リクエストの claims.id_token や claims.userinfo パラメータの要素。
-type ClaimEntry struct {
+type Claim struct {
 	// essential
 	ess bool
 	// value
@@ -35,8 +36,8 @@ type ClaimEntry struct {
 }
 
 // 主にテスト用。
-func NewClaimEntry(ess bool, val interface{}, vals []interface{}, lang string) *ClaimEntry {
-	return &ClaimEntry{
+func New(ess bool, val interface{}, vals []interface{}, lang string) *Claim {
+	return &Claim{
 		ess:  ess,
 		val:  val,
 		vals: vals,
@@ -44,23 +45,23 @@ func NewClaimEntry(ess bool, val interface{}, vals []interface{}, lang string) *
 	}
 }
 
-func (this *ClaimEntry) Essential() bool {
+func (this *Claim) Essential() bool {
 	return this.ess
 }
 
-func (this *ClaimEntry) Value() interface{} {
+func (this *Claim) Value() interface{} {
 	return this.val
 }
 
-func (this *ClaimEntry) Values() []interface{} {
+func (this *Claim) Values() []interface{} {
 	return this.vals
 }
 
-func (this *ClaimEntry) Language() string {
+func (this *Claim) Language() string {
 	return this.lang
 }
 
-func (this *ClaimEntry) setLanguage(lang string) {
+func (this *Claim) setLanguage(lang string) {
 	this.lang = lang
 }
 
@@ -72,7 +73,7 @@ func (this *ClaimEntry) setLanguage(lang string) {
 //          ....
 //      ]
 //  }
-func (this *ClaimEntry) MarshalJSON() (data []byte, err error) {
+func (this *Claim) MarshalJSON() (data []byte, err error) {
 	return json.Marshal(map[string]interface{}{
 		"essential": this.ess,
 		"value":     this.val,
@@ -80,7 +81,7 @@ func (this *ClaimEntry) MarshalJSON() (data []byte, err error) {
 	})
 }
 
-func (this *ClaimEntry) UnmarshalJSON(data []byte) error {
+func (this *Claim) UnmarshalJSON(data []byte) error {
 	var buff struct {
 		Ess  bool          `json:"essential"`
 		Val  interface{}   `json:"value"`

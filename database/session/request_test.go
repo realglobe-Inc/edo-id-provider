@@ -16,6 +16,7 @@ package session
 
 import (
 	"encoding/json"
+	"github.com/realglobe-Inc/edo-id-provider/claims"
 	"github.com/realglobe-Inc/edo-lib/jwk"
 	"net/http"
 	"net/url"
@@ -141,7 +142,7 @@ func TestRequestSample2(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var reqClm ClaimRequest
+	var reqClm claims.Request
 	if err := json.Unmarshal([]byte(`{
     "userinfo": {
         "given_name": {"essential": true},

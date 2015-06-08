@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package session
+package claims
 
 import (
 	"encoding/json"
@@ -20,8 +20,8 @@ import (
 	"testing"
 )
 
-func TestClaimEntrySample(t *testing.T) {
-	var ent ClaimEntry
+func TestClaimSample(t *testing.T) {
+	var ent Claim
 
 	if err := json.Unmarshal([]byte(`null`), &ent); err != nil {
 		t.Fatal(err)

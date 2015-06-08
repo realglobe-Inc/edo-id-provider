@@ -15,8 +15,8 @@
 package idputil
 
 import (
+	"github.com/realglobe-Inc/edo-id-provider/claims"
 	"github.com/realglobe-Inc/edo-id-provider/database/consent"
-	"github.com/realglobe-Inc/edo-id-provider/database/session"
 	"github.com/realglobe-Inc/edo-lib/strset/strsetutil"
 	"reflect"
 	"testing"
@@ -60,8 +60,8 @@ func TestProvidedScopesDenied(t *testing.T) {
 func TestProvidedAttributes(t *testing.T) {
 	scopCons := consent.NewConsent("openid")
 	attrCons := consent.NewConsent("email")
-	reqClms := session.Claims{
-		"email": session.NewClaimEntry(false, nil, nil, ""),
+	reqClms := claims.Claims{
+		"email": claims.New(false, nil, nil, ""),
 	}
 	ans := strsetutil.New("sub", "email")
 
@@ -76,8 +76,8 @@ func TestProvidedAttributes(t *testing.T) {
 func TestProvidedAttributesShrink(t *testing.T) {
 	scopCons := consent.NewConsent("openid")
 	attrCons := consent.NewConsent()
-	reqClms := session.Claims{
-		"email": session.NewClaimEntry(false, nil, nil, ""),
+	reqClms := claims.Claims{
+		"email": claims.New(false, nil, nil, ""),
 	}
 	ans := strsetutil.New("sub")
 
@@ -92,8 +92,8 @@ func TestProvidedAttributesShrink(t *testing.T) {
 func TestProvidedAttributesDenied(t *testing.T) {
 	scopCons := consent.NewConsent("openid")
 	attrCons := consent.NewConsent()
-	reqClms := session.Claims{
-		"email": session.NewClaimEntry(true, nil, nil, ""),
+	reqClms := claims.Claims{
+		"email": claims.New(true, nil, nil, ""),
 	}
 
 	if _, err := ProvidedAttributes(scopCons, attrCons, nil, reqClms); err == nil {

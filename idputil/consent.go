@@ -15,7 +15,7 @@
 package idputil
 
 import (
-	"github.com/realglobe-Inc/edo-id-provider/database/session"
+	"github.com/realglobe-Inc/edo-id-provider/claims"
 	"github.com/realglobe-Inc/edo-id-provider/scope"
 	"github.com/realglobe-Inc/go-lib/erro"
 )
@@ -48,7 +48,7 @@ func ProvidedScopes(scopCons Consent, reqScops map[string]bool) (scops map[strin
 // 提供する属性を返す。
 // scops: 提供するスコープ。
 // 必須属性が許可されない場合のみ err が非 nil。
-func ProvidedAttributes(scopCons, attrCons Consent, scops map[string]bool, reqClms session.Claims) (attrs map[string]bool, err error) {
+func ProvidedAttributes(scopCons, attrCons Consent, scops map[string]bool, reqClms claims.Claims) (attrs map[string]bool, err error) {
 	attrs = map[string]bool{}
 
 	// アカウント ID は必須。

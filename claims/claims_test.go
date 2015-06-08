@@ -12,10 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package session
+package claims
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 )
 
@@ -41,5 +42,22 @@ func TestClaims(t *testing.T) {
 	} else if ent.Language() != "ja" {
 		t.Error(ent.Language())
 		t.Fatal("ja")
+	}
+}
+
+func TestClaimsJson(t *testing.T) {
+	clms := Claims{"pds": New(true, nil, nil, ""), "nickname": New(false, nil, nil, "ja-JP")}
+
+	data, err := json.Marshal(clms)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var clms2 Claims
+	if err := json.Unmarshal(data, &clms2); err != nil {
+		t.Fatal(err)
+	} else if !reflect.DeepEqual(clms2, clms) {
+		t.Error(clms2)
+		t.Fatal(clms)
 	}
 }

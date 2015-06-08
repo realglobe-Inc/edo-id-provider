@@ -16,7 +16,7 @@ package coopto
 
 import (
 	"bytes"
-	"github.com/realglobe-Inc/edo-id-provider/database/session"
+	"github.com/realglobe-Inc/edo-id-provider/claims"
 	"net/http"
 	"reflect"
 	"strings"
@@ -58,10 +58,10 @@ func TestRequestSample(t *testing.T) {
 	} else if cod := "p9-FpxXxXBt5PQrM9-6T-t3l9eSz1n"; req.code() != cod {
 		t.Error(req.code())
 		t.Fatal(cod)
-	} else if clmReq := session.NewClaimRequest(session.Claims{"pds": session.NewClaimEntry(true, nil, nil, "")}, nil); !reflect.DeepEqual(req.claims(), clmReq) {
+	} else if clmReq := claims.NewRequest(claims.Claims{"pds": claims.New(true, nil, nil, "")}, nil); !reflect.DeepEqual(req.claims(), clmReq) {
 		t.Error(req.claims())
 		t.Fatal(clmReq)
-	} else if subClmReqs := map[string]session.Claims{"invitee": {"pds": session.NewClaimEntry(true, nil, nil, "")}}; !reflect.DeepEqual(req.subClaims(), subClmReqs) {
+	} else if subClmReqs := map[string]claims.Claims{"invitee": {"pds": claims.New(true, nil, nil, "")}}; !reflect.DeepEqual(req.subClaims(), subClmReqs) {
 		t.Error(req.subClaims())
 		t.Fatal(subClmReqs)
 	} else if assType := "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"; req.taAssertionType() != assType {

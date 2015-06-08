@@ -16,7 +16,7 @@ package coopto
 
 import (
 	"encoding/json"
-	"github.com/realglobe-Inc/edo-id-provider/database/session"
+	"github.com/realglobe-Inc/edo-id-provider/claims"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"net/http"
 )
@@ -24,8 +24,8 @@ import (
 type request struct {
 	grntType string
 	cod      string
-	clmReq   *session.ClaimRequest
-	subClms  map[string]session.Claims
+	clmReq   *claims.Request
+	subClms  map[string]claims.Claims
 	assType  string
 	ass      []byte
 }
@@ -36,12 +36,12 @@ func parseRequest(r *http.Request) (*request, error) {
 	}
 
 	var buff struct {
-		GrntType string                    `json:"grant_type"`
-		Cod      string                    `json:"code"`
-		ClmReq   *session.ClaimRequest     `json:"claims"`
-		SubClms  map[string]session.Claims `json:"user_claims"`
-		AssType  string                    `json:"client_assertion_type"`
-		Ass      string                    `json:"client_assertion"`
+		GrntType string                   `json:"grant_type"`
+		Cod      string                   `json:"code"`
+		ClmReq   *claims.Request          `json:"claims"`
+		SubClms  map[string]claims.Claims `json:"user_claims"`
+		AssType  string                   `json:"client_assertion_type"`
+		Ass      string                   `json:"client_assertion"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&buff); err != nil {
 		return nil, erro.Wrap(err)
@@ -72,11 +72,11 @@ func (this *request) code() string {
 	return this.cod
 }
 
-func (this *request) claims() *session.ClaimRequest {
+func (this *request) claims() *claims.Request {
 	return this.clmReq
 }
 
-func (this *request) subClaims() map[string]session.Claims {
+func (this *request) subClaims() map[string]claims.Claims {
 	return this.subClms
 }
 

@@ -15,15 +15,15 @@
 package idputil
 
 import (
+	"github.com/realglobe-Inc/edo-id-provider/claims"
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
-	"github.com/realglobe-Inc/edo-id-provider/database/session"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"reflect"
 )
 
 // clms に応えられるかどうか。
 // 返り値は応えられない場合のみ非 nil。
-func CheckClaims(acnt account.Element, clms session.Claims) error {
+func CheckClaims(acnt account.Element, clms claims.Claims) error {
 	if clms == nil {
 		return nil
 	}

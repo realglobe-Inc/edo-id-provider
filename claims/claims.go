@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package session
+package claims
 
 import (
 	"encoding/json"
@@ -21,13 +21,13 @@ import (
 )
 
 // 認証リクエストの claims パラメータの id_token や userinfo 要素。
-type Claims map[string]*ClaimEntry
+type Claims map[string]*Claim
 
 func (this Claims) MarshalJSON() (data []byte, err error) {
 	if this == nil {
 		return json.Marshal(nil)
 	}
-	m := map[string]*ClaimEntry{}
+	m := map[string]*Claim{}
 	for clm, ent := range this {
 		if ent.Language() != "" {
 			clm += "#" + ent.Language()
@@ -38,16 +38,16 @@ func (this Claims) MarshalJSON() (data []byte, err error) {
 }
 
 func (this *Claims) UnmarshalJSON(data []byte) error {
-	m := map[string]*ClaimEntry{}
+	m := map[string]*Claim{}
 	if err := json.Unmarshal(data, &m); err != nil {
 		return erro.Wrap(err)
 	} else if m == nil {
 		return nil
 	}
-	m2 := map[string]*ClaimEntry{}
+	m2 := map[string]*Claim{}
 	for clm, ent := range m {
 		if ent == nil {
-			ent = &ClaimEntry{}
+			ent = &Claim{}
 		}
 		if idx := strings.IndexRune(clm, '#'); idx >= 0 {
 			ent.setLanguage(clm[idx+1:])

@@ -16,13 +16,13 @@ package idputil
 
 import (
 	"encoding/json"
+	"github.com/realglobe-Inc/edo-id-provider/claims"
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
-	"github.com/realglobe-Inc/edo-id-provider/database/session"
 	"testing"
 )
 
 func TestCheckClaims(t *testing.T) {
-	var reqClm session.Claims
+	var reqClm claims.Claims
 	if err := json.Unmarshal([]byte(`{
     "email": {
         "value": "tester@example.org"

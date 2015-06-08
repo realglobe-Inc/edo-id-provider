@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package session
+package claims
 
 import (
 	"encoding/json"
@@ -20,8 +20,8 @@ import (
 	"testing"
 )
 
-func TestClaimEntrySample(t *testing.T) {
-	var ent ClaimEntry
+func TestClaimSample(t *testing.T) {
+	var ent Claim
 
 	if err := json.Unmarshal([]byte(`null`), &ent); err != nil {
 		t.Fatal(err)
@@ -53,4 +53,36 @@ func TestClaimEntrySample(t *testing.T) {
 		t.Fatal(ent.Values())
 	}
 
+}
+
+func TestClaimJson(t *testing.T) {
+	clm := New(true, "abcde", nil, "")
+	data, err := json.Marshal(clm)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var clm2 Claim
+	if err := json.Unmarshal(data, &clm2); err != nil {
+		t.Fatal(err)
+	} else if !reflect.DeepEqual(&clm2, clm) {
+		t.Error(&clm2)
+		t.Fatal(clm)
+	}
+}
+
+func TestClaimJsonValues(t *testing.T) {
+	clm := New(true, nil, []interface{}{"abcde", "fghij"}, "")
+	data, err := json.Marshal(clm)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var clm2 Claim
+	if err := json.Unmarshal(data, &clm2); err != nil {
+		t.Fatal(err)
+	} else if !reflect.DeepEqual(&clm2, clm) {
+		t.Error(&clm2)
+		t.Fatal(clm)
+	}
 }

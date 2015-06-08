@@ -24,9 +24,9 @@ import (
 // 認証リクエストの claims パラメータ。
 type Request struct {
 	// id_token
-	idTok map[string]*Claim
+	idTok Claims
 	// userinfo
-	acnt map[string]*Claim
+	acnt Claims
 }
 
 // 主にテスト用。
@@ -80,10 +80,14 @@ func (this *Request) Names() (clms, optClms map[string]bool) {
 //      }
 //  }
 func (this *Request) MarshalJSON() (data []byte, err error) {
-	return json.Marshal(map[string]interface{}{
-		"id_token": Claims(this.idTok),
-		"userinfo": Claims(this.acnt),
-	})
+	m := map[string]interface{}{}
+	if this.idTok != nil {
+		m["id_token"] = this.idTok
+	}
+	if this.acnt != nil {
+		m["userinfo"] = this.acnt
+	}
+	return json.Marshal(m)
 }
 
 func (this *Request) UnmarshalJSON(data []byte) error {

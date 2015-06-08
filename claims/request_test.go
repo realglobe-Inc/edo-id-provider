@@ -16,6 +16,8 @@ package claims
 
 import (
 	"encoding/json"
+	"fmt"
+	"github.com/realglobe-Inc/edo-lib/strset/strsetutil"
 	"reflect"
 	"testing"
 )
@@ -40,11 +42,11 @@ func TestRequestSample(t *testing.T) {
     }
   }
 `)
-	var reqClm Request
-	if err := json.Unmarshal(sample, &reqClm); err != nil {
+	var req Request
+	if err := json.Unmarshal(sample, &req); err != nil {
 		t.Fatal(err)
-	} else if acntInf := reqClm.AccountEntries(); acntInf == nil {
-		t.Fatal(reqClm)
+	} else if acntInf := req.AccountEntries(); acntInf == nil {
+		t.Fatal(req)
 	} else if v := acntInf["given_name"]; v == nil || !v.Essential() {
 		t.Fatal(v)
 	} else if v, ok := acntInf["nickname"]; v == nil || v.Essential() {
@@ -57,13 +59,21 @@ func TestRequestSample(t *testing.T) {
 		t.Fatal(v, ok)
 	} else if v, ok := acntInf["http://example.info/claims/groups"]; v == nil || v.Essential() {
 		t.Fatal(v, ok)
-	} else if idTok := reqClm.IdTokenEntries(); idTok == nil {
-		t.Fatal(reqClm)
+	} else if idTok := req.IdTokenEntries(); idTok == nil {
+		t.Fatal(req)
 	} else if v := idTok["auth_time"]; v == nil || !v.Essential() {
 		t.Fatal(v)
 	} else if v := idTok["acr"]; v == nil ||
 		!reflect.DeepEqual(toStrings(v.Values()), []string{"urn:mace:incommon:iap:silver"}) {
 		t.Fatal(v)
+	}
+	clms, optClms := req.Names()
+	if clmSet := strsetutil.New("given_name", "email", "email_verified", "auth_time"); !reflect.DeepEqual(clms, clmSet) {
+		t.Error(clms)
+		t.Fatal(clmSet)
+	} else if optClmSet := strsetutil.New("nickname", "picture", "http://example.info/claims/groups", "acr"); !reflect.DeepEqual(optClms, optClmSet) {
+		t.Error(optClms)
+		t.Fatal(optClmSet)
 	}
 }
 
@@ -73,4 +83,21 @@ func toStrings(a []interface{}) []string {
 		b = append(b, v.(string))
 	}
 	return b
+}
+
+func TestRequestJson(t *testing.T) {
+	req := NewRequest(Claims{"pds": New(true, nil, nil, "")}, Claims{"nickname": New(false, nil, nil, "ja-JP")})
+
+	data, err := json.Marshal(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var req2 Request
+	if err := json.Unmarshal(data, &req2); err != nil {
+		t.Fatal(err)
+	} else if !reflect.DeepEqual(&req2, req) {
+		t.Error(fmt.Sprintf("%#v", &req2))
+		t.Fatal(fmt.Sprintf("%#v", req))
+	}
 }

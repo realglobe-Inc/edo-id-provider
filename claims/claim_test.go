@@ -54,3 +54,35 @@ func TestClaimSample(t *testing.T) {
 	}
 
 }
+
+func TestClaimJson(t *testing.T) {
+	clm := New(true, "abcde", nil, "")
+	data, err := json.Marshal(clm)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var clm2 Claim
+	if err := json.Unmarshal(data, &clm2); err != nil {
+		t.Fatal(err)
+	} else if !reflect.DeepEqual(&clm2, clm) {
+		t.Error(&clm2)
+		t.Fatal(clm)
+	}
+}
+
+func TestClaimJsonValues(t *testing.T) {
+	clm := New(true, nil, []interface{}{"abcde", "fghij"}, "")
+	data, err := json.Marshal(clm)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var clm2 Claim
+	if err := json.Unmarshal(data, &clm2); err != nil {
+		t.Fatal(err)
+	} else if !reflect.DeepEqual(&clm2, clm) {
+		t.Error(&clm2)
+		t.Fatal(clm)
+	}
+}

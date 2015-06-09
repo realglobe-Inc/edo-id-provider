@@ -17,6 +17,7 @@ package account
 import (
 	"bytes"
 	"crypto/sha256"
+	"github.com/realglobe-Inc/edo-lib/hash"
 	"github.com/realglobe-Inc/edo-lib/secrand"
 	"github.com/realglobe-Inc/go-lib/erro"
 )
@@ -39,12 +40,7 @@ func (this *str43Authenticator) Verify(passwd string, params ...interface{}) boo
 	if len(passwd) != 43 {
 		return false
 	}
-
-	h := sha256.New()
-	h.Write(this.salt)
-	h.Write([]byte{0})
-	h.Write([]byte(passwd))
-	return bytes.Equal(h.Sum(nil), this.hVal)
+	return bytes.Equal(hash.Hashing(sha256.New(), this.salt, []byte{0}, []byte(passwd)), this.hVal)
 }
 
 // パスワードからつくる。
@@ -58,11 +54,5 @@ func GenerateStr43Authenticator(passwd string, sLen int) (Authenticator, error) 
 		return nil, erro.Wrap(err)
 	}
 
-	h := sha256.New()
-	h.Write(salt)
-	h.Write([]byte{0})
-	h.Write([]byte(passwd))
-	hVal := h.Sum(nil)
-
-	return newStr43Authenticator(salt, hVal), nil
+	return newStr43Authenticator(salt, hash.Hashing(sha256.New(), salt, []byte{0}, []byte(passwd))), nil
 }

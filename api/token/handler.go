@@ -23,11 +23,11 @@ import (
 	"github.com/realglobe-Inc/edo-id-provider/database/pairwise"
 	"github.com/realglobe-Inc/edo-id-provider/database/sector"
 	"github.com/realglobe-Inc/edo-id-provider/database/token"
+	hashutil "github.com/realglobe-Inc/edo-id-provider/hash"
 	"github.com/realglobe-Inc/edo-id-provider/idputil"
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
 	requtil "github.com/realglobe-Inc/edo-idp-selector/request"
-	"github.com/realglobe-Inc/edo-lib/base64url"
 	"github.com/realglobe-Inc/edo-lib/jwt"
 	logutil "github.com/realglobe-Inc/edo-lib/log"
 	"github.com/realglobe-Inc/edo-lib/rand"
@@ -272,10 +272,7 @@ func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 	if hGen, err := jwt.HashFunction(this.sigAlg); err != nil {
 		return erro.Wrap(err)
 	} else {
-		h := hGen.New()
-		h.Write([]byte(tokId))
-		sum := h.Sum(nil)
-		clms[tagAt_hash] = base64url.EncodeToString(sum[:len(sum)/2])
+		clms[tagAt_hash] = hashutil.Hashing(hGen.New(), []byte(tokId))
 	}
 	idTok, err := idputil.IdToken(this, ta, acnt, cod.IdTokenAttributes(), clms)
 	if err != nil {

@@ -22,13 +22,12 @@ import (
 	keydb "github.com/realglobe-Inc/edo-id-provider/database/key"
 	"github.com/realglobe-Inc/edo-id-provider/database/pairwise"
 	"github.com/realglobe-Inc/edo-id-provider/database/token"
+	hashutil "github.com/realglobe-Inc/edo-id-provider/hash"
 	"github.com/realglobe-Inc/edo-id-provider/idputil"
 	idpdb "github.com/realglobe-Inc/edo-idp-selector/database/idp"
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
 	requtil "github.com/realglobe-Inc/edo-idp-selector/request"
-	"github.com/realglobe-Inc/edo-lib/base64url"
-	"github.com/realglobe-Inc/edo-lib/hash"
 	"github.com/realglobe-Inc/edo-lib/jwk"
 	"github.com/realglobe-Inc/edo-lib/jwt"
 	logutil "github.com/realglobe-Inc/edo-lib/log"
@@ -313,7 +312,7 @@ func (this *handler) serveAsMain(w http.ResponseWriter, r *http.Request, req *re
 		if hashAlg == "" {
 			hashAlg = this.hashAlg
 		}
-		hashStrSize, err := hash.StringSize(hashAlg)
+		hashStrSize, err := hashutil.StringSize(hashAlg)
 		if err != nil {
 			return erro.Wrap(idperr.New(idperr.Invalid_request, "unsupported hash algorithm "+hashAlg, http.StatusBadRequest, nil))
 		}
@@ -389,10 +388,7 @@ func (this *handler) serveAsMain(w http.ResponseWriter, r *http.Request, req *re
 		if err != nil {
 			return erro.Wrap(err)
 		}
-		h := hGen.New()
-		h.Write(ref)
-		sum := h.Sum(nil)
-		jt.SetClaim(tagRef_hash, base64url.EncodeToString(sum[:len(sum)/2]))
+		jt.SetClaim(tagRef_hash, hashutil.Hashing(hGen.New(), ref))
 	}
 
 	if keys == nil {

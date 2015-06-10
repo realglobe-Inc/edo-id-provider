@@ -38,7 +38,7 @@ func (this *Page) HandleSelect(w http.ResponseWriter, r *http.Request) {
 	// panic 対策。
 	defer func() {
 		if rcv := recover(); rcv != nil {
-			idperr.RespondPageError(w, r, erro.New(rcv), sender, this.errTmpl)
+			idperr.RespondHtml(w, r, erro.New(rcv), this.errTmpl, sender)
 			return
 		}
 	}()
@@ -57,7 +57,7 @@ func (this *Page) HandleSelect(w http.ResponseWriter, r *http.Request) {
 	defer log.Info(sender, ": Handled select request")
 
 	if err := this.selectServe(w, r, sender); err != nil {
-		idperr.RespondPageError(w, r, erro.Wrap(err), sender, this.errTmpl)
+		idperr.RespondHtml(w, r, erro.Wrap(err), this.errTmpl, sender)
 		return
 	}
 	return
@@ -90,7 +90,7 @@ func (this *Page) selectServe(w http.ResponseWriter, r *http.Request, sender *re
 	// セッションは決まった。
 
 	if err := this.selectServeWithSession(w, r, sender, sess); err != nil {
-		return this.respondPageError(w, r, erro.Wrap(err), sender, sess)
+		return this.respondErrorHtml(w, r, erro.Wrap(err), sender, sess)
 	}
 	return nil
 }
@@ -142,7 +142,7 @@ func (this *Page) redirectToSelectUi(w http.ResponseWriter, r *http.Request, sen
 
 	uri, err := url.Parse(this.pathSelUi)
 	if err != nil {
-		return this.respondPageError(w, r, erro.Wrap(err), sender, sess)
+		return this.respondErrorHtml(w, r, erro.Wrap(err), sender, sess)
 	}
 
 	// アカウント選択ページに渡すクエリパラメータを生成。

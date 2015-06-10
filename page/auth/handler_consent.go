@@ -19,12 +19,12 @@ import (
 	"github.com/realglobe-Inc/edo-id-provider/database/authcode"
 	"github.com/realglobe-Inc/edo-id-provider/database/consent"
 	"github.com/realglobe-Inc/edo-id-provider/database/session"
+	hashutil "github.com/realglobe-Inc/edo-id-provider/hash"
 	"github.com/realglobe-Inc/edo-id-provider/idputil"
 	"github.com/realglobe-Inc/edo-id-provider/scope"
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
 	"github.com/realglobe-Inc/edo-idp-selector/request"
-	"github.com/realglobe-Inc/edo-lib/base64url"
 	"github.com/realglobe-Inc/edo-lib/jwt"
 	logutil "github.com/realglobe-Inc/edo-lib/log"
 	"github.com/realglobe-Inc/edo-lib/server"
@@ -43,7 +43,7 @@ func (this *Page) HandleConsent(w http.ResponseWriter, r *http.Request) {
 	// panic 対策。
 	defer func() {
 		if rcv := recover(); rcv != nil {
-			idperr.RespondPageError(w, r, erro.New(rcv), sender, this.errTmpl)
+			idperr.RespondHtml(w, r, erro.New(rcv), this.errTmpl, sender)
 			return
 		}
 	}()
@@ -62,7 +62,7 @@ func (this *Page) HandleConsent(w http.ResponseWriter, r *http.Request) {
 	defer log.Info(sender, ": Handled consent request")
 
 	if err := this.consentServe(w, r, sender); err != nil {
-		idperr.RespondPageError(w, r, erro.Wrap(err), sender, this.errTmpl)
+		idperr.RespondHtml(w, r, erro.Wrap(err), this.errTmpl, sender)
 		return
 	}
 	return
@@ -94,7 +94,7 @@ func (this *Page) consentServe(w http.ResponseWriter, r *http.Request, sender *r
 	// セッションが決まった。
 
 	if err := this.consentServeWithSession(w, r, sender, sess); err != nil {
-		return this.respondPageError(w, r, erro.Wrap(err), sender, sess)
+		return this.respondErrorHtml(w, r, erro.Wrap(err), sender, sess)
 	}
 	return nil
 }
@@ -104,7 +104,7 @@ func (this *Page) redirectToConsentUi(w http.ResponseWriter, r *http.Request, se
 
 	uri, err := url.Parse(this.pathConsUi)
 	if err != nil {
-		return this.respondPageError(w, r, erro.Wrap(err), sender, sess)
+		return this.respondErrorHtml(w, r, erro.Wrap(err), sender, sess)
 	}
 
 	// 同意ページに渡すクエリパラメータを生成。
@@ -273,10 +273,7 @@ func (this *Page) afterConsent(w http.ResponseWriter, r *http.Request, sender *r
 		if hGen, err := jwt.HashFunction(this.sigAlg); err != nil {
 			return erro.Wrap(err)
 		} else if hGen > 0 {
-			h := hGen.New()
-			h.Write([]byte(cod.Id()))
-			sum := h.Sum(nil)
-			clms[tagC_hash] = base64url.EncodeToString(sum[:len(sum)/2])
+			clms[tagC_hash] = hashutil.Hashing(hGen.New(), []byte(cod.Id()))
 		}
 		idTok, err = idputil.IdToken(this, ta, acnt, idTokAttrs, clms)
 		if err != nil {

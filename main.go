@@ -35,14 +35,12 @@ import (
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
 	webdb "github.com/realglobe-Inc/edo-idp-selector/database/web"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
-	"github.com/realglobe-Inc/edo-idp-selector/request"
 	"github.com/realglobe-Inc/edo-lib/driver"
 	logutil "github.com/realglobe-Inc/edo-lib/log"
 	"github.com/realglobe-Inc/edo-lib/rand"
 	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"github.com/realglobe-Inc/go-lib/rglog"
-	"github.com/realglobe-Inc/go-lib/rglog/level"
 	"html/template"
 	"net/http"
 	"os"
@@ -339,9 +337,9 @@ func serve(param *parameters) (err error) {
 
 	mux := http.NewServeMux()
 	routes := map[string]bool{}
-	mux.HandleFunc(param.pathOk, pagePanicErrorWrapper(stopper, errTmpl, func(w http.ResponseWriter, r *http.Request) error {
+	mux.HandleFunc(param.pathOk, idperr.WrapPage(stopper, func(w http.ResponseWriter, r *http.Request) error {
 		return nil
-	}))
+	}, errTmpl))
 	routes[param.pathOk] = true
 	mux.HandleFunc(param.pathAuth, authPage.HandleAuth)
 	routes[param.pathAuth] = true
@@ -444,57 +442,9 @@ func serve(param *parameters) (err error) {
 	}
 
 	if !routes["/"] {
-		mux.HandleFunc("/", pagePanicErrorWrapper(stopper, errTmpl, func(w http.ResponseWriter, r *http.Request) error {
+		mux.HandleFunc("/", idperr.WrapPage(stopper, func(w http.ResponseWriter, r *http.Request) error {
 			return erro.Wrap(idperr.New(idperr.Invalid_request, "invalid endpoint", http.StatusNotFound, nil))
-		}))
+		}, errTmpl))
 	}
 	return server.Serve(param, mux)
-}
-
-func pagePanicErrorWrapper(s *server.Stopper, errTmpl *template.Template, f server.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		s.Stop()
-		defer s.Unstop()
-
-		// panic時にプロセス終了しないようにrecoverする
-		defer func() {
-			if rcv := recover(); rcv != nil {
-				idperr.RespondPageError(w, r, erro.New(rcv), request.Parse(r, ""), errTmpl)
-				return
-			}
-		}()
-
-		//////////////////////////////
-		server.LogRequest(level.DEBUG, r, true)
-		//////////////////////////////
-
-		if err := f(w, r); err != nil {
-			idperr.RespondPageError(w, r, erro.Wrap(err), request.Parse(r, ""), errTmpl)
-			return
-		}
-	}
-}
-
-func apiPanicErrorWrapper(s *server.Stopper, f server.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		s.Stop()
-		defer s.Unstop()
-
-		// panic時にプロセス終了しないようにrecoverする
-		defer func() {
-			if rcv := recover(); rcv != nil {
-				idperr.RespondApiError(w, r, erro.New(rcv), request.Parse(r, ""))
-				return
-			}
-		}()
-
-		//////////////////////////////
-		server.LogRequest(level.DEBUG, r, true)
-		//////////////////////////////
-
-		if err := f(w, r); err != nil {
-			idperr.RespondApiError(w, r, erro.Wrap(err), request.Parse(r, ""))
-			return
-		}
-	}
 }

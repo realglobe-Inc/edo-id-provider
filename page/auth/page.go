@@ -180,7 +180,7 @@ func (this *Page) newCookie(sess *session.Element) *http.Cookie {
 }
 
 // ユーザーエージェント向けにエラーを返す。
-func (this *Page) respondPageError(w http.ResponseWriter, r *http.Request, origErr error, sender *request.Request, sess *session.Element) (err error) {
+func (this *Page) respondErrorHtml(w http.ResponseWriter, r *http.Request, origErr error, sender *request.Request, sess *session.Element) (err error) {
 	var uri *url.URL
 	if sess.Request() != nil {
 		uri, err = url.Parse(sess.Request().RedirectUri())
@@ -212,7 +212,7 @@ func (this *Page) respondPageError(w http.ResponseWriter, r *http.Request, origE
 		idperr.RedirectError(w, r, origErr, uri, sender)
 	}
 
-	idperr.RespondPageError(w, r, origErr, sender, this.errTmpl)
+	idperr.RespondHtml(w, r, origErr, this.errTmpl, sender)
 	return nil
 }
 
@@ -240,7 +240,7 @@ func (this *Page) redirectCode(w http.ResponseWriter, r *http.Request, cod *auth
 
 	uri, err := url.Parse(sess.Request().RedirectUri())
 	if err != nil {
-		return this.respondPageError(w, r, erro.Wrap(err), sender, sess)
+		return this.respondErrorHtml(w, r, erro.Wrap(err), sender, sess)
 	}
 
 	// 経過を破棄。

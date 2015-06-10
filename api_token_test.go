@@ -23,6 +23,7 @@ import (
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
 	"github.com/realglobe-Inc/edo-lib/base64url"
+	"github.com/realglobe-Inc/edo-lib/hash"
 	"github.com/realglobe-Inc/edo-lib/jwk"
 	"github.com/realglobe-Inc/edo-lib/jwt"
 	logutil "github.com/realglobe-Inc/edo-lib/log"
@@ -1859,16 +1860,15 @@ func TestIdTokenSign(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	h := hGen.New()
-	h.Write([]byte(res["access_token"].(string)))
-	sum := h.Sum(nil)
+	h := hash.Hashing(hGen.New(), []byte(res["access_token"].(string)))
+	h = h[:len(h)/2]
 	ah, _ := jt.Claim("at_hash").(string)
 	if ah == "" {
 		t.Fatal("no at_hash")
 	} else if buff, err := base64url.DecodeString(ah); err != nil {
 		t.Fatal(err)
-	} else if !bytes.Equal(buff, sum[:len(sum)/2]) {
+	} else if !bytes.Equal(buff, h) {
 		t.Error(buff)
-		t.Fatal(sum[:len(sum)/2])
+		t.Fatal(h)
 	}
 }

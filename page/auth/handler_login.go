@@ -39,7 +39,7 @@ func (this *Page) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	// panic 対策。
 	defer func() {
 		if rcv := recover(); rcv != nil {
-			idperr.RespondPageError(w, r, erro.New(rcv), sender, this.errTmpl)
+			idperr.RespondHtml(w, r, erro.New(rcv), this.errTmpl, sender)
 			return
 		}
 	}()
@@ -58,7 +58,7 @@ func (this *Page) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	defer log.Info(sender, ": Handled login request")
 
 	if err := this.loginServe(w, r, sender); err != nil {
-		idperr.RespondPageError(w, r, erro.Wrap(err), sender, this.errTmpl)
+		idperr.RespondHtml(w, r, erro.Wrap(err), this.errTmpl, sender)
 		return
 	}
 	return
@@ -90,7 +90,7 @@ func (this *Page) loginServe(w http.ResponseWriter, r *http.Request, sender *req
 	// セッションは決まった。
 
 	if err := this.loginServeWithSession(w, r, sender, sess); err != nil {
-		return this.respondPageError(w, r, erro.Wrap(err), sender, sess)
+		return this.respondErrorHtml(w, r, erro.Wrap(err), sender, sess)
 	}
 	return nil
 }
@@ -101,7 +101,7 @@ func (this *Page) redirectToLoginUi(w http.ResponseWriter, r *http.Request, send
 
 	uri, err := url.Parse(this.pathLginUi)
 	if err != nil {
-		return this.respondPageError(w, r, erro.Wrap(err), sender, sess)
+		return this.respondErrorHtml(w, r, erro.Wrap(err), sender, sess)
 	}
 
 	// ログインページに渡すクエリパラメータを生成。

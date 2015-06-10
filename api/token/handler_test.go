@@ -27,6 +27,7 @@ import (
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
 	requtil "github.com/realglobe-Inc/edo-idp-selector/request"
 	"github.com/realglobe-Inc/edo-lib/base64url"
+	"github.com/realglobe-Inc/edo-lib/hash"
 	"github.com/realglobe-Inc/edo-lib/jwk"
 	"github.com/realglobe-Inc/edo-lib/jwt"
 	logutil "github.com/realglobe-Inc/edo-lib/log"
@@ -177,10 +178,8 @@ func TestNormal(t *testing.T) {
 		t.Error(lginDate)
 		t.Fatal(iat)
 	}
-	hashAlg, _ := jwt.HashFunction(hndl.sigAlg)
-	h := hashAlg.New()
-	h.Write([]byte(buff.Access_token))
-	atHash := h.Sum(nil)
+	hGen, _ := jwt.HashFunction(hndl.sigAlg)
+	atHash := hash.Hashing(hGen.New(), []byte(buff.Access_token))
 	atHash = atHash[:len(atHash)/2]
 	if rawAtHash, _ := idTok.Claim("at_hash").(string); rawAtHash == "" {
 		t.Fatal("no at_hash")

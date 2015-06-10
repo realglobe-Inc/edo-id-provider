@@ -80,7 +80,7 @@ func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// panic 対策。
 	defer func() {
 		if rcv := recover(); rcv != nil {
-			idperr.RespondApiError(w, r, erro.New(rcv), sender)
+			idperr.RespondJson(w, r, erro.New(rcv), sender)
 			return
 		}
 	}()
@@ -99,7 +99,7 @@ func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer log.Info(sender, ": Handled account request")
 
 	if err := this.serve(w, r, sender); err != nil {
-		idperr.RespondApiError(w, r, erro.Wrap(err), sender)
+		idperr.RespondJson(w, r, erro.Wrap(err), sender)
 		return
 	}
 }

@@ -459,7 +459,7 @@ func pagePanicErrorWrapper(s *server.Stopper, errTmpl *template.Template, f serv
 		// panic時にプロセス終了しないようにrecoverする
 		defer func() {
 			if rcv := recover(); rcv != nil {
-				idperr.RespondPageError(w, r, erro.New(rcv), request.Parse(r, ""), errTmpl)
+				idperr.RespondHtml(w, r, erro.New(rcv), request.Parse(r, ""), errTmpl)
 				return
 			}
 		}()
@@ -469,7 +469,7 @@ func pagePanicErrorWrapper(s *server.Stopper, errTmpl *template.Template, f serv
 		//////////////////////////////
 
 		if err := f(w, r); err != nil {
-			idperr.RespondPageError(w, r, erro.Wrap(err), request.Parse(r, ""), errTmpl)
+			idperr.RespondHtml(w, r, erro.Wrap(err), request.Parse(r, ""), errTmpl)
 			return
 		}
 	}
@@ -483,7 +483,7 @@ func apiPanicErrorWrapper(s *server.Stopper, f server.HandlerFunc) http.HandlerF
 		// panic時にプロセス終了しないようにrecoverする
 		defer func() {
 			if rcv := recover(); rcv != nil {
-				idperr.RespondApiError(w, r, erro.New(rcv), request.Parse(r, ""))
+				idperr.RespondJson(w, r, erro.New(rcv), request.Parse(r, ""))
 				return
 			}
 		}()
@@ -493,7 +493,7 @@ func apiPanicErrorWrapper(s *server.Stopper, f server.HandlerFunc) http.HandlerF
 		//////////////////////////////
 
 		if err := f(w, r); err != nil {
-			idperr.RespondApiError(w, r, erro.Wrap(err), request.Parse(r, ""))
+			idperr.RespondJson(w, r, erro.Wrap(err), request.Parse(r, ""))
 			return
 		}
 	}

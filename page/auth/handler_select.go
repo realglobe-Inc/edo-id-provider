@@ -38,7 +38,7 @@ func (this *Page) HandleSelect(w http.ResponseWriter, r *http.Request) {
 	// panic 対策。
 	defer func() {
 		if rcv := recover(); rcv != nil {
-			idperr.RespondPageError(w, r, erro.New(rcv), sender, this.errTmpl)
+			idperr.RespondHtml(w, r, erro.New(rcv), sender, this.errTmpl)
 			return
 		}
 	}()
@@ -57,7 +57,7 @@ func (this *Page) HandleSelect(w http.ResponseWriter, r *http.Request) {
 	defer log.Info(sender, ": Handled select request")
 
 	if err := this.selectServe(w, r, sender); err != nil {
-		idperr.RespondPageError(w, r, erro.Wrap(err), sender, this.errTmpl)
+		idperr.RespondHtml(w, r, erro.Wrap(err), sender, this.errTmpl)
 		return
 	}
 	return

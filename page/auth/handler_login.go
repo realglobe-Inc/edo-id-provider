@@ -90,7 +90,7 @@ func (this *Page) loginServe(w http.ResponseWriter, r *http.Request, sender *req
 	// セッションは決まった。
 
 	if err := this.loginServeWithSession(w, r, sender, sess); err != nil {
-		return this.respondPageError(w, r, erro.Wrap(err), sender, sess)
+		return this.respondErrorHtml(w, r, erro.Wrap(err), sender, sess)
 	}
 	return nil
 }
@@ -101,7 +101,7 @@ func (this *Page) redirectToLoginUi(w http.ResponseWriter, r *http.Request, send
 
 	uri, err := url.Parse(this.pathLginUi)
 	if err != nil {
-		return this.respondPageError(w, r, erro.Wrap(err), sender, sess)
+		return this.respondErrorHtml(w, r, erro.Wrap(err), sender, sess)
 	}
 
 	// ログインページに渡すクエリパラメータを生成。

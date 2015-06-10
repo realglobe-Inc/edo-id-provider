@@ -90,7 +90,7 @@ func (this *Page) selectServe(w http.ResponseWriter, r *http.Request, sender *re
 	// セッションは決まった。
 
 	if err := this.selectServeWithSession(w, r, sender, sess); err != nil {
-		return this.respondPageError(w, r, erro.Wrap(err), sender, sess)
+		return this.respondErrorHtml(w, r, erro.Wrap(err), sender, sess)
 	}
 	return nil
 }
@@ -142,7 +142,7 @@ func (this *Page) redirectToSelectUi(w http.ResponseWriter, r *http.Request, sen
 
 	uri, err := url.Parse(this.pathSelUi)
 	if err != nil {
-		return this.respondPageError(w, r, erro.Wrap(err), sender, sess)
+		return this.respondErrorHtml(w, r, erro.Wrap(err), sender, sess)
 	}
 
 	// アカウント選択ページに渡すクエリパラメータを生成。

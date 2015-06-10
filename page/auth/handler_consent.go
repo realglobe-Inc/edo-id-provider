@@ -94,7 +94,7 @@ func (this *Page) consentServe(w http.ResponseWriter, r *http.Request, sender *r
 	// セッションが決まった。
 
 	if err := this.consentServeWithSession(w, r, sender, sess); err != nil {
-		return this.respondPageError(w, r, erro.Wrap(err), sender, sess)
+		return this.respondErrorHtml(w, r, erro.Wrap(err), sender, sess)
 	}
 	return nil
 }
@@ -104,7 +104,7 @@ func (this *Page) redirectToConsentUi(w http.ResponseWriter, r *http.Request, se
 
 	uri, err := url.Parse(this.pathConsUi)
 	if err != nil {
-		return this.respondPageError(w, r, erro.Wrap(err), sender, sess)
+		return this.respondErrorHtml(w, r, erro.Wrap(err), sender, sess)
 	}
 
 	// 同意ページに渡すクエリパラメータを生成。

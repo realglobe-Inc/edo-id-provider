@@ -212,7 +212,7 @@ func (this *Page) respondErrorHtml(w http.ResponseWriter, r *http.Request, origE
 		idperr.RedirectError(w, r, origErr, uri, sender)
 	}
 
-	idperr.RespondHtml(w, r, origErr, sender, this.errTmpl)
+	idperr.RespondHtml(w, r, origErr, this.errTmpl, sender)
 	return nil
 }
 

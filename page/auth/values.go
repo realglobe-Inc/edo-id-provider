@@ -26,7 +26,7 @@ const (
 	// tagAud                   = "aud"
 	tagAuth_time = "auth_time"
 	// tagAuthorization_code    = "authorization_code"
-	tagC_hash = "at_hash"
+	tagC_hash = "c_hash"
 	// tagClaim                 = "claim"
 	tagClaims = "claims"
 	// tagClient_assertion      = "client_assertion"

@@ -93,11 +93,10 @@ type system struct {
 	tokDb  token.Db
 	ccodDb coopcode.Db
 	jtiDb  jtidb.Db
+	idGen  rand.Generator
 
 	cookPath string
 	cookSec  bool
-
-	idGen rand.Generator
 	debug    bool
 }
 
@@ -148,9 +147,9 @@ func newTestSystem(selfKeys []jwk.Key, acnts []account.Element, tas []tadb.Eleme
 		token.NewMemoryDb(),
 		coopcode.NewMemoryDb(),
 		jtidb.NewMemoryDb(),
+		rand.New(time.Millisecond),
 		"/",
 		false,
-		rand.New(time.Millisecond),
 		true,
 	}
 }
@@ -186,9 +185,9 @@ func (this *system) authPage() *authpage.Page {
 		this.pwDb,
 		this.sessDb,
 		this.acodDb,
+		this.idGen,
 		this.cookPath,
 		this.cookSec,
-		this.idGen,
 		this.debug,
 	)
 }

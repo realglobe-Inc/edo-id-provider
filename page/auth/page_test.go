@@ -61,9 +61,9 @@ func newTestPage(keys []jwk.Key, webs []webdb.Element, acnts []account.Element, 
 		pairwise.NewMemoryDb(),
 		session.NewMemoryDb(),
 		authcode.NewMemoryDb(),
+		rand.New(time.Second),
 		"/",
 		false,
-		rand.New(time.Second),
 		true,
 	)
 }

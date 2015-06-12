@@ -334,9 +334,9 @@ func serve(param *parameters) (err error) {
 		pwDb,
 		sessDb,
 		acodDb,
+		idGen,
 		param.cookPath,
 		param.cookSec,
-		idGen,
 		param.debug,
 	)
 

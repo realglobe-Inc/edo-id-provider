@@ -57,7 +57,7 @@ function login() {
         var input = document.createElement("input");
         input.type = "hidden";
         input.name = "pass_type";
-        input.value = "STR43";
+        input.value = "password";
         form.appendChild(input);
 
         var issuer = queries["issuer"];

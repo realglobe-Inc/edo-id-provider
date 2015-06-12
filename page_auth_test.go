@@ -73,7 +73,7 @@ func TestIgnoreUnknownParameterInAuthRequest(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"allowed_scope": "openid email",
@@ -221,7 +221,7 @@ func TestIgnoreUnknownScopes(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"allowed_scope": "openid email unknown_scope",
@@ -404,7 +404,7 @@ func TestErrorWhenOwnerDenied(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"denied_scope": "openid email",
@@ -458,7 +458,7 @@ func TestKeepRedirectUriParameter(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"allowed_scope": "openid email",
@@ -639,7 +639,7 @@ func TestReturnStateParameter(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"allowed_scope": "openid email",
@@ -789,7 +789,7 @@ func TestForceLogin(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"allowed_scope": "openid email",
@@ -909,7 +909,7 @@ func TestForceConsent(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"allowed_scope": "openid email",
@@ -982,7 +982,7 @@ func TestForceConsentError(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"allowed_scope": "openid email",
@@ -1149,7 +1149,7 @@ func TestLoginTimeout(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"allowed_scope": "openid email",
@@ -1285,7 +1285,7 @@ func TestClaimsParameter(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"allowed_scope":  "openid",
@@ -1345,7 +1345,7 @@ func TestDenyDeniedEssentialClaim(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"allowed_scope": "openid",
@@ -1401,7 +1401,7 @@ func TestDenyInvalidSubClaim(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"allowed_scope": "openid",
@@ -1473,7 +1473,7 @@ func TestRequestParam(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"allowed_scope": "openid email",

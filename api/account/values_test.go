@@ -29,7 +29,7 @@ const (
 )
 
 var (
-	test_acntAuth, _ = account.GenerateStr43Authenticator(test_acntPasswd, 20)
+	test_acntAuth, _ = account.GenerateAuthenticator("pbkdf2:sha256:1000", []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}, test_acntPasswd)
 	test_acntAttrs   = map[string]interface{}{
 		"email": test_email,
 		"pds": map[string]interface{}{

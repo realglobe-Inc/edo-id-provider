@@ -76,7 +76,7 @@ func TestTokenResponse(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"allowed_scope": "openid email",
@@ -137,7 +137,7 @@ func TestTokenResponseWithScope(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"allowed_scope": "openid",
@@ -194,7 +194,7 @@ func TestTokenResponseHeader(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"allowed_scope": "openid email",
@@ -266,7 +266,7 @@ func TestDenyNonPostTokenRequest(t *testing.T) {
 			"username": acnt.Name(),
 		}, map[string]string{
 			"username":  acnt.Name(),
-			"pass_type": "STR43",
+			"pass_type": "password",
 			"password":  test_acntPasswd,
 		}, map[string]string{
 			"allowed_scope": "openid email",
@@ -376,7 +376,7 @@ func TestIgnoreUnknownParameterInTokenRequest(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"allowed_scope": "openid email",
@@ -435,7 +435,7 @@ func TestDenyOverlapParameterInTokenRequest(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"allowed_scope": "openid email",
@@ -544,7 +544,7 @@ func TestDenyTokenRequestWithoutClientId(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"allowed_scope": "openid email",
@@ -619,7 +619,7 @@ func TestDenyNoGrantTypeInTokenRequest(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"allowed_scope": "openid email",
@@ -693,7 +693,7 @@ func TestDenyNoCodeInTokenRequest(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"allowed_scope": "openid email",
@@ -768,7 +768,7 @@ func TestDenyNoRedirectUriInTokenRequest(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"allowed_scope": "openid email",
@@ -842,7 +842,7 @@ func TestDenyUnknownGrantTypeInTokenRequest(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"allowed_scope": "openid email",
@@ -924,7 +924,7 @@ func TestDenyNotCodeHolder(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"allowed_scope": "openid email",
@@ -999,7 +999,7 @@ func TestDenyInvalidCode(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"allowed_scope": "openid email",
@@ -1080,7 +1080,7 @@ func TestDenyInvalidRedirectUri(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"allowed_scope": "openid email",
@@ -1155,7 +1155,7 @@ func TestDenyManyClientAuthAlgorithms(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"allowed_scope": "openid email",
@@ -1231,7 +1231,7 @@ func TestDenyInvalidClient(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"allowed_scope": "openid email",
@@ -1313,7 +1313,7 @@ func TestDenyExpiredCode(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"allowed_scope": "openid email",
@@ -1394,7 +1394,7 @@ func TestDenyUsedCode(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"allowed_scope": "openid email",
@@ -1497,7 +1497,7 @@ func TestDisableTokenOfUsedCode(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"allowed_scope": "openid email",
@@ -1612,7 +1612,7 @@ func TestIdToken(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"allowed_scope": "openid email",
@@ -1693,7 +1693,7 @@ func TestAuthTimeOfIdToken(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"allowed_scope": "openid email",
@@ -1758,7 +1758,7 @@ func TestNonceOfIdToken(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"allowed_scope": "openid email",
@@ -1823,7 +1823,7 @@ func TestIdTokenSign(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"allowed_scope": "openid email",

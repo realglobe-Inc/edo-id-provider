@@ -14,26 +14,43 @@
 
 package auth
 
-import ()
+import (
+	"github.com/realglobe-Inc/go-lib/erro"
+	"net/http"
+)
 
 // 認証情報。
 type passInfo interface {
-	password() string
+	passType() string
 	params() []interface{}
 }
 
-type passwordOnly struct {
+func parsePassInfo(r *http.Request) (passInfo, error) {
+	passType := r.FormValue(tagPass_type)
+	switch passType {
+	case tagPassword:
+		passwd := r.FormValue(tagPassword)
+		if passwd == "" {
+			return nil, erro.New("no password")
+		}
+		return newPasswordInfo(passwd), nil
+	default:
+		return nil, erro.New("unsupported pass type " + passType)
+	}
+}
+
+type passwordInfo struct {
 	passwd string
 }
 
-func newPasswordOnly(passwd string) *passwordOnly {
-	return &passwordOnly{passwd}
+func newPasswordInfo(passwd string) *passwordInfo {
+	return &passwordInfo{passwd}
 }
 
-func (this *passwordOnly) password() string {
-	return this.passwd
+func (this *passwordInfo) passType() string {
+	return tagPassword
 }
 
-func (this *passwordOnly) params() []interface{} {
-	return []interface{}{}
+func (this *passwordInfo) params() []interface{} {
+	return []interface{}{this.passwd}
 }

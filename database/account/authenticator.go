@@ -18,8 +18,6 @@ import ()
 
 // 認証機構。
 type Authenticator interface {
-	// 方式を返す。
-	Type() string
 	// 認証する。
-	Verify(passwd string, params ...interface{}) bool
+	Verify(params ...interface{}) error
 }

@@ -300,6 +300,10 @@ func serve(param *parameters) (err error) {
 		}
 	}()
 
+	if param.debug {
+		idperr.Debug = true
+	}
+
 	authPage := authpage.New(
 		stopper,
 		param.selfId,
@@ -333,6 +337,7 @@ func serve(param *parameters) (err error) {
 		param.cookPath,
 		param.cookSec,
 		idGen,
+		param.debug,
 	)
 
 	mux := http.NewServeMux()
@@ -353,6 +358,7 @@ func serve(param *parameters) (err error) {
 		stopper,
 		param.pathTa,
 		taDb,
+		param.debug,
 	))
 	routes[param.pathTa] = true
 	mux.Handle(param.pathTok, tokapi.New(
@@ -375,6 +381,7 @@ func serve(param *parameters) (err error) {
 		tokDb,
 		jtiDb,
 		idGen,
+		param.debug,
 	))
 	routes[param.pathTok] = true
 	mux.Handle(param.pathAcnt, acntapi.New(
@@ -386,6 +393,7 @@ func serve(param *parameters) (err error) {
 		pwDb,
 		tokDb,
 		idGen,
+		param.debug,
 	))
 	routes[param.pathAcnt] = true
 	mux.Handle(param.pathCoopFr, coopfrom.New(
@@ -409,6 +417,7 @@ func serve(param *parameters) (err error) {
 		tokDb,
 		jtiDb,
 		idGen,
+		param.debug,
 	))
 	routes[param.pathCoopFr] = true
 	mux.Handle(param.pathCoopTo, coopto.New(
@@ -432,6 +441,7 @@ func serve(param *parameters) (err error) {
 		tokDb,
 		jtiDb,
 		idGen,
+		param.debug,
 	))
 	routes[param.pathCoopTo] = true
 	if param.uiDir != "" {

@@ -65,8 +65,9 @@ type handler struct {
 	codDb  coopcode.Db
 	tokDb  token.Db
 	jtiDb  jtidb.Db
+	idGen  rand.Generator
 
-	idGen rand.Generator
+	debug bool
 }
 
 func New(
@@ -90,6 +91,7 @@ func New(
 	tokDb token.Db,
 	jtiDb jtidb.Db,
 	idGen rand.Generator,
+	debug bool,
 ) http.Handler {
 	return &handler{
 		stopper:    stopper,
@@ -112,6 +114,7 @@ func New(
 		tokDb:      tokDb,
 		jtiDb:      jtiDb,
 		idGen:      idGen,
+		debug:      debug,
 	}
 }
 
@@ -137,7 +140,7 @@ func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//////////////////////////////
-	server.LogRequest(level.DEBUG, r, true)
+	server.LogRequest(level.DEBUG, r, this.debug)
 	//////////////////////////////
 
 	sender = requtil.Parse(r, "")

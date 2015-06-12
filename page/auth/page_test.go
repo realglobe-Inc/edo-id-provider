@@ -64,5 +64,6 @@ func newTestPage(keys []jwk.Key, webs []webdb.Element, acnts []account.Element, 
 		"/",
 		false,
 		rand.New(time.Second),
+		true,
 	)
 }

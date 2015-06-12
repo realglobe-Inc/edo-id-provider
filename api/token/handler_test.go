@@ -70,6 +70,7 @@ func newTestHandler(keys []jwk.Key, acnts []account.Element, tas []tadb.Element)
 		token.NewMemoryDb(),
 		jtidb.NewMemoryDb(),
 		rand.New(time.Second),
+		true,
 	).(*handler)
 }
 

@@ -43,8 +43,9 @@ type handler struct {
 	sectDb sector.Db
 	pwDb   pairwise.Db
 	tokDb  token.Db
+	idGen  rand.Generator
 
-	idGen rand.Generator
+	debug bool
 }
 
 func New(
@@ -56,6 +57,7 @@ func New(
 	pwDb pairwise.Db,
 	tokDb token.Db,
 	idGen rand.Generator,
+	debug bool,
 ) http.Handler {
 	return &handler{
 		stopper:   stopper,
@@ -66,6 +68,7 @@ func New(
 		pwDb:      pwDb,
 		tokDb:     tokDb,
 		idGen:     idGen,
+		debug:     debug,
 	}
 }
 
@@ -91,7 +94,7 @@ func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//////////////////////////////
-	server.LogRequest(level.DEBUG, r, true)
+	server.LogRequest(level.DEBUG, r, this.debug)
 	//////////////////////////////
 
 	sender = requtil.Parse(r, "")

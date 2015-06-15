@@ -79,6 +79,7 @@ type system struct {
 	jtiExpIn     time.Duration
 	jtiDbExpIn   time.Duration
 	ticLen       int
+	ticExpIn     time.Duration
 
 	keyDb  keydb.Db
 	webDb  webdb.Db
@@ -134,6 +135,7 @@ func newTestSystem(selfKeys []jwk.Key, acnts []account.Element, tas []tadb.Eleme
 		time.Minute,
 		10 * time.Minute,
 		10,
+		time.Minute,
 		keydb.NewMemoryDb(selfKeys),
 		webdb.NewMemoryDb(webs),
 		account.NewMemoryDb(acnts),
@@ -176,6 +178,7 @@ func (this *system) authPage() *authpage.Page {
 		this.tokExpIn,
 		this.jtiExpIn,
 		this.ticLen,
+		this.ticExpIn,
 		this.keyDb,
 		this.webDb,
 		this.acntDb,

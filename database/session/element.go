@@ -17,6 +17,7 @@ package session
 import (
 	"container/list"
 	"encoding/json"
+	"github.com/realglobe-Inc/edo-idp-selector/ticket"
 	rist "github.com/realglobe-Inc/edo-lib/list"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"time"
@@ -32,7 +33,7 @@ type Element struct {
 	// 現在のリクエスト内容。
 	req *Request
 	// 現在発行されているチケット。
-	tic string
+	tic *ticket.Ticket
 	// 過去に選択されたアカウント。
 	pastAcnts *list.List
 	// 最後に選択された表示言語。
@@ -142,12 +143,12 @@ func (this *Element) SetRequest(req *Request) {
 }
 
 // 現在発行されているチケットを返す。
-func (this *Element) Ticket() string {
+func (this *Element) Ticket() *ticket.Ticket {
 	return this.tic
 }
 
 // チケットを保存する。
-func (this *Element) SetTicket(tic string) {
+func (this *Element) SetTicket(tic *ticket.Ticket) {
 	this.tic = tic
 }
 
@@ -176,7 +177,7 @@ func (this *Element) SetLanguage(lang string) {
 // 一時データを消す。
 func (this *Element) Clear() {
 	this.req = nil
-	this.tic = ""
+	this.tic = nil
 }
 
 // 読み込まれたセッションかどうか。
@@ -214,13 +215,13 @@ func (this *Element) MarshalJSON() (data []byte, err error) {
 
 func (this *Element) UnmarshalJSON(data []byte) error {
 	var buff struct {
-		Id        string     `json:"id"`
-		Exp       time.Time  `json:"expires"`
-		Acnt      *Account   `json:"account"`
-		Req       *Request   `json:"request"`
-		Tic       string     `json:"ticket"`
-		PastAcnts *rist.List `json:"past_accounts"`
-		Lang      string     `json:"locale"`
+		Id        string         `json:"id"`
+		Exp       time.Time      `json:"expires"`
+		Acnt      *Account       `json:"account"`
+		Req       *Request       `json:"request"`
+		Tic       *ticket.Ticket `json:"ticket"`
+		PastAcnts *rist.List     `json:"past_accounts"`
+		Lang      string         `json:"locale"`
 	}
 	if err := json.Unmarshal(data, &buff); err != nil {
 		return erro.Wrap(err)

@@ -19,11 +19,6 @@ import (
 	"time"
 )
 
-const (
-	test_acntId   = "ZkTPOdBdh_bS2PqWnb1r8A3DqeKGCC"
-	test_acntName = "edo-id-provider-tester"
-)
-
 func TestAccount(t *testing.T) {
 	acnt := NewAccount(test_acntId, test_acntName)
 

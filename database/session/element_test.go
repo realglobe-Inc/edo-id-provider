@@ -15,56 +15,16 @@
 package session
 
 import (
-	"net/http"
-	"net/url"
+	"github.com/realglobe-Inc/edo-idp-selector/ticket"
 	"reflect"
 	"strconv"
 	"testing"
 	"time"
 )
 
-const (
-	test_id   = "XAOiyqgngWGzZbgl6j1w6Zm3ytHeI-"
-	test_tic  = "-TRO_YRa1B"
-	test_lang = "ja-JP"
-)
-
-var (
-	test_acnt *Account
-	test_req  *Request
-)
-
-func init() {
-	test_acnt = NewAccount(test_acntId, test_acntName)
-	r, err := http.NewRequest("GET", "https://idp.example.org/auth", nil)
-	if err != nil {
-		panic(err)
-	}
-	q := url.Values{}
-	q.Add("scope", "openid email")
-	q.Add("response_type", "code id_token")
-	q.Add("client_id", test_ta)
-	q.Add("redirect_uri", test_rediUri)
-	q.Add("state", test_stat)
-	q.Add("nonce", test_nonc)
-	q.Add("display", test_disp)
-	q.Add("prompt", "login consent")
-	q.Add("max_age", strconv.FormatInt(int64(test_maxAge/time.Second), 10))
-	q.Add("ui_locales", "ja-JP")
-	//q.Add("id_token_hint", "")
-	q.Add("claims", `{"id_token":{"pds":{"essential":true}}}`)
-	//q.Add("request", "")
-	//q.Add("request_uri", "")
-	r.URL.RawQuery = q.Encode()
-
-	test_req, err = ParseRequest(r)
-	if err != nil {
-		panic(err)
-	}
-}
-
 func TestElement(t *testing.T) {
-	exp := time.Now().Add(24 * time.Hour)
+	now := time.Now()
+	exp := now.Add(24 * time.Hour)
 	elem := New(test_id, exp)
 
 	if elem.Id() != test_id {
@@ -77,7 +37,7 @@ func TestElement(t *testing.T) {
 		t.Fatal(elem.Account())
 	} else if elem.Request() != nil {
 		t.Fatal(elem.Request())
-	} else if elem.Ticket() != "" {
+	} else if elem.Ticket() != nil {
 		t.Fatal(elem.Ticket())
 	} else if len(elem.SelectedAccounts()) > 0 {
 		t.Fatal(elem.SelectedAccounts())
@@ -85,9 +45,10 @@ func TestElement(t *testing.T) {
 		t.Fatal(elem.Language())
 	}
 
+	tic := ticket.New(test_ticId, now.Add(time.Minute))
 	elem.SelectAccount(test_acnt)
 	elem.SetRequest(test_req)
-	elem.SetTicket(test_tic)
+	elem.SetTicket(tic)
 	elem.SetLanguage(test_lang)
 
 	if !reflect.DeepEqual(elem.Account(), test_acnt) {
@@ -96,9 +57,9 @@ func TestElement(t *testing.T) {
 	} else if !reflect.DeepEqual(elem.Request(), test_req) {
 		t.Error(elem.Request())
 		t.Fatal(test_req)
-	} else if elem.Ticket() != test_tic {
+	} else if !reflect.DeepEqual(elem.Ticket(), tic) {
 		t.Error(elem.Ticket())
-		t.Fatal(test_tic)
+		t.Fatal(tic)
 	} else if !reflect.DeepEqual(elem.SelectedAccounts(), []*Account{test_acnt}) {
 		t.Error(elem.SelectedAccounts())
 		t.Fatal([]*Account{test_acnt})
@@ -110,7 +71,7 @@ func TestElement(t *testing.T) {
 	elem.Clear()
 	if elem.Request() != nil {
 		t.Fatal(elem.Request())
-	} else if elem.Ticket() != "" {
+	} else if elem.Ticket() != nil {
 		t.Fatal(elem.Ticket())
 	}
 }
@@ -169,10 +130,12 @@ func TestElementPastAccount(t *testing.T) {
 }
 
 func TestElementNew(t *testing.T) {
-	exp := time.Now().Add(24 * time.Hour)
+	now := time.Now()
+	exp := now.Add(24 * time.Hour)
+	tic := ticket.New(test_ticId, now.Add(time.Minute))
 	elem := New(test_id, exp)
 	elem.SetRequest(test_req)
-	elem.SetTicket(test_tic)
+	elem.SetTicket(tic)
 	elem.SetLanguage(test_lang)
 	for i := 0; i < 2*MaxHistory; i++ {
 		elem.SelectAccount(NewAccount(test_acntId+strconv.Itoa(i), test_acntName+strconv.Itoa(i)))
@@ -180,17 +143,19 @@ func TestElementNew(t *testing.T) {
 
 		if elem2.Id() == elem.Id() {
 			t.Error(i)
-			t.Fatal(elem2.Id())
+			t.Error(elem2.Id())
+			t.Fatal(elem.Id())
 		} else if elem2.Expires().Equal(elem.Expires()) {
 			t.Error(i)
-			t.Fatal(elem2.Expires())
+			t.Error(elem2.Expires())
+			t.Fatal(elem.Expires())
 		} else if elem2.Account() != nil {
 			t.Error(i)
 			t.Fatal(elem2.Account())
 		} else if elem2.Request() != nil {
 			t.Error(i)
 			t.Fatal(elem2.Request())
-		} else if elem2.Ticket() != "" {
+		} else if elem2.Ticket() != nil {
 			t.Error(i)
 			t.Fatal(elem2.Ticket())
 		} else if !reflect.DeepEqual(elem.SelectedAccounts(), elem2.SelectedAccounts()) {

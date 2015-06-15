@@ -163,7 +163,7 @@ func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 	case tagAccess_token:
 		return this.serveAsMain(w, r, req, sender)
 	case tagReferral:
-		return this.serveAsMain(w, r, req, sender)
+		return this.serveAsSub(w, r, req, sender)
 	default:
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "unsupported grant "+req.grantType(), http.StatusBadRequest, nil))
 	}

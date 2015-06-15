@@ -181,7 +181,7 @@ func (this *handler) serveAsMain(w http.ResponseWriter, r *http.Request, req *re
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "unsupported response type "+requtil.ValueSetForm(req.responseType()), http.StatusBadRequest, nil))
 	}
 
-	log.Debug(sender, ": Response types ", req.responseType(), " are OK")
+	log.Debug(sender, ": Response types "+requtil.ValueSetForm(req.responseType())+" are OK")
 
 	if req.fromTa() == "" {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "no from-TA ID", http.StatusBadRequest, nil))

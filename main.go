@@ -89,6 +89,8 @@ func serve(param *parameters) (err error) {
 
 	// バックエンドの準備。
 
+	stopper := server.NewStopper()
+
 	redPools := driver.NewRedisPoolSet(param.redTimeout, param.redPoolSize, param.redPoolExpIn)
 	defer redPools.Close()
 	monPools := driver.NewMongoPoolSet(param.monTimeout)
@@ -290,15 +292,9 @@ func serve(param *parameters) (err error) {
 
 	// バックエンドの準備完了。
 
-	stopper := server.NewStopper()
-	defer func() {
-		// 処理の終了待ち。
-		stopper.Lock()
-		defer stopper.Unlock()
-		for stopper.Stopped() {
-			stopper.Wait()
-		}
-	}()
+	if param.debug {
+		idperr.Debug = true
+	}
 
 	authPage := authpage.New(
 		stopper,
@@ -330,9 +326,10 @@ func serve(param *parameters) (err error) {
 		pwDb,
 		sessDb,
 		acodDb,
+		idGen,
 		param.cookPath,
 		param.cookSec,
-		idGen,
+		param.debug,
 	)
 
 	mux := http.NewServeMux()
@@ -353,6 +350,7 @@ func serve(param *parameters) (err error) {
 		stopper,
 		param.pathTa,
 		taDb,
+		param.debug,
 	))
 	routes[param.pathTa] = true
 	mux.Handle(param.pathTok, tokapi.New(
@@ -375,6 +373,7 @@ func serve(param *parameters) (err error) {
 		tokDb,
 		jtiDb,
 		idGen,
+		param.debug,
 	))
 	routes[param.pathTok] = true
 	mux.Handle(param.pathAcnt, acntapi.New(
@@ -386,6 +385,7 @@ func serve(param *parameters) (err error) {
 		pwDb,
 		tokDb,
 		idGen,
+		param.debug,
 	))
 	routes[param.pathAcnt] = true
 	mux.Handle(param.pathCoopFr, coopfrom.New(
@@ -409,6 +409,7 @@ func serve(param *parameters) (err error) {
 		tokDb,
 		jtiDb,
 		idGen,
+		param.debug,
 	))
 	routes[param.pathCoopFr] = true
 	mux.Handle(param.pathCoopTo, coopto.New(
@@ -432,6 +433,7 @@ func serve(param *parameters) (err error) {
 		tokDb,
 		jtiDb,
 		idGen,
+		param.debug,
 	))
 	routes[param.pathCoopTo] = true
 	if param.uiDir != "" {
@@ -446,5 +448,16 @@ func serve(param *parameters) (err error) {
 			return erro.Wrap(idperr.New(idperr.Invalid_request, "invalid endpoint", http.StatusNotFound, nil))
 		}, errTmpl))
 	}
+
+	// サーバー設定完了。
+
+	defer func() {
+		// 処理の終了待ち。
+		stopper.Lock()
+		defer stopper.Unlock()
+		for stopper.Stopped() {
+			stopper.Wait()
+		}
+	}()
 	return server.Serve(param, mux)
 }

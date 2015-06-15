@@ -15,16 +15,44 @@
 package auth
 
 import (
+	"net/http"
+	"net/url"
+	"strings"
 	"testing"
 )
 
-func TestPasswordOnly(t *testing.T) {
-	passwd := "ltFq9kclPgMK4ilaOF7fNlx2TE9OYFiyrX4x9gwCc9n"
-	pass := newPasswordOnly(passwd)
-	if pass.password() != passwd {
-		t.Error(pass.password())
-		t.Fatal(passwd)
-	} else if len(pass.params()) > 0 {
+func TestPasswordInfo(t *testing.T) {
+	pass := newPasswordInfo(test_passwd)
+	if len(pass.params()) != 1 {
 		t.Fatal(pass.params())
+	} else if pass.params()[0] != test_passwd {
+		t.Error(pass.params())
+		t.Fatal(test_passwd)
+	}
+}
+
+func TestParsePassInfo(t *testing.T) {
+	q := url.Values{}
+	q.Set("pass_type", "password")
+	q.Set("password", test_passwd)
+	r, err := http.NewRequest("POST", "https://idp.example.org/login", strings.NewReader(q.Encode()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	pass, err := parsePassInfo(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if pass.passType() != "password" {
+		t.Error(pass.passType())
+		t.Fatal("password")
+	} else if len(pass.params()) != 1 {
+		t.Fatal(pass.params())
+	} else if pass.params()[0] != test_passwd {
+		t.Error(pass.params()[0])
+		t.Fatal(test_passwd)
 	}
 }

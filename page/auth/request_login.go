@@ -15,17 +15,15 @@
 package auth
 
 import (
-	"github.com/realglobe-Inc/edo-id-provider/database/account"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"net/http"
 )
 
 type loginRequest struct {
-	tic       string
-	acntName  string
-	passType_ string
-	pass      passInfo
-	lang      string
+	tic      string
+	acntName string
+	pass     passInfo
+	lang     string
 }
 
 func parseLoginRequest(r *http.Request) (*loginRequest, error) {
@@ -37,20 +35,9 @@ func parseLoginRequest(r *http.Request) (*loginRequest, error) {
 	if acntName == "" {
 		return nil, erro.New("no account name")
 	}
-	passType := r.FormValue(tagPass_type)
-	if passType == "" {
-		return nil, erro.New("no pass type")
-	}
-	var pass passInfo
-	switch passType {
-	case account.AuthTypeStr43:
-		passwd := r.FormValue(tagPassword)
-		if passwd == "" {
-			return nil, erro.New("no password")
-		}
-		pass = newPasswordOnly(passwd)
-	default:
-		return nil, erro.New("unsupported pass type " + passType)
+	pass, err := parsePassInfo(r)
+	if err != nil {
+		return nil, erro.Wrap(err)
 	}
 	for k, vs := range r.Form {
 		if len(vs) != 1 {
@@ -59,11 +46,10 @@ func parseLoginRequest(r *http.Request) (*loginRequest, error) {
 	}
 
 	return &loginRequest{
-		tic:       tic,
-		acntName:  acntName,
-		passType_: passType,
-		pass:      pass,
-		lang:      r.FormValue(tagLocale),
+		tic:      tic,
+		acntName: acntName,
+		pass:     pass,
+		lang:     r.FormValue(tagLocale),
 	}, nil
 }
 
@@ -73,10 +59,6 @@ func (this *loginRequest) ticket() string {
 
 func (this *loginRequest) accountName() string {
 	return this.acntName
-}
-
-func (this *loginRequest) passType() string {
-	return this.passType_
 }
 
 func (this *loginRequest) passInfo() passInfo {

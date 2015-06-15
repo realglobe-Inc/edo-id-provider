@@ -71,11 +71,11 @@ type Page struct {
 	pwDb   pairwise.Db
 	sessDb session.Db
 	codDb  authcode.Db
+	idGen  rand.Generator
 
 	cookPath string
 	cookSec  bool
-
-	idGen rand.Generator
+	debug    bool
 }
 
 func New(
@@ -108,9 +108,10 @@ func New(
 	pwDb pairwise.Db,
 	sessDb session.Db,
 	codDb authcode.Db,
+	idGen rand.Generator,
 	cookPath string,
 	cookSec bool,
-	idGen rand.Generator,
+	debug bool,
 ) *Page {
 	return &Page{
 		stopper:      stopper,
@@ -142,9 +143,10 @@ func New(
 		pwDb:         pwDb,
 		sessDb:       sessDb,
 		codDb:        codDb,
+		idGen:        idGen,
 		cookPath:     cookPath,
 		cookSec:      cookSec,
-		idGen:        idGen,
+		debug:        debug,
 	}
 }
 

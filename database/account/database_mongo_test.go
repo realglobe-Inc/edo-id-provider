@@ -49,9 +49,9 @@ func TestMongoDb(t *testing.T) {
 		"id":       test_id,
 		"username": test_name,
 		"authenticator": bson.M{
-			"type": "STR43",
-			"salt": base64url.EncodeToString(test_salt),
-			"hash": base64url.EncodeToString(test_hash),
+			"algorithm": "pbkdf2:sha256:1000",
+			"salt":      base64url.EncodeToString(test_salt),
+			"hash":      base64url.EncodeToString(test_pbkdf2Hash),
 		},
 		"pds": test_pds,
 	}); err != nil {

@@ -78,7 +78,7 @@ func TestSuccess(t *testing.T) {
 		"username": acnt.Name(),
 	}, map[string]string{
 		"username":  acnt.Name(),
-		"pass_type": "STR43",
+		"pass_type": "password",
 		"password":  test_acntPasswd,
 	}, map[string]string{
 		"allowed_scope": "openid email",

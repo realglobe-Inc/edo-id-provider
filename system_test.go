@@ -93,11 +93,11 @@ type system struct {
 	tokDb  token.Db
 	ccodDb coopcode.Db
 	jtiDb  jtidb.Db
+	idGen  rand.Generator
 
 	cookPath string
 	cookSec  bool
-
-	idGen rand.Generator
+	debug    bool
 }
 
 func newTestSystem(selfKeys []jwk.Key, acnts []account.Element, tas []tadb.Element, idps []idpdb.Element, webs []webdb.Element) *system {
@@ -147,9 +147,10 @@ func newTestSystem(selfKeys []jwk.Key, acnts []account.Element, tas []tadb.Eleme
 		token.NewMemoryDb(),
 		coopcode.NewMemoryDb(),
 		jtidb.NewMemoryDb(),
+		rand.New(time.Millisecond),
 		"/",
 		false,
-		rand.New(time.Millisecond),
+		true,
 	}
 }
 
@@ -184,9 +185,10 @@ func (this *system) authPage() *authpage.Page {
 		this.pwDb,
 		this.sessDb,
 		this.acodDb,
+		this.idGen,
 		this.cookPath,
 		this.cookSec,
-		this.idGen,
+		this.debug,
 	)
 }
 
@@ -195,6 +197,7 @@ func (this *system) taApi() http.Handler {
 		this.stopper,
 		this.pathTa,
 		this.taDb,
+		this.debug,
 	)
 }
 
@@ -219,6 +222,7 @@ func (this *system) tokenApi() http.Handler {
 		this.tokDb,
 		this.jtiDb,
 		this.idGen,
+		this.debug,
 	)
 }
 
@@ -232,6 +236,7 @@ func (this *system) accountApi() http.Handler {
 		this.pwDb,
 		this.tokDb,
 		this.idGen,
+		this.debug,
 	)
 }
 
@@ -257,6 +262,7 @@ func (this *system) coopFromApi() http.Handler {
 		this.tokDb,
 		this.jtiDb,
 		this.idGen,
+		this.debug,
 	)
 }
 
@@ -282,5 +288,6 @@ func (this *system) coopToApi() http.Handler {
 		this.tokDb,
 		this.jtiDb,
 		this.idGen,
+		this.debug,
 	)
 }

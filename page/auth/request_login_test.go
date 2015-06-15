@@ -22,18 +22,13 @@ import (
 )
 
 func TestLoginRequest(t *testing.T) {
-	tic := "-TRO_YRa1B"
-	name := "edo-id-provider-tester"
-	passwd := "ltFq9kclPgMK4ilaOF7fNlx2TE9OYFiyrX4x9gwCc9n"
-	lang := "ja-JP"
-
-	r, err := http.NewRequest("POST", "https://idp.example.org/auth/login", strings.NewReader(""+
-		"ticket="+url.QueryEscape(tic)+
-		"&username="+url.QueryEscape(name)+
-		"&pass_type="+url.QueryEscape("STR43")+
-		"&password="+url.QueryEscape(passwd)+
-		"&locale="+url.QueryEscape(lang)+
-		""))
+	q := url.Values{}
+	q.Set("ticket", test_tic)
+	q.Set("username", test_acntName)
+	q.Set("pass_type", "password")
+	q.Set("password", test_passwd)
+	q.Set("locale", test_lang)
+	r, err := http.NewRequest("POST", "https://idp.example.org/auth/login", strings.NewReader(q.Encode()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,20 +36,20 @@ func TestLoginRequest(t *testing.T) {
 
 	if req, err := parseLoginRequest(r); err != nil {
 		t.Fatal(err)
-	} else if req.ticket() != tic {
+	} else if req.ticket() != test_tic {
 		t.Error(req.ticket())
-		t.Fatal(tic)
-	} else if req.accountName() != name {
+		t.Fatal(test_tic)
+	} else if req.accountName() != test_acntName {
 		t.Error(req.accountName())
-		t.Fatal(name)
-	} else if req.passType() != "STR43" {
-		t.Error(req.passType())
-		t.Fatal("STR43")
-	} else if req.passInfo().password() != passwd {
-		t.Error(req.passInfo().password())
-		t.Fatal(passwd)
-	} else if req.language() != lang {
+		t.Fatal(test_acntName)
+	} else if req.passInfo().passType() != "password" {
+		t.Error(req.passInfo().passType())
+		t.Fatal("password")
+	} else if req.passInfo().params()[0] != test_passwd {
+		t.Error(req.passInfo().params()[0])
+		t.Fatal(test_passwd)
+	} else if req.language() != test_lang {
 		t.Error(req.language())
-		t.Fatal(lang)
+		t.Fatal(test_lang)
 	}
 }

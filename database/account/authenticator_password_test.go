@@ -18,16 +18,10 @@ import (
 	"testing"
 )
 
-const (
-	test_passwd43 = "ltFq9kclPgMK4ilaOF7fNlx2TE9OYFiyrX4x9gwCc9n"
-)
-
-func TestStr43AuthenticatorType(t *testing.T) {
-	auth, _ := GenerateStr43Authenticator(test_passwd43, 20)
-	testAuthenticatorType(t, auth, "STR43")
-}
-
-func TestStr43AuthenticatorVerify(t *testing.T) {
-	auth, _ := GenerateStr43Authenticator(test_passwd43, 20)
-	testAuthenticatorVerify(t, auth, test_passwd43)
+func TestPasswordAuthenticatorVerify(t *testing.T) {
+	auth, err := generatePasswordAuthenticator(test_alg, test_salt, test_passwd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	testAuthenticatorVerify(t, auth, test_passwd)
 }

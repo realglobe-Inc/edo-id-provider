@@ -49,7 +49,7 @@ func (this *Page) HandleSelect(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//////////////////////////////
-	server.LogRequest(level.DEBUG, r, true)
+	server.LogRequest(level.DEBUG, r, this.debug)
 	//////////////////////////////
 
 	sender = request.Parse(r, this.sessLabel)

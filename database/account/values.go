@@ -14,14 +14,13 @@
 
 package account
 
-import (
-	"testing"
+const (
+	tagAlgorithm = "algorithm"
+	tagHash      = "hash"
+	tagPbkdf2    = "pbkdf2"
+	tagSalt      = "salt"
 )
 
-func testAuthenticatorVerify(t *testing.T, auth Authenticator, params ...interface{}) {
-	if err := auth.Verify(params...); err != nil {
-		t.Fatal(err)
-	} else if err := auth.Verify("unknown"); err == nil {
-		t.Fatal("security error")
-	}
-}
+const (
+	algSep = ":"
+)

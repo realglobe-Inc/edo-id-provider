@@ -19,25 +19,6 @@ import (
 	"testing"
 )
 
-const (
-	test_id   = "EYClXo4mQKwSgPel"
-	test_name = "edo-id-provider-tester"
-	test_attr = "pds"
-)
-
-var (
-	test_auth Authenticator
-	test_pds  = map[string]interface{}{"type": "single", "uri": "https://pds.example.org"}
-)
-
-func init() {
-	var err error
-	test_auth, err = GenerateStr43Authenticator(test_passwd43, 20)
-	if err != nil {
-		panic(err)
-	}
-}
-
 func testElement(t *testing.T, elem Element) {
 	if elem.Id() != test_id {
 		t.Error(elem.Id())

@@ -32,6 +32,9 @@ const (
 	test_sessId  = "XAOiyqgngWGzZbgl6j1w6Zm3ytHeI-"
 	test_idpId   = "https://idp.example.org"
 	test_tic     = "-TRO_YRa1B"
+
+	test_acntName = "edo-id-provider-tester"
+	test_lang     = "ja-JP"
 )
 
 var (
@@ -46,7 +49,7 @@ var (
 		"EYClXo4mQKwSgPel",
 		"edo-id-provider-tester",
 		func() account.Authenticator {
-			auth, err := account.GenerateStr43Authenticator(test_passwd, 20)
+			auth, err := account.GenerateAuthenticator("pbkdf2:sha256:1000", []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}, test_passwd)
 			if err != nil {
 				panic(err)
 			}
@@ -94,7 +97,7 @@ var (
 		"&username=" + url.QueryEscape(test_acnt.Name())
 	test_lginQuery = "ticket=" + url.QueryEscape(test_tic) +
 		"&username=" + url.QueryEscape(test_acnt.Name()) +
-		"&pass_type=STR43" +
+		"&pass_type=password" +
 		"&password=" + url.QueryEscape(test_passwd)
 	test_consQuery = "ticket=" + url.QueryEscape(test_tic) +
 		"&allowed_scope=openid"

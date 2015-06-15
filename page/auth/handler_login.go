@@ -50,7 +50,7 @@ func (this *Page) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//////////////////////////////
-	server.LogRequest(level.DEBUG, r, true)
+	server.LogRequest(level.DEBUG, r, this.debug)
 	//////////////////////////////
 
 	sender = request.Parse(r, this.sessLabel)
@@ -167,12 +167,10 @@ func (this *Page) loginServeWithSession(w http.ResponseWriter, r *http.Request, 
 		// アカウントが無い。
 		log.Debug(sender, ": Specified accout "+req.accountName()+" is not exist")
 		return this.redirectToLoginUi(w, r, sender, sess, "Accout "+req.accountName()+" is not exist. Please log in")
-	} else if req.passType() != acnt.Authenticator().Type() {
-		return this.redirectToLoginUi(w, r, sender, sess, "Not registered password type. Please log in")
-	} else if pass := req.passInfo(); pass == nil {
-		return this.redirectToLoginUi(w, r, sender, sess, "No required info. Please log in")
-	} else if !acnt.Authenticator().Verify(pass.password(), pass.params()...) {
+	} else if err := acnt.Authenticator().Verify(req.passInfo().params()...); err != nil {
 		// パスワード間違い。
+		log.Warn(erro.Unwrap(err))
+		log.Debug(erro.Wrap(err))
 		return this.redirectToLoginUi(w, r, sender, sess, "Wrong password. Please log in")
 	}
 

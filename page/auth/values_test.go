@@ -31,7 +31,7 @@ const (
 	test_nonc    = "Wjj1_YUOlR"
 	test_sessId  = "XAOiyqgngWGzZbgl6j1w6Zm3ytHeI-"
 	test_idpId   = "https://idp.example.org"
-	test_tic     = "-TRO_YRa1B"
+	test_ticId   = "-TRO_YRa1B"
 
 	test_acntName = "edo-id-provider-tester"
 	test_lang     = "ja-JP"
@@ -93,12 +93,12 @@ var (
 		}
 		return req
 	}()
-	test_selQuery = "ticket=" + url.QueryEscape(test_tic) +
+	test_selQuery = "ticket=" + url.QueryEscape(test_ticId) +
 		"&username=" + url.QueryEscape(test_acnt.Name())
-	test_lginQuery = "ticket=" + url.QueryEscape(test_tic) +
+	test_lginQuery = "ticket=" + url.QueryEscape(test_ticId) +
 		"&username=" + url.QueryEscape(test_acnt.Name()) +
 		"&pass_type=password" +
 		"&password=" + url.QueryEscape(test_passwd)
-	test_consQuery = "ticket=" + url.QueryEscape(test_tic) +
+	test_consQuery = "ticket=" + url.QueryEscape(test_ticId) +
 		"&allowed_scope=openid"
 )

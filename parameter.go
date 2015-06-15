@@ -104,7 +104,8 @@ type parameters struct {
 	jtiExpIn   time.Duration
 	jtiDbExpIn time.Duration
 	// チケット。
-	ticLen int
+	ticLen   int
+	ticExpIn time.Duration
 
 	// バックエンドの指定。
 
@@ -269,6 +270,7 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.DurationVar(&param.jtiExpIn, "jtiExpIn", 6*time.Hour, "JWT expiration duration")
 	flags.DurationVar(&param.jtiDbExpIn, "jtiDbExpIn", 24*time.Hour, "JWT ID default keep duration")
 	flags.IntVar(&param.ticLen, "ticLen", 10, "Ticket length")
+	flags.DurationVar(&param.ticExpIn, "ticExpIn", 30*time.Minute, "Ticket expiration duration")
 
 	flags.DurationVar(&param.redTimeout, "redTimeout", 30*time.Second, "redis timeout duration")
 	flags.IntVar(&param.redPoolSize, "redPoolSize", 10, "redis pool size")

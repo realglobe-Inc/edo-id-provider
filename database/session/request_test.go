@@ -26,15 +26,6 @@ import (
 	"time"
 )
 
-const (
-	test_ta      = "https://ta.example.org"
-	test_stat    = "YJgUit_Wx5"
-	test_nonc    = "Wjj1_YUOlR"
-	test_disp    = "page"
-	test_maxAge  = 24 * time.Hour
-	test_rediUri = "https://ta.example.org/callback"
-)
-
 func TestRequest(t *testing.T) {
 	r, err := http.NewRequest("GET", "https://idp.example.org/auth", nil)
 	if err != nil {

@@ -23,7 +23,7 @@ import (
 
 func TestLoginRequest(t *testing.T) {
 	q := url.Values{}
-	q.Set("ticket", test_tic)
+	q.Set("ticket", test_ticId)
 	q.Set("username", test_acntName)
 	q.Set("pass_type", "password")
 	q.Set("password", test_passwd)
@@ -36,9 +36,9 @@ func TestLoginRequest(t *testing.T) {
 
 	if req, err := parseLoginRequest(r); err != nil {
 		t.Fatal(err)
-	} else if req.ticket() != test_tic {
+	} else if req.ticket() != test_ticId {
 		t.Error(req.ticket())
-		t.Fatal(test_tic)
+		t.Fatal(test_ticId)
 	} else if req.accountName() != test_acntName {
 		t.Error(req.accountName())
 		t.Fatal(test_acntName)

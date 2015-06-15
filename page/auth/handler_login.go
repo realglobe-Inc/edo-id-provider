@@ -23,6 +23,7 @@ import (
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
 	"github.com/realglobe-Inc/edo-idp-selector/request"
+	"github.com/realglobe-Inc/edo-idp-selector/ticket"
 	logutil "github.com/realglobe-Inc/edo-lib/log"
 	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/go-lib/erro"
@@ -123,7 +124,7 @@ func (this *Page) redirectToLoginUi(w http.ResponseWriter, r *http.Request, send
 
 	// チケットを発行。
 	uri.Fragment = this.idGen.String(this.ticLen)
-	sess.SetTicket(uri.Fragment)
+	sess.SetTicket(ticket.New(uri.Fragment, time.Now().Add(this.ticExpIn)))
 	log.Info(sender, ": Published ticket "+logutil.Mosaic(uri.Fragment))
 
 	log.Info(sender, ": Redirect to login UI")
@@ -143,9 +144,12 @@ func (this *Page) loginServeWithSession(w http.ResponseWriter, r *http.Request, 
 	req, err := parseLoginRequest(r)
 	if err != nil {
 		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, erro.Unwrap(err).Error(), err))
-	} else if req.ticket() != sess.Ticket() {
-		// 無効なログイン券。
-		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, "invalid ticket "+logutil.Mosaic(req.ticket()), nil))
+	} else if tic := sess.Ticket(); tic == nil {
+		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, "no consent session", nil))
+	} else if req.ticket() != tic.Id() {
+		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, "invalid ticket", nil))
+	} else if tic.Expires().Before(time.Now()) {
+		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, "ticket expired", nil))
 	}
 
 	// チケットが有効だった。

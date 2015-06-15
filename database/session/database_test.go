@@ -16,6 +16,7 @@ package session
 
 import (
 	"fmt"
+	"github.com/realglobe-Inc/edo-idp-selector/ticket"
 	"reflect"
 	"testing"
 	"time"
@@ -28,11 +29,13 @@ func testDb(t *testing.T, db Db) {
 		t.Fatal(elem)
 	}
 
-	exp := time.Now().Add(time.Second)
+	now := time.Now()
+	exp := now.Add(time.Second)
+	tic := ticket.New(test_ticId, now.Add(time.Minute))
 	elem := New(test_id, exp)
 	elem.SelectAccount(test_acnt)
 	elem.SetRequest(test_req)
-	elem.SetTicket(test_tic)
+	elem.SetTicket(tic)
 	elem.SetLanguage(test_lang)
 	saveExp := exp.Add(time.Minute)
 

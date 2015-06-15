@@ -61,6 +61,7 @@ type Page struct {
 	tokExpIn     time.Duration
 	jtiExpIn     time.Duration
 	ticLen       int
+	ticExpIn     time.Duration
 
 	keyDb  keydb.Db
 	webDb  webdb.Db
@@ -99,6 +100,7 @@ func New(
 	tokExpIn time.Duration,
 	jtiExpIn time.Duration,
 	ticLen int,
+	ticExpIn time.Duration,
 	keyDb keydb.Db,
 	webDb webdb.Db,
 	acntDb account.Db,
@@ -134,6 +136,7 @@ func New(
 		tokExpIn:     tokExpIn,
 		jtiExpIn:     jtiExpIn,
 		ticLen:       ticLen,
+		ticExpIn:     ticExpIn,
 		keyDb:        keyDb,
 		webDb:        webDb,
 		acntDb:       acntDb,

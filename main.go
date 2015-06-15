@@ -317,6 +317,7 @@ func serve(param *parameters) (err error) {
 		param.tokExpIn,
 		param.jtiExpIn,
 		param.ticLen,
+		param.ticExpIn,
 		keyDb,
 		webDb,
 		acntDb,

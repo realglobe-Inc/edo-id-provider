@@ -19,6 +19,7 @@ import (
 	"github.com/realglobe-Inc/edo-id-provider/database/consent"
 	"github.com/realglobe-Inc/edo-id-provider/database/session"
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
+	"github.com/realglobe-Inc/edo-idp-selector/ticket"
 	"github.com/realglobe-Inc/edo-lib/jwk"
 	logutil "github.com/realglobe-Inc/edo-lib/log"
 	"github.com/realglobe-Inc/go-lib/rglog/level"
@@ -48,7 +49,7 @@ func TestSelectPage(t *testing.T) {
 	now := time.Now()
 	sess := session.New(test_sessId, now.Add(page.sessExpIn))
 	sess.SetRequest(test_req)
-	sess.SetTicket(test_tic)
+	sess.SetTicket(ticket.New(test_ticId, now.Add(page.ticExpIn)))
 	page.sessDb.Save(sess, now.Add(page.sessDbExpIn))
 
 	r, err := http.NewRequest("POST", page.selfId+"/select", strings.NewReader(test_selQuery))
@@ -121,7 +122,7 @@ func TestSelectPageRedirectClient(t *testing.T) {
 	acnt.Login()
 	sess.SelectAccount(acnt)
 	sess.SetRequest(test_req)
-	sess.SetTicket(test_tic)
+	sess.SetTicket(ticket.New(test_ticId, now.Add(page.ticExpIn)))
 	page.sessDb.Save(sess, now.Add(page.sessDbExpIn))
 
 	cons := consent.New(test_acnt.Id(), test_ta.Id())
@@ -164,7 +165,7 @@ func TestSelectPageIgnoreUnknownParameter(t *testing.T) {
 	now := time.Now()
 	sess := session.New(test_sessId, now.Add(page.sessExpIn))
 	sess.SetRequest(test_req)
-	sess.SetTicket(test_tic)
+	sess.SetTicket(ticket.New(test_ticId, now.Add(page.ticExpIn)))
 	page.sessDb.Save(sess, now.Add(page.sessDbExpIn))
 
 	r, err := http.NewRequest("POST", page.selfId+"/select", strings.NewReader(test_selQuery))
@@ -215,10 +216,154 @@ func TestSelectPageDenyOverlapParameter(t *testing.T) {
 	now := time.Now()
 	sess := session.New(test_sessId, now.Add(page.sessExpIn))
 	sess.SetRequest(test_req)
-	sess.SetTicket(test_tic)
+	sess.SetTicket(ticket.New(test_ticId, now.Add(page.ticExpIn)))
 	page.sessDb.Save(sess, now.Add(page.sessDbExpIn))
 
 	r, err := http.NewRequest("POST", page.selfId+"/select?"+test_selQuery+"&ticket=aaaa", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	r.AddCookie(&http.Cookie{
+		Name:  page.sessLabel,
+		Value: sess.Id(),
+	})
+
+	w := httptest.NewRecorder()
+	page.HandleSelect(w, r)
+
+	if w.Code != http.StatusFound {
+		t.Error(w.Code)
+		t.Fatal(http.StatusFound)
+	} else if uri, err := url.Parse(w.HeaderMap.Get("Location")); err != nil {
+		t.Fatal(err)
+	} else if q := uri.Query(); q == nil {
+		t.Fatal("no parameter")
+	} else if err, err2 := "access_denied", q.Get("error"); err2 != err {
+		t.Error(err2)
+		t.Fatal(err)
+	}
+}
+
+// 入力券が無ければ拒否できることの検査。
+func TestSelectPageDenyNoTicket(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	page := newTestPage([]jwk.Key{test_idpKey}, nil, []account.Element{test_acnt}, []tadb.Element{test_ta})
+	now := time.Now()
+	sess := session.New(test_sessId, now.Add(page.sessExpIn))
+	sess.SetRequest(test_req)
+	sess.SetTicket(ticket.New(test_ticId, now.Add(page.ticExpIn)))
+	page.sessDb.Save(sess, now.Add(page.sessDbExpIn))
+
+	r, err := http.NewRequest("POST", page.selfId+"/select", strings.NewReader(test_selQuery))
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	r.AddCookie(&http.Cookie{
+		Name:  page.sessLabel,
+		Value: sess.Id(),
+	})
+	{
+		buff, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		q, err := url.ParseQuery(string(buff))
+		if err != nil {
+			t.Fatal(err)
+		}
+		q.Del("ticket")
+		r.Body = ioutil.NopCloser(strings.NewReader(q.Encode()))
+	}
+
+	w := httptest.NewRecorder()
+	page.HandleSelect(w, r)
+
+	if w.Code != http.StatusFound {
+		t.Error(w.Code)
+		t.Fatal(http.StatusFound)
+	} else if uri, err := url.Parse(w.HeaderMap.Get("Location")); err != nil {
+		t.Fatal(err)
+	} else if q := uri.Query(); q == nil {
+		t.Fatal("no parameter")
+	} else if err, err2 := "access_denied", q.Get("error"); err2 != err {
+		t.Error(err2)
+		t.Fatal(err)
+	}
+}
+
+// 入力券がおかしければ拒否できることの検査。
+func TestSelectPageDenyInvalidTicket(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	page := newTestPage([]jwk.Key{test_idpKey}, nil, []account.Element{test_acnt}, []tadb.Element{test_ta})
+	now := time.Now()
+	sess := session.New(test_sessId, now.Add(page.sessExpIn))
+	sess.SetRequest(test_req)
+	sess.SetTicket(ticket.New(test_ticId, now.Add(page.ticExpIn)))
+	page.sessDb.Save(sess, now.Add(page.sessDbExpIn))
+
+	r, err := http.NewRequest("POST", page.selfId+"/select", strings.NewReader(test_selQuery))
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	r.AddCookie(&http.Cookie{
+		Name:  page.sessLabel,
+		Value: sess.Id(),
+	})
+	{
+		buff, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		q, err := url.ParseQuery(string(buff))
+		if err != nil {
+			t.Fatal(err)
+		}
+		q.Set("ticket", test_ticId+"a")
+		r.Body = ioutil.NopCloser(strings.NewReader(q.Encode()))
+	}
+
+	w := httptest.NewRecorder()
+	page.HandleSelect(w, r)
+
+	if w.Code != http.StatusFound {
+		t.Error(w.Code)
+		t.Fatal(http.StatusFound)
+	} else if uri, err := url.Parse(w.HeaderMap.Get("Location")); err != nil {
+		t.Fatal(err)
+	} else if q := uri.Query(); q == nil {
+		t.Fatal("no parameter")
+	} else if err, err2 := "access_denied", q.Get("error"); err2 != err {
+		t.Error(err2)
+		t.Fatal(err)
+	}
+}
+
+// 入力券が期限切れなら拒否できることの検査。
+func TestSelectPageDenyExpiredTicket(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	page := newTestPage([]jwk.Key{test_idpKey}, nil, []account.Element{test_acnt}, []tadb.Element{test_ta})
+	now := time.Now()
+	sess := session.New(test_sessId, now.Add(page.sessExpIn))
+	sess.SetRequest(test_req)
+	sess.SetTicket(ticket.New(test_ticId, now.Add(-1)))
+	page.sessDb.Save(sess, now.Add(page.sessDbExpIn))
+
+	r, err := http.NewRequest("POST", page.selfId+"/select", strings.NewReader(test_selQuery))
 	if err != nil {
 		t.Fatal(err)
 	}

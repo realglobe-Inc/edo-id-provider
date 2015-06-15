@@ -60,9 +60,9 @@ function login() {
         input.value = "password";
         form.appendChild(input);
 
-        var issuer = queries["issuer"];
-        var username = form.elements["username"].value;
-        var password = form.elements["password"].value;
-        form.elements["password"].value = calculate(issuer, username, password)
+        // var issuer = queries["issuer"];
+        // var username = form.elements["username"].value;
+        // var password = form.elements["password"].value;
+        // form.elements["password"].value = calculate(issuer, username, password)
     }
 }

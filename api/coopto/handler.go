@@ -174,24 +174,24 @@ func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 
 	log.Debug(sender, ": Declared code is exist")
 
-	taTo, err := this.taDb.Get(cod.ToTa())
+	toTa, err := this.taDb.Get(cod.ToTa())
 	if err != nil {
 		return erro.Wrap(err)
-	} else if taTo == nil {
+	} else if toTa == nil {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "to-TA "+cod.ToTa()+" is not exist", http.StatusBadRequest, nil))
 	} else if ass, err := assertion.Parse(req.taAssertion()); err != nil {
 		return erro.Wrap(idperr.New(idperr.Invalid_client, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
-	} else if ass.Issuer() != taTo.Id() {
+	} else if ass.Issuer() != toTa.Id() {
 		return erro.Wrap(idperr.New(idperr.Invalid_grant, ass.Issuer()+" is not code holder", http.StatusBadRequest, nil))
 	} else if err := ass.Verify(toTa.Id(), toTa.Keys(), this.selfId+this.pathCoopTo); err != nil {
 		return erro.Wrap(idperr.New(idperr.Invalid_client, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
-	} else if ok, err := this.jtiDb.SaveIfAbsent(jtidb.New(taTo.Id(), ass.Id(), ass.Expires())); err != nil {
+	} else if ok, err := this.jtiDb.SaveIfAbsent(jtidb.New(toTa.Id(), ass.Id(), ass.Expires())); err != nil {
 		return erro.Wrap(err)
 	} else if !ok {
 		return erro.New("JWT ID overlaps")
 	}
 
-	log.Debug(sender, ": Verified to-TA "+taTo.Id())
+	log.Debug(sender, ": Verified to-TA "+toTa.Id())
 
 	tagToId := map[string]string{}
 	for _, acnt := range cod.Accounts() {
@@ -204,13 +204,13 @@ func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 	}
 
 	if cod.SourceToken() != "" {
-		return this.serveAsMain(w, r, req, cod, taTo, sender)
+		return this.serveAsMain(w, r, req, cod, toTa, sender)
 	} else {
-		return this.serveAsSub(w, r, req, cod, taTo, sender)
+		return this.serveAsSub(w, r, req, cod, toTa, sender)
 	}
 }
 
-func (this *handler) serveAsMain(w http.ResponseWriter, r *http.Request, req *request, cod *coopcode.Element, taTo tadb.Element, sender *requtil.Request) error {
+func (this *handler) serveAsMain(w http.ResponseWriter, r *http.Request, req *request, cod *coopcode.Element, toTa tadb.Element, sender *requtil.Request) error {
 	ids := map[string]map[string]interface{}{}
 
 	var tok *token.Element
@@ -220,14 +220,14 @@ func (this *handler) serveAsMain(w http.ResponseWriter, r *http.Request, req *re
 			return erro.Wrap(err)
 		} else if acnt == nil {
 			return erro.Wrap(idperr.New(idperr.Invalid_request, "accout "+cod.Account().Tag()+" is not exist", http.StatusForbidden, nil))
-		} else if err := idputil.SetSub(this, acnt, taTo); err != nil {
+		} else if err := idputil.SetSub(this, acnt, toTa); err != nil {
 			return erro.Wrap(err)
 		} else if err := idputil.CheckClaims(acnt, req.claims().IdTokenEntries()); err != nil {
 			return erro.Wrap(idperr.New(idperr.Access_denied, erro.Unwrap(err).Error(), http.StatusForbidden, err))
 		} else if err := idputil.CheckClaims(acnt, req.claims().AccountEntries()); err != nil {
 			return erro.Wrap(idperr.New(idperr.Access_denied, erro.Unwrap(err).Error(), http.StatusForbidden, err))
 		}
-		cons, err := this.consDb.Get(acnt.Id(), taTo.Id())
+		cons, err := this.consDb.Get(acnt.Id(), toTa.Id())
 		if err != nil {
 			return erro.Wrap(err)
 		} else if cons == nil {
@@ -249,7 +249,7 @@ func (this *handler) serveAsMain(w http.ResponseWriter, r *http.Request, req *re
 			cod.Account().Id(),
 			cod.Scope(),
 			acntAttrs,
-			taTo.Id(),
+			toTa.Id(),
 		)
 		idTokAttrs, err := idputil.ProvidedAttributes(cons.Scope(), cons.Attribute(), nil, req.claims().IdTokenEntries())
 		if err != nil {
@@ -270,12 +270,12 @@ func (this *handler) serveAsMain(w http.ResponseWriter, r *http.Request, req *re
 			return erro.Wrap(err)
 		} else if acnt == nil {
 			return erro.Wrap(idperr.New(idperr.Invalid_request, "accout "+codAcnt.Tag()+" is not exist", http.StatusForbidden, nil))
-		} else if err := idputil.SetSub(this, acnt, taTo); err != nil {
+		} else if err := idputil.SetSub(this, acnt, toTa); err != nil {
 			return erro.Wrap(err)
 		} else if err := idputil.CheckClaims(acnt, req.subClaims()[codAcnt.Tag()]); err != nil {
 			return erro.Wrap(idperr.New(idperr.Access_denied, erro.Unwrap(err).Error(), http.StatusForbidden, err))
 		}
-		cons, err := this.consDb.Get(acnt.Id(), taTo.Id())
+		cons, err := this.consDb.Get(acnt.Id(), toTa.Id())
 		if err != nil {
 			return erro.Wrap(err)
 		} else if cons == nil {
@@ -303,7 +303,7 @@ func (this *handler) serveAsMain(w http.ResponseWriter, r *http.Request, req *re
 	}
 	jt.SetClaim(tagIss, this.selfId)
 	jt.SetClaim(tagSub, cod.FromTa())
-	jt.SetClaim(tagAud, audience.New(taTo.Id()))
+	jt.SetClaim(tagAud, audience.New(toTa.Id()))
 	jt.SetClaim(tagExp, now.Add(this.jtiExpIn).Unix())
 	jt.SetClaim(tagIat, now.Unix())
 	jt.SetClaim(tagIds, ids)
@@ -341,6 +341,6 @@ func (this *handler) serveAsMain(w http.ResponseWriter, r *http.Request, req *re
 	return idputil.RespondJson(w, respParams)
 }
 
-func (this *handler) serveAsSub(w http.ResponseWriter, r *http.Request, req *request, cod *coopcode.Element, taTo tadb.Element, sender *requtil.Request) error {
+func (this *handler) serveAsSub(w http.ResponseWriter, r *http.Request, req *request, cod *coopcode.Element, toTa tadb.Element, sender *requtil.Request) error {
 	panic("not yet implemented")
 }

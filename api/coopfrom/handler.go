@@ -16,6 +16,7 @@
 package coopfrom
 
 import (
+	"github.com/realglobe-Inc/edo-id-provider/assertion"
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
 	"github.com/realglobe-Inc/edo-id-provider/database/coopcode"
 	jtidb "github.com/realglobe-Inc/edo-id-provider/database/jti"
@@ -33,10 +34,10 @@ import (
 	logutil "github.com/realglobe-Inc/edo-lib/log"
 	"github.com/realglobe-Inc/edo-lib/rand"
 	"github.com/realglobe-Inc/edo-lib/server"
-	"github.com/realglobe-Inc/edo-lib/strset"
 	"github.com/realglobe-Inc/edo-lib/strset/strsetutil"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"github.com/realglobe-Inc/go-lib/rglog/level"
+	"hash"
 	"net/http"
 	"time"
 )
@@ -44,10 +45,9 @@ import (
 type handler struct {
 	stopper *server.Stopper
 
-	selfId  string
-	sigAlg  string
-	sigKid  string
-	hashAlg string
+	selfId string
+	sigAlg string
+	sigKid string
 
 	pathCoopFr string
 
@@ -75,7 +75,6 @@ func New(
 	selfId string,
 	sigAlg string,
 	sigKid string,
-	hashAlg string,
 	pathCoopFr string,
 	codLen int,
 	codExpIn time.Duration,
@@ -98,7 +97,6 @@ func New(
 		selfId:     selfId,
 		sigAlg:     sigAlg,
 		sigKid:     sigKid,
-		hashAlg:    hashAlg,
 		pathCoopFr: pathCoopFr,
 		codLen:     codLen,
 		codExpIn:   codExpIn,
@@ -189,20 +187,22 @@ func (this *handler) serveAsMain(w http.ResponseWriter, r *http.Request, req *re
 
 	log.Debug(sender, ": From-TA "+req.fromTa()+" is declared")
 
-	taFr, err := this.taDb.Get(req.fromTa())
+	frTa, err := this.taDb.Get(req.fromTa())
 	if err != nil {
 		return erro.Wrap(err)
-	} else if taFr == nil {
+	} else if frTa == nil {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "from-TA "+req.fromTa()+" is not exist", http.StatusBadRequest, nil))
-	} else if jti, err := idputil.VerifyAssertion(req.taAssertion(), taFr.Id(), taFr.Keys(), this.selfId+this.pathCoopFr); err != nil {
+	} else if ass, err := assertion.Parse(req.taAssertion()); err != nil {
 		return erro.Wrap(idperr.New(idperr.Invalid_client, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
-	} else if ok, err := this.jtiDb.SaveIfAbsent(jti); err != nil {
+	} else if err := ass.Verify(frTa.Id(), frTa.Keys(), this.selfId+this.pathCoopFr); err != nil {
+		return erro.Wrap(idperr.New(idperr.Invalid_client, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
+	} else if ok, err := this.jtiDb.SaveIfAbsent(jtidb.New(frTa.Id(), ass.Id(), ass.Expires())); err != nil {
 		return erro.Wrap(err)
 	} else if !ok {
 		return erro.New("JWT ID overlaps")
 	}
 
-	log.Debug(sender, ": Verified from-TA "+taFr.Id())
+	log.Debug(sender, ": Verified from-TA "+frTa.Id())
 
 	if req.toTa() == "" {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "no to-TA ID", http.StatusBadRequest, nil))
@@ -212,14 +212,14 @@ func (this *handler) serveAsMain(w http.ResponseWriter, r *http.Request, req *re
 
 	log.Debug(sender, ": To-TA "+req.fromTa()+" is declared")
 
-	taTo, err := this.taDb.Get(req.toTa())
+	toTa, err := this.taDb.Get(req.toTa())
 	if err != nil {
 		return erro.Wrap(err)
-	} else if taTo == nil {
+	} else if toTa == nil {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "to-TA "+req.toTa()+" is not exist", http.StatusBadRequest, nil))
 	}
 
-	log.Debug(sender, ": To-TA "+taTo.Id()+" is exist")
+	log.Debug(sender, ": To-TA "+toTa.Id()+" is exist")
 
 	if req.grantType() != tagAccess_token {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "unsupported grant type "+req.grantType(), http.StatusBadRequest, nil))
@@ -276,139 +276,55 @@ func (this *handler) serveAsMain(w http.ResponseWriter, r *http.Request, req *re
 
 	log.Debug(sender, ": Main account tag is "+req.accountTag())
 
+	codAcnts, err := this.getAccounts(req.accounts(), frTa)
+	if err != nil {
+		return erro.Wrap(err)
+	}
 	allTags := map[string]bool{req.accountTag(): true}
-	acntTags := map[string]bool{}
-	var codAcnts []*coopcode.Account
-	if acnts := req.accounts(); len(acnts) > 0 {
-		codAcnts = []*coopcode.Account{}
-		for tag, acntId := range acnts {
-			if allTags[tag] {
-				return erro.Wrap(idperr.New(idperr.Invalid_request, "account tag "+tag+" overlaps", http.StatusBadRequest, nil))
-			}
-			if taFr.Pairwise() {
-				pw, err := this.pwDb.GetByPairwise(taFr.Sector(), acntId)
-				if err != nil {
-					return erro.Wrap(err)
-				} else if pw == nil {
-					return erro.Wrap(idperr.New(idperr.Invalid_request, "no pairwise ID", http.StatusBadRequest, nil))
-				}
-				acntId = pw.Account()
-			}
-			acnt, err := this.acntDb.Get(acntId)
-			if err != nil {
-				return erro.Wrap(err)
-			} else if acnt == nil {
-				return erro.Wrap(idperr.New(idperr.Invalid_request, tag+" tagged account "+acntId+" is not exist", http.StatusBadRequest, nil))
-			}
-
-			allTags[tag] = true
-			acntTags[tag] = true
-			codAcnts = append(codAcnts, coopcode.NewAccount(acnt.Id(), tag))
-			log.Debug(sender, ": "+tag+" tagged account "+acnt.Id()+" ("+acntId+") is exist")
+	for _, codAcnt := range codAcnts {
+		if allTags[codAcnt.Tag()] {
+			return erro.Wrap(idperr.New(idperr.Invalid_request, "account tag "+codAcnt.Tag()+" overlaps", http.StatusBadRequest, nil))
 		}
+		allTags[codAcnt.Tag()] = true
 	}
 
 	var keys []jwk.Key
 	var ref []byte
+	var hFun hash.Hash
 	if reqRef {
-		hashAlg := req.hashAlgorithm()
-		if hashAlg == "" {
-			hashAlg = this.hashAlg
-		}
-		hashStrSize, err := hashutil.StringSize(hashAlg)
-		if err != nil {
-			return erro.Wrap(idperr.New(idperr.Invalid_request, "unsupported hash algorithm "+hashAlg, http.StatusBadRequest, nil))
-		}
-
-		log.Debug(sender, ": Hash algorithm "+hashAlg+" is OK")
-
-		if len(req.relatedAccounts()) == 0 {
-			return erro.Wrap(idperr.New(idperr.Invalid_request, "no related accounts", http.StatusBadRequest, nil))
-		}
-		for tag, hashStr := range req.relatedAccounts() {
-			if allTags[tag] {
-				return erro.Wrap(idperr.New(idperr.Invalid_request, "related account tag "+tag+" overlaps", http.StatusBadRequest, nil))
-			} else if len(hashStr) != hashStrSize {
-				return erro.Wrap(idperr.New(idperr.Invalid_request, "invalid related account hash", http.StatusBadRequest, nil))
+		for acntTag := range req.relatedAccounts() {
+			if allTags[acntTag] {
+				return erro.Wrap(idperr.New(idperr.Invalid_request, "related account tag "+acntTag+" overlaps", http.StatusBadRequest, nil))
 			}
-			allTags[tag] = true
+			allTags[acntTag] = true
 		}
-
-		log.Debug(sender, ": Related accounts are OK")
-
-		if len(req.relatedIdProviders()) == 0 {
-			return erro.Wrap(idperr.New(idperr.Invalid_request, "no related ID providers", http.StatusBadRequest, nil))
-		}
-		for _, idpId := range req.relatedIdProviders() {
-			if idp, err := this.idpDb.Get(idpId); err != nil {
-				return erro.Wrap(err)
-			} else if idp == nil {
-				return erro.Wrap(idperr.New(idperr.Invalid_request, "no related ID provider "+idpId, http.StatusBadRequest, nil))
-			}
-		}
-
-		jt := jwt.New()
-		jt.SetHeader(tagAlg, this.sigAlg)
-		if this.sigKid != "" {
-			jt.SetHeader(tagKid, this.sigKid)
-		}
-		jt.SetClaim(tagIss, this.selfId)
-		jt.SetClaim(tagSub, taFr.Id())
-		jt.SetClaim(tagAud, req.relatedIdProviders())
-		jt.SetClaim(tagExp, now.Add(this.jtiExpIn).Unix())
-		jt.SetClaim(tagJti, this.idGen.String(this.jtiLen))
-		jt.SetClaim(tagTo_client, taTo.Id())
-		jt.SetClaim(tagRelated_users, req.relatedAccounts())
-		jt.SetClaim(tagHash_alg, hashAlg)
-
 		if keys, err = this.keyDb.Get(); err != nil {
 			return erro.Wrap(err)
-		} else if err := jt.Sign(keys); err != nil {
-			return erro.Wrap(err)
-		} else if ref, err = jt.Encode(); err != nil {
+		} else if ref, err = this.makeReferral(req, keys, sender); err != nil {
 			return erro.Wrap(err)
 		}
-
 		log.Info(sender, ": Generated referral")
+
+		hGen, err := hashutil.HashFunction(req.hashAlgorithm())
+		if err != nil {
+			return erro.Wrap(err)
+		}
+		hFun = hGen.New()
 	}
 
 	codId := this.idGen.String(this.codLen)
-	jt := jwt.New()
-	jt.SetHeader(tagAlg, this.sigAlg)
-	if this.sigKid != "" {
-		jt.SetHeader(tagKid, this.sigKid)
-	}
-	jt.SetClaim(tagIss, this.selfId)
-	jt.SetClaim(tagSub, codId)
-	jt.SetClaim(tagAud, taTo.Id())
-	jt.SetClaim(tagFrom_client, taFr.Id())
-	jt.SetClaim(tagUser_tag, req.accountTag())
-	if len(acntTags) > 0 {
-		jt.SetClaim(tagUser_tags, strset.Set(acntTags))
-	}
-	if ref != nil {
-		hGen, err := jwt.HashFunction(this.sigAlg)
-		if err != nil {
-			return erro.Wrap(err)
-		}
-		jt.SetClaim(tagRef_hash, hashutil.Hashing(hGen.New(), ref))
-	}
-
 	if keys == nil {
 		if keys, err = this.keyDb.Get(); err != nil {
 			return erro.Wrap(err)
 		}
 	}
-	if err := jt.Sign(keys); err != nil {
-		return erro.Wrap(err)
-	}
-	codTok, err := jt.Encode()
+	codTok, err := this.makeCodeToken(req, codId, frTa.Id(), toTa.Id(), ref, hFun, keys)
 	if err != nil {
 		return erro.Wrap(err)
 	}
 	log.Info(sender, ": Generated code token")
 
-	cod := coopcode.New(codId, now.Add(this.codExpIn), coopcode.NewAccount(tok.Account(), req.accountTag()), tok.Id(), scop, exp, codAcnts, taFr.Id(), taTo.Id())
+	cod := coopcode.New(codId, now.Add(this.codExpIn), coopcode.NewAccount(tok.Account(), req.accountTag()), tok.Id(), scop, exp, codAcnts, frTa.Id(), toTa.Id())
 	if err := this.codDb.Save(cod, now.Add(this.codDbExpIn)); err != nil {
 		return erro.Wrap(err)
 	}
@@ -425,5 +341,229 @@ func (this *handler) serveAsMain(w http.ResponseWriter, r *http.Request, req *re
 
 // 処理の主体が属さない ID プロバイダとして対応。
 func (this *handler) serveAsSub(w http.ResponseWriter, r *http.Request, req *request, sender *requtil.Request) error {
-	panic("not yet implemented")
+	if len(req.responseType()) > 1 || !req.responseType()[tagCode_token] {
+		return erro.Wrap(idperr.New(idperr.Invalid_request, "unsupported response type "+requtil.ValueSetForm(req.responseType()), http.StatusBadRequest, nil))
+	}
+
+	log.Debug(sender, ": Response types "+requtil.ValueSetForm(req.responseType())+" is OK")
+
+	if req.grantType() != tagReferral {
+		return erro.Wrap(idperr.New(idperr.Invalid_request, "unsupported grant type "+req.grantType(), http.StatusBadRequest, nil))
+	}
+
+	log.Debug(sender, ": Grant type "+req.grantType()+" is OK")
+
+	if req.referral() == nil {
+		return erro.Wrap(idperr.New(idperr.Invalid_request, "no referral", http.StatusBadRequest, nil))
+	} else if len(req.accounts()) == 0 {
+		return erro.Wrap(idperr.New(idperr.Invalid_request, "no accounts", http.StatusBadRequest, nil))
+	}
+
+	ref, err := parseReferral(req.referral())
+	if err != nil {
+		return erro.Wrap(idperr.New(idperr.Invalid_grant, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
+	}
+
+	log.Debug(sender, ": Parsed referral")
+
+	idp, err := this.idpDb.Get(ref.idProvider())
+	if err != nil {
+		return erro.Wrap(err)
+	} else if idp == nil {
+		return erro.Wrap(idperr.New(idperr.Invalid_grant, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
+	} else if err := ref.verify(idp.Keys(), this.selfId); err != nil {
+		return erro.Wrap(idperr.New(idperr.Invalid_grant, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
+	}
+
+	log.Debug(sender, ": Primary ID provider "+idp.Id()+" is exist")
+
+	frTa, err := this.taDb.Get(ref.fromTa())
+	if err != nil {
+		return erro.Wrap(err)
+	} else if frTa == nil {
+		return erro.Wrap(idperr.New(idperr.Invalid_grant, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
+	}
+
+	log.Debug(sender, ": From-TA "+frTa.Id()+" is exist")
+
+	if ass, err := assertion.Parse(req.taAssertion()); err != nil {
+		return erro.Wrap(idperr.New(idperr.Invalid_client, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
+	} else if err := ass.Verify(frTa.Id(), frTa.Keys(), this.selfId+this.pathCoopFr); err != nil {
+		return erro.Wrap(idperr.New(idperr.Invalid_client, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
+	} else if ok, err := this.jtiDb.SaveIfAbsent(jtidb.New(frTa.Id(), ass.Id(), ass.Expires())); err != nil {
+		return erro.Wrap(err)
+	} else if !ok {
+		return erro.New("JWT ID overlaps")
+	}
+
+	log.Debug(sender, ": Authenticated from-TA "+frTa.Id())
+
+	toTa, err := this.taDb.Get(ref.toTa())
+	if err != nil {
+		return erro.Wrap(err)
+	} else if toTa == nil {
+		return erro.Wrap(idperr.New(idperr.Invalid_grant, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
+	}
+
+	log.Debug(sender, ": To-TA "+frTa.Id()+" is exist")
+
+	codAcnts, err := this.getAccounts(req.accounts(), frTa)
+	if err != nil {
+		return erro.Wrap(err)
+	}
+
+	log.Debug(sender, ": Accounts are exist")
+
+	hGen, err := hashutil.HashFunction(ref.hashAlgorithm())
+	if err != nil {
+		return erro.Wrap(err)
+	}
+	hFun := hGen.New()
+	for acntTag, acntId := range req.accounts() {
+		hFun.Reset()
+		if hashutil.Hashing(hFun, []byte(this.selfId), []byte{0}, []byte(acntId)) != ref.relatedAccounts()[acntTag] {
+			return erro.Wrap(idperr.New(idperr.Invalid_grant, "invalid account hash", http.StatusBadRequest, nil))
+		}
+	}
+
+	log.Debug(sender, ": Account hashes are OK")
+
+	codId := this.idGen.String(this.codLen)
+	keys, err := this.keyDb.Get()
+	if err != nil {
+		return erro.Wrap(err)
+	}
+	hFun.Reset()
+	codTok, err := this.makeCodeToken(req, codId, frTa.Id(), toTa.Id(), req.referral(), hFun, keys)
+	if err != nil {
+		return erro.Wrap(err)
+	}
+	log.Info(sender, ": Generated code token")
+
+	now := time.Now()
+	cod := coopcode.New(codId, now.Add(this.codExpIn), nil, "", nil, time.Time{}, codAcnts, frTa.Id(), toTa.Id())
+	if err := this.codDb.Save(cod, now.Add(this.codDbExpIn)); err != nil {
+		return erro.Wrap(err)
+	}
+	log.Info(sender, ": Saved code")
+
+	return idputil.RespondJson(w, map[string]interface{}{
+		tagCode_token: string(codTok),
+	})
+}
+
+// リクエストの users パラメータに対応するアカウント情報を返す。
+// 返り値はアカウントタグからアカウント情報へのマップ。
+func (this *handler) getAccounts(tagToId map[string]string, frTa tadb.Element) ([]*coopcode.Account, error) {
+	codAcnts := []*coopcode.Account{}
+	for acntTag, acntId := range tagToId {
+		if frTa.Pairwise() {
+			pw, err := this.pwDb.GetByPairwise(frTa.Sector(), acntId)
+			if err != nil {
+				return nil, erro.Wrap(err)
+			} else if pw == nil {
+				return nil, erro.Wrap(idperr.New(idperr.Invalid_request, "no pairwise ID", http.StatusBadRequest, nil))
+			}
+			acntId = pw.Account()
+		}
+		acnt, err := this.acntDb.Get(acntId)
+		if err != nil {
+			return nil, erro.Wrap(err)
+		} else if acnt == nil {
+			return nil, erro.Wrap(idperr.New(idperr.Invalid_request, "account "+acntId+" tagged by "+acntTag+" is not exist", http.StatusBadRequest, nil))
+		}
+
+		codAcnts = append(codAcnts, coopcode.NewAccount(acntId, acntTag))
+	}
+	return codAcnts, nil
+}
+
+func (this *handler) makeReferral(req *request, keys []jwk.Key, sender *requtil.Request) ([]byte, error) {
+	hashStrSize, err := hashutil.StringSize(req.hashAlgorithm())
+	if err != nil {
+		return nil, erro.Wrap(idperr.New(idperr.Invalid_request, "unsupported hash algorithm "+req.hashAlgorithm(), http.StatusBadRequest, nil))
+	}
+
+	log.Debug(sender, ": Hash algorithm "+req.hashAlgorithm()+" is supported")
+
+	if len(req.relatedAccounts()) == 0 {
+		return nil, erro.Wrap(idperr.New(idperr.Invalid_request, "no related accounts", http.StatusBadRequest, nil))
+	}
+	for _, acntHash := range req.relatedAccounts() {
+		if len(acntHash) != hashStrSize {
+			return nil, erro.Wrap(idperr.New(idperr.Invalid_request, "invalid related account hash", http.StatusBadRequest, nil))
+		}
+	}
+
+	log.Debug(sender, ": Related accounts are OK")
+
+	if len(req.relatedIdProviders()) == 0 {
+		return nil, erro.Wrap(idperr.New(idperr.Invalid_request, "no related ID providers", http.StatusBadRequest, nil))
+	}
+	for _, idpId := range req.relatedIdProviders() {
+		if idp, err := this.idpDb.Get(idpId); err != nil {
+			return nil, erro.Wrap(err)
+		} else if idp == nil {
+			return nil, erro.Wrap(idperr.New(idperr.Invalid_request, "no related ID provider "+idpId, http.StatusBadRequest, nil))
+		}
+	}
+
+	ref := jwt.New()
+	ref.SetHeader(tagAlg, this.sigAlg)
+	if this.sigKid != "" {
+		ref.SetHeader(tagKid, this.sigKid)
+	}
+	ref.SetClaim(tagIss, this.selfId)
+	ref.SetClaim(tagSub, req.fromTa())
+	ref.SetClaim(tagAud, req.relatedIdProviders())
+	ref.SetClaim(tagExp, time.Now().Add(this.jtiExpIn).Unix())
+	ref.SetClaim(tagJti, this.idGen.String(this.jtiLen))
+	ref.SetClaim(tagTo_client, req.toTa())
+	ref.SetClaim(tagRelated_users, req.relatedAccounts())
+	ref.SetClaim(tagHash_alg, req.hashAlgorithm())
+
+	if err := ref.Sign(keys); err != nil {
+		return nil, erro.Wrap(err)
+	}
+	data, err := ref.Encode()
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
+
+	return data, nil
+}
+
+func (this *handler) makeCodeToken(req *request, codId, frTa, toTa string, ref []byte, hFun hash.Hash, keys []jwk.Key) ([]byte, error) {
+	jt := jwt.New()
+	jt.SetHeader(tagAlg, this.sigAlg)
+	if this.sigKid != "" {
+		jt.SetHeader(tagKid, this.sigKid)
+	}
+	jt.SetClaim(tagIss, this.selfId)
+	jt.SetClaim(tagSub, codId)
+	jt.SetClaim(tagAud, toTa)
+	jt.SetClaim(tagFrom_client, frTa)
+	if req.accountTag() != "" {
+		jt.SetClaim(tagUser_tag, req.accountTag())
+	}
+	if len(req.accounts()) > 0 {
+		acntTags := []string{}
+		for acntTag := range req.accounts() {
+			acntTags = append(acntTags, acntTag)
+		}
+		jt.SetClaim(tagUser_tags, acntTags)
+	}
+	if ref != nil {
+		jt.SetClaim(tagRef_hash, hashutil.Hashing(hFun, ref))
+	}
+
+	if err := jt.Sign(keys); err != nil {
+		return nil, erro.Wrap(err)
+	}
+	data, err := jt.Encode()
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
+
+	return data, nil
 }

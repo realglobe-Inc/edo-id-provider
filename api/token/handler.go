@@ -16,6 +16,7 @@
 package token
 
 import (
+	"github.com/realglobe-Inc/edo-id-provider/assertion"
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
 	"github.com/realglobe-Inc/edo-id-provider/database/authcode"
 	jtidb "github.com/realglobe-Inc/edo-id-provider/database/jti"
@@ -240,9 +241,11 @@ func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 	ta, err := this.taDb.Get(req.ta())
 	if err != nil {
 		return erro.Wrap(err)
-	} else if jti, err := idputil.VerifyAssertion(req.taAssertion(), ta.Id(), ta.Keys(), this.selfId+this.pathTok); err != nil {
+	} else if ass, err := assertion.Parse(req.taAssertion()); err != nil {
 		return erro.Wrap(idperr.New(idperr.Invalid_client, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
-	} else if ok, err := this.jtiDb.SaveIfAbsent(jti); err != nil {
+	} else if err := ass.Verify(ta.Id(), ta.Keys(), this.selfId+this.pathTok); err != nil {
+		return erro.Wrap(idperr.New(idperr.Invalid_client, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
+	} else if ok, err := this.jtiDb.SaveIfAbsent(jtidb.New(ta.Id(), ass.Id(), ass.Expires())); err != nil {
 		return erro.Wrap(err)
 	} else if !ok {
 		return erro.New("JWT ID overlaps")

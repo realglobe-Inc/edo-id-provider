@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package idputil
+package assertion
 
 import (
 	"github.com/realglobe-Inc/edo-lib/jwk"
@@ -20,8 +20,8 @@ import (
 	"time"
 )
 
-func TestVerifyAssertion(t *testing.T) {
-	ass := []byte("eyJhbGciOiJFUzI1NiJ9.eyJhdWQiOiJodHRwczovL2lkcC5leGFtcGxlLm9yZy9hcGkvdG9rZW4iLCJleHAiOjEwMDAwMDAwMDAwMCwiaXNzIjoiaHR0cHM6Ly90YS5leGFtcGxlLm9yZyIsImp0aSI6IjVDWXAxUFFvMm1UV3Ztak8wcUFQIiwic3ViIjoiaHR0cHM6Ly90YS5leGFtcGxlLm9yZyJ9.EqiV-a-hrMDZGkWwJdCYSoOeQUrsJVW4hxMic2W5YF4MOT0_4VJQFkamgpZJHgK82RcThuWiJ4iAh8dz8tsNJA")
+func TestAssertion(t *testing.T) {
+	raw := []byte("eyJhbGciOiJFUzI1NiJ9.eyJhdWQiOiJodHRwczovL2lkcC5leGFtcGxlLm9yZy9hcGkvdG9rZW4iLCJleHAiOjEwMDAwMDAwMDAwMCwiaXNzIjoiaHR0cHM6Ly90YS5leGFtcGxlLm9yZyIsImp0aSI6IjVDWXAxUFFvMm1UV3Ztak8wcUFQIiwic3ViIjoiaHR0cHM6Ly90YS5leGFtcGxlLm9yZyJ9.EqiV-a-hrMDZGkWwJdCYSoOeQUrsJVW4hxMic2W5YF4MOT0_4VJQFkamgpZJHgK82RcThuWiJ4iAh8dz8tsNJA")
 	taId := "https://ta.example.org"
 	key, err := jwk.FromMap(map[string]interface{}{
 		"kty": "EC",
@@ -36,13 +36,16 @@ func TestVerifyAssertion(t *testing.T) {
 	id := "5CYp1PQo2mTWvmjO0qAP"
 	exp := time.Unix(100000000000, 0)
 
-	if jti, err := VerifyAssertion(ass, taId, []jwk.Key{key}, aud); err != nil {
+	ass, err := Parse(raw)
+	if err != nil {
 		t.Fatal(err)
-	} else if jti.Id() != id {
-		t.Error(jti.Id())
+	} else if err := ass.Verify(taId, []jwk.Key{key}, aud); err != nil {
+		t.Fatal(err)
+	} else if ass.Id() != id {
+		t.Error(ass.Id())
 		t.Fatal(id)
-	} else if !jti.Expires().Equal(exp) {
-		t.Error(jti.Expires())
+	} else if !ass.Expires().Equal(exp) {
+		t.Error(ass.Expires())
 		t.Fatal(exp)
 	}
 }

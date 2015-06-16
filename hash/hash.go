@@ -51,7 +51,7 @@ func HashFunction(alg string) (crypto.Hash, error) {
 }
 
 // ハッシュ値を計算して前半分を Base64URL エンコードして返す。
-func Hashing(h hash.Hash, data ...[]byte) string {
-	sum := hashutil.Hashing(h, data...)
+func Hashing(hFun hash.Hash, data ...[]byte) string {
+	sum := hashutil.Hashing(hFun, data...)
 	return base64url.EncodeToString(sum[:len(sum)/2])
 }

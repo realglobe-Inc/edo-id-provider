@@ -37,6 +37,8 @@ type request struct {
 	relIdps   []string
 	taAssType string
 	taAss     []byte
+
+	ref []byte
 }
 
 func parseRequest(r *http.Request) (*request, error) {
@@ -110,6 +112,10 @@ func (this *request) taAssertion() []byte {
 	return this.taAss
 }
 
+func (this *request) referral() []byte {
+	return this.ref
+}
+
 func (this *request) UnmarshalJSON(data []byte) error {
 	var buff struct {
 		GrntType  string            `json:"grant_type"`
@@ -126,6 +132,7 @@ func (this *request) UnmarshalJSON(data []byte) error {
 		RelIdps   []string          `json:"related_issuers"`
 		TaAssType string            `json:"client_assertion_type"`
 		TaAss     string            `json:"client_assertion"`
+		Ref       string            `json:"referral"`
 	}
 	if err := json.Unmarshal(data, &buff); err != nil {
 		return erro.Wrap(err)
@@ -150,6 +157,9 @@ func (this *request) UnmarshalJSON(data []byte) error {
 	this.taAssType = buff.TaAssType
 	if buff.TaAss != "" {
 		this.taAss = []byte(buff.TaAss)
+	}
+	if buff.Ref != "" {
+		this.ref = []byte(buff.Ref)
 	}
 	return nil
 }

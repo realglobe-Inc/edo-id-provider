@@ -394,7 +394,6 @@ func serve(param *parameters) (err error) {
 		param.selfId,
 		param.sigAlg,
 		param.sigKid,
-		param.hashAlg,
 		param.pathCoopFr,
 		param.ccodLen,
 		param.ccodExpIn,

@@ -45,10 +45,9 @@ import (
 type system struct {
 	stopper *server.Stopper
 
-	selfId  string
-	sigAlg  string
-	sigKid  string
-	hashAlg string
+	selfId string
+	sigAlg string
+	sigKid string
 
 	pathTok    string
 	pathCoopFr string
@@ -107,7 +106,6 @@ func newTestSystem(selfKeys []jwk.Key, acnts []account.Element, tas []tadb.Eleme
 		"",
 		"ES256",
 		"",
-		"SHA256",
 		test_pathTok,
 		test_pathCoopFr,
 		test_pathCoopTo,
@@ -249,7 +247,6 @@ func (this *system) coopFromApi() http.Handler {
 		this.selfId,
 		this.sigAlg,
 		this.sigKid,
-		this.hashAlg,
 		this.pathCoopFr,
 		this.ccodLen,
 		this.ccodExpIn,

@@ -211,10 +211,18 @@ func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 }
 
 func (this *handler) serveAsMain(w http.ResponseWriter, r *http.Request, req *request, cod *coopcode.Element, toTa tadb.Element, sender *requtil.Request) error {
+	return this.serveAs(true, w, r, req, cod, toTa, sender)
+}
+
+func (this *handler) serveAsSub(w http.ResponseWriter, r *http.Request, req *request, cod *coopcode.Element, toTa tadb.Element, sender *requtil.Request) error {
+	return this.serveAs(false, w, r, req, cod, toTa, sender)
+}
+
+func (this *handler) serveAs(isMain bool, w http.ResponseWriter, r *http.Request, req *request, cod *coopcode.Element, toTa tadb.Element, sender *requtil.Request) error {
 	ids := map[string]map[string]interface{}{}
 
 	var tok *token.Element
-	{
+	if isMain {
 		acnt, err := this.acntDb.Get(cod.Account().Id())
 		if err != nil {
 			return erro.Wrap(err)
@@ -317,30 +325,30 @@ func (this *handler) serveAsMain(w http.ResponseWriter, r *http.Request, req *re
 		return erro.Wrap(err)
 	}
 
-	// TODO アクセストークンを元になったアクセストークンに紐付ける。
-	log.Warn(sender, ": Not linked token "+logutil.Mosaic(tok.Id())+" to source token "+logutil.Mosaic(cod.SourceToken()))
-
-	// アクセストークンを保存する。
-	if err := this.tokDb.Save(tok, tok.Expires().Add(this.tokDbExpIn-this.tokExpIn)); err != nil {
-		return erro.Wrap(err)
-	}
-
-	log.Debug(sender, ": Saved token "+logutil.Mosaic(tok.Id()))
-
 	respParams := map[string]interface{}{
-		tagAccess_token: tok.Id(),
-		tagToken_type:   tagBearer,
-		tagIds_token:    string(idsTok),
+		tagIds_token: string(idsTok),
 	}
-	if !tok.Expires().IsZero() {
-		respParams[tagExpires_in] = int64(tok.Expires().Sub(time.Now()).Seconds())
-	}
-	if len(tok.Scope()) > 0 {
-		respParams[tagScope] = requtil.ValueSetForm(tok.Scope())
+
+	if isMain {
+		respParams[tagAccess_token] = tok.Id()
+		respParams[tagToken_type] = tagBearer
+
+		// TODO アクセストークンを元になったアクセストークンに紐付ける。
+		log.Warn(sender, ": Not linked token "+logutil.Mosaic(tok.Id())+" to source token "+logutil.Mosaic(cod.SourceToken()))
+
+		// アクセストークンを保存する。
+		if err := this.tokDb.Save(tok, tok.Expires().Add(this.tokDbExpIn-this.tokExpIn)); err != nil {
+			return erro.Wrap(err)
+		}
+
+		log.Debug(sender, ": Saved token "+logutil.Mosaic(tok.Id()))
+
+		if !tok.Expires().IsZero() {
+			respParams[tagExpires_in] = int64(tok.Expires().Sub(time.Now()).Seconds())
+		}
+		if len(tok.Scope()) > 0 {
+			respParams[tagScope] = requtil.ValueSetForm(tok.Scope())
+		}
 	}
 	return idputil.RespondJson(w, respParams)
-}
-
-func (this *handler) serveAsSub(w http.ResponseWriter, r *http.Request, req *request, cod *coopcode.Element, toTa tadb.Element, sender *requtil.Request) error {
-	panic("not yet implemented")
 }

@@ -231,7 +231,7 @@ func (this *handler) serveAsMain(w http.ResponseWriter, r *http.Request, req *re
 		if err != nil {
 			return erro.Wrap(err)
 		} else if cons == nil {
-			return erro.Wrap(idperr.New(idperr.Access_denied, "accout "+cod.Account().Tag()+" allowwd nothing", http.StatusForbidden, nil))
+			return erro.Wrap(idperr.New(idperr.Access_denied, "accout "+cod.Account().Tag()+" allowed nothing", http.StatusForbidden, nil))
 		}
 
 		scop, err := idputil.ProvidedScopes(cons.Scope(), cod.Scope())

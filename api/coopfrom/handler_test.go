@@ -663,8 +663,9 @@ func TestMainNormal(t *testing.T) {
 		t.Fatal("not signed ID referral")
 	} else if err := ref.Verify([]jwk.Key{test_idpKey}); err != nil {
 		t.Fatal(err)
-	} else if hGen, err := jwt.HashGenerator(alg); err != nil {
-		t.Fatal(err)
+	} else if hGen := jwt.HashGenerator(alg); !hGen.Available() {
+		t.Error(hGen)
+		t.Fatal("unsupported algorithm " + alg)
 	} else {
 		hFun := hGen.New()
 		hFun.Write([]byte(buff.Referral))

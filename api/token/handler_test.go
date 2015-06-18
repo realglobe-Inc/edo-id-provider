@@ -179,8 +179,7 @@ func TestNormal(t *testing.T) {
 		t.Error(lginDate)
 		t.Fatal(iat)
 	}
-	hGen, _ := jwt.HashGenerator(hndl.sigAlg)
-	atHash := hash.Hashing(hGen.New(), []byte(buff.Access_token))
+	atHash := hash.Hashing(jwt.HashGenerator(hndl.sigAlg).New(), []byte(buff.Access_token))
 	atHash = atHash[:len(atHash)/2]
 	if rawAtHash, _ := idTok.Claim("at_hash").(string); rawAtHash == "" {
 		t.Fatal("no at_hash")

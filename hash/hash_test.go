@@ -21,22 +21,22 @@ import (
 
 func TestStringSize(t *testing.T) {
 	for _, alg := range []string{"SHA256", "SHA384", "SHA512"} {
-		if _, err := StringSize(alg); err != nil {
-			t.Fatal(err)
+		if size := Size(alg); size == 0 {
+			t.Fatal(alg)
 		}
 	}
-	if _, err := StringSize("unknown"); err == nil {
+	if size := Size("unknown"); size != 0 {
 		t.Fatal("no error")
 	}
 }
 
-func TestHashFunction(t *testing.T) {
+func TestGenerator(t *testing.T) {
 	for _, alg := range []string{"SHA256", "SHA384", "SHA512"} {
-		if _, err := HashFunction(alg); err != nil {
-			t.Fatal(err)
+		if hGen := Generator(alg); hGen == 0 {
+			t.Fatal(alg)
 		}
 	}
-	if _, err := HashFunction("unknown"); err == nil {
+	if hGen := Generator("unknown"); hGen != 0 {
 		t.Fatal("no error")
 	}
 }

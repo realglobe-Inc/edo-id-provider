@@ -305,9 +305,9 @@ func (this *handler) serveAsMain(w http.ResponseWriter, r *http.Request, req *re
 		}
 		log.Info(sender, ": Generated referral")
 
-		hGen, err := hashutil.HashFunction(req.hashAlgorithm())
-		if err != nil {
-			return erro.Wrap(err)
+		hGen := hashutil.Generator(req.hashAlgorithm())
+		if !hGen.Available() {
+			return erro.Wrap(idperr.New(idperr.Invalid_request, "unsupported hash algorithm "+req.hashAlgorithm(), http.StatusBadRequest, nil))
 		}
 		hFun = hGen.New()
 	}
@@ -414,9 +414,9 @@ func (this *handler) serveAsSub(w http.ResponseWriter, r *http.Request, req *req
 
 	log.Debug(sender, ": Accounts are exist")
 
-	hGen, err := hashutil.HashFunction(ref.hashAlgorithm())
-	if err != nil {
-		return erro.Wrap(err)
+	hGen := hashutil.Generator(ref.hashAlgorithm())
+	if !hGen.Available() {
+		return erro.Wrap(idperr.New(idperr.Invalid_grant, "unsupported hash algorithm "+ref.hashAlgorithm(), http.StatusBadRequest, nil))
 	}
 	hFun := hGen.New()
 	for acntTag, acntId := range req.accounts() {
@@ -479,8 +479,8 @@ func (this *handler) getAccounts(tagToId map[string]string, frTa tadb.Element) (
 }
 
 func (this *handler) makeReferral(req *request, keys []jwk.Key, sender *requtil.Request) ([]byte, error) {
-	hashStrSize, err := hashutil.StringSize(req.hashAlgorithm())
-	if err != nil {
+	hashStrSize := hashutil.Size(req.hashAlgorithm())
+	if hashStrSize == 0 {
 		return nil, erro.Wrap(idperr.New(idperr.Invalid_request, "unsupported hash algorithm "+req.hashAlgorithm(), http.StatusBadRequest, nil))
 	}
 

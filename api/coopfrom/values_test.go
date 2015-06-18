@@ -129,9 +129,9 @@ func calcTestSubAccount2HashValue(idp string) string {
 }
 
 func calcTestAccountHashValue(idp, id string) string {
-	hGen, err := hashutil.HashFunction(test_hAlg)
-	if err != nil {
-		panic(err)
+	hGen := hashutil.Generator(test_hAlg)
+	if !hGen.Available() {
+		panic("unsupported hash algorithm " + test_hAlg)
 	}
 	hFun := hGen.New()
 	hFun.Write([]byte(idp))
@@ -292,9 +292,9 @@ func newTestSubRequestWithParams(idp, aud string, params, refParams map[string]i
 	}
 	r.Header.Set("Content-Type", "application/json")
 
-	hGen, err := hashutil.HashFunction(test_hAlg)
-	if err != nil {
-		return nil, nil, erro.Wrap(err)
+	hGen := hashutil.Generator(test_hAlg)
+	if hGen == 0 {
+		return nil, nil, erro.New("unsupported hash algorithm " + test_hAlg)
 	}
 	hFun := hGen.New()
 	hFun.Write(refBuff)

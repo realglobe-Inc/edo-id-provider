@@ -1856,9 +1856,10 @@ func TestIdTokenSign(t *testing.T) {
 	} else if alg, _ := jt.Header("alg").(string); alg == "" || alg == "none" {
 		t.Fatal("none sign algorithm " + alg)
 	}
-	hGen, err := jwt.HashGenerator(jt.Header("alg").(string))
-	if err != nil {
-		t.Fatal(err)
+	hGen := jwt.HashGenerator(jt.Header("alg").(string))
+	if !hGen.Available() {
+		t.Error(hGen)
+		t.Fatal("unsupported algorithm ", jt.Header("alg"))
 	}
 	h := hash.Hashing(hGen.New(), []byte(res["access_token"].(string)))
 	h = h[:len(h)/2]

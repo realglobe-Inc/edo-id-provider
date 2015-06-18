@@ -32,6 +32,7 @@ func TestAssertion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	iss := "https://ta.example.org"
 	aud := "https://idp.example.org/api/token"
 	id := "5CYp1PQo2mTWvmjO0qAP"
 	exp := time.Unix(100000000000, 0)
@@ -41,6 +42,9 @@ func TestAssertion(t *testing.T) {
 		t.Fatal(err)
 	} else if err := ass.Verify(taId, []jwk.Key{key}, aud); err != nil {
 		t.Fatal(err)
+	} else if ass.Issuer() != iss {
+		t.Error(ass.Issuer())
+		t.Fatal(iss)
 	} else if ass.Id() != id {
 		t.Error(ass.Id())
 		t.Fatal(id)

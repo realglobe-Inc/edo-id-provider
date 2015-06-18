@@ -275,7 +275,7 @@ func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 	if cod.Nonce() != "" {
 		clms[tagNonce] = cod.Nonce()
 	}
-	if hGen, err := jwt.HashFunction(this.sigAlg); err != nil {
+	if hGen, err := jwt.HashGenerator(this.sigAlg); err != nil {
 		return erro.Wrap(err)
 	} else {
 		clms[tagAt_hash] = hashutil.Hashing(hGen.New(), []byte(tokId))

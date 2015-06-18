@@ -663,7 +663,7 @@ func TestMainNormal(t *testing.T) {
 		t.Fatal("not signed ID referral")
 	} else if err := ref.Verify([]jwk.Key{test_idpKey}); err != nil {
 		t.Fatal(err)
-	} else if hGen, err := jwt.HashFunction(alg); err != nil {
+	} else if hGen, err := jwt.HashGenerator(alg); err != nil {
 		t.Fatal(err)
 	} else {
 		hFun := hGen.New()

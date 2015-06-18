@@ -274,7 +274,7 @@ func (this *Page) afterConsent(w http.ResponseWriter, r *http.Request, sender *r
 		if cod.Nonce() != "" {
 			clms[tagNonce] = cod.Nonce()
 		}
-		if hGen, err := jwt.HashFunction(this.sigAlg); err != nil {
+		if hGen, err := jwt.HashGenerator(this.sigAlg); err != nil {
 			return erro.Wrap(err)
 		} else if hGen > 0 {
 			clms[tagC_hash] = hashutil.Hashing(hGen.New(), []byte(cod.Id()))

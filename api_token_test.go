@@ -1856,7 +1856,7 @@ func TestIdTokenSign(t *testing.T) {
 	} else if alg, _ := jt.Header("alg").(string); alg == "" || alg == "none" {
 		t.Fatal("none sign algorithm " + alg)
 	}
-	hGen, err := jwt.HashFunction(jt.Header("alg").(string))
+	hGen, err := jwt.HashGenerator(jt.Header("alg").(string))
 	if err != nil {
 		t.Fatal(err)
 	}

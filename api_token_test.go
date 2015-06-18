@@ -1861,15 +1861,15 @@ func TestIdTokenSign(t *testing.T) {
 		t.Error(hGen)
 		t.Fatal("unsupported algorithm ", jt.Header("alg"))
 	}
-	h := hash.Hashing(hGen.New(), []byte(res["access_token"].(string)))
-	h = h[:len(h)/2]
+	hVal := hash.Hashing(hGen.New(), []byte(res["access_token"].(string)))
+	hVal = hVal[:len(hVal)/2]
 	ah, _ := jt.Claim("at_hash").(string)
 	if ah == "" {
 		t.Fatal("no at_hash")
 	} else if buff, err := base64url.DecodeString(ah); err != nil {
 		t.Fatal(err)
-	} else if !bytes.Equal(buff, h) {
+	} else if !bytes.Equal(buff, hVal) {
 		t.Error(buff)
-		t.Fatal(h)
+		t.Fatal(hVal)
 	}
 }

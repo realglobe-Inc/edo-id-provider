@@ -38,6 +38,10 @@ const (
 	test_subAcnt1Id    = "U7pdvT8dYbBFWXdc"
 	test_subAcnt1Email = "subtester1@example.org"
 
+	test_subAcnt2Tag   = "sub-user2"
+	test_subAcnt2Id    = "-wTKn25azELHOqVC"
+	test_subAcnt2Email = "subtester2@example.org"
+
 	test_toTaSigAlg = "ES384"
 	test_jti        = "R-seIeMPBly4xPAh"
 
@@ -68,6 +72,13 @@ var (
 			"uri":  "https://pds.example.org",
 		},
 	}
+	test_subAcnt2Attrs = map[string]interface{}{
+		"email": test_subAcnt2Email,
+		"pds": map[string]interface{}{
+			"type": "single",
+			"uri":  "https://pds.example.org",
+		},
+	}
 
 	test_toTaKey, _ = jwk.FromMap(map[string]interface{}{
 		"kty": "EC",
@@ -82,11 +93,17 @@ var (
 	test_scop = strsetutil.New("openid")
 )
 
-func newTestCode() *coopcode.Element {
+func newTestMainCode() *coopcode.Element {
 	now := time.Now()
 	return coopcode.New(test_codId, now.Add(time.Minute), coopcode.NewAccount(test_acntId, test_acntTag),
 		test_tokId, test_scop, now.Add(time.Minute/2), []*coopcode.Account{coopcode.NewAccount(test_subAcnt1Id, test_subAcnt1Tag)},
 		test_frTa.Id(), test_toTa.Id())
+}
+
+func newTestSubCode() *coopcode.Element {
+	now := time.Now()
+	return coopcode.New(test_codId, now.Add(time.Minute), nil, "", nil, time.Time{},
+		[]*coopcode.Account{coopcode.NewAccount(test_subAcnt2Id, test_subAcnt2Tag)}, test_frTa.Id(), test_toTa.Id())
 }
 
 func newTestMainAccount() account.Element {
@@ -95,6 +112,10 @@ func newTestMainAccount() account.Element {
 
 func newTestSubAccount1() account.Element {
 	return account.New(test_subAcnt1Id, "", nil, clone(test_subAcnt1Attrs))
+}
+
+func newTestSubAccount2() account.Element {
+	return account.New(test_subAcnt2Id, "", nil, clone(test_subAcnt2Attrs))
 }
 
 // 1 段目だけのコピー。
@@ -107,6 +128,14 @@ func clone(m map[string]interface{}) map[string]interface{} {
 }
 
 func newTestMainRequest(aud string) (*http.Request, error) {
+	return newTestRequest(aud, nil)
+}
+
+func newTestSubRequest(aud string) (*http.Request, error) {
+	return newTestRequest(aud, nil)
+}
+
+func newTestRequest(aud string, params map[string]interface{}) (*http.Request, error) {
 	m := map[string]interface{}{
 		"grant_type":            "cooperation_code",
 		"code":                  test_codId,
@@ -130,6 +159,9 @@ func newTestMainRequest(aud string) (*http.Request, error) {
 			return nil, erro.Wrap(err)
 		}
 		m["client_assertion"] = string(buff)
+	}
+	for k, v := range params {
+		m[k] = v
 	}
 	body, err := json.Marshal(m)
 	if err != nil {

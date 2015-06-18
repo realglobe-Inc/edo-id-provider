@@ -275,8 +275,8 @@ func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 	if cod.Nonce() != "" {
 		clms[tagNonce] = cod.Nonce()
 	}
-	if hGen, err := jwt.HashFunction(this.sigAlg); err != nil {
-		return erro.Wrap(err)
+	if hGen := jwt.HashGenerator(this.sigAlg); !hGen.Available() {
+		return erro.New("unsupported algorithm " + this.sigAlg)
 	} else {
 		clms[tagAt_hash] = hashutil.Hashing(hGen.New(), []byte(tokId))
 	}

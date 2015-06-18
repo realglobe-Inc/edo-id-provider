@@ -36,10 +36,10 @@ type Element struct {
 	tokExp time.Time
 	// 関連アカウント。
 	acnts []*Account
-	// 要請元 TA の ID。
-	taFr string
-	// 要請先 TA の ID。
-	taTo string
+	// 連携元 TA の ID。
+	frTa string
+	// 連携先 TA の ID。
+	toTa string
 	// 発行したアクセストークン。
 	tok string
 
@@ -48,7 +48,7 @@ type Element struct {
 }
 
 func New(id string, exp time.Time, acnt *Account, srcTok string, scop map[string]bool,
-	tokExp time.Time, acnts []*Account, taFr, taTo string) *Element {
+	tokExp time.Time, acnts []*Account, frTa, toTa string) *Element {
 	return &Element{
 		id:     id,
 		exp:    exp,
@@ -57,8 +57,8 @@ func New(id string, exp time.Time, acnt *Account, srcTok string, scop map[string
 		scop:   scop,
 		tokExp: tokExp,
 		acnts:  acnts,
-		taFr:   taFr,
-		taTo:   taTo,
+		frTa:   frTa,
+		toTa:   toTa,
 		date:   time.Now(),
 	}
 }
@@ -98,14 +98,14 @@ func (this *Element) Accounts() []*Account {
 	return this.acnts
 }
 
-// 要請元 TA の ID を返す。
+// 連携元 TA の ID を返す。
 func (this *Element) FromTa() string {
-	return this.taFr
+	return this.frTa
 }
 
-// 要請先 TA の ID を返す。
+// 連携先 TA の ID を返す。
 func (this *Element) ToTa() string {
-	return this.taTo
+	return this.toTa
 }
 
 // 発行したアクセストークンを返す。
@@ -138,8 +138,8 @@ func (this *Element) Date() time.Time {
 //          <主体でないアカウント>,
 //          ...
 //      ],
-//      "client_from": <要請元 TA の ID>,
-//      "client_to": <要請先 TA の ID>,
+//      "client_from": <連携元 TA の ID>,
+//      "client_to": <連携先 TA の ID>,
 //      "token": <アクセストークン>,
 //      "date": <更新日時>,
 //  }
@@ -148,8 +148,8 @@ func (this *Element) MarshalJSON() (data []byte, err error) {
 		"id":          this.id,
 		"expires":     this.exp,
 		"user":        this.acnt,
-		"client_from": this.taFr,
-		"client_to":   this.taTo,
+		"client_from": this.frTa,
+		"client_to":   this.toTa,
 		"date":        this.date,
 	}
 	if this.srcTok != "" {
@@ -175,7 +175,7 @@ func (this *Element) UnmarshalJSON(data []byte) error {
 		Scop   strset.Set `json:"scope"`
 		TokExp time.Time  `json:"token_expires"`
 		Acnts  []*Account `json:"users"`
-		TaFr   string     `json:"client_from"`
+		FrTa   string     `json:"client_from"`
 		ToTa   string     `json:"client_to"`
 		Tok    string     `json:"token"`
 		Date   time.Time  `json:"date"`
@@ -191,8 +191,8 @@ func (this *Element) UnmarshalJSON(data []byte) error {
 	this.scop = buff.Scop
 	this.tokExp = buff.TokExp
 	this.acnts = buff.Acnts
-	this.taFr = buff.TaFr
-	this.taTo = buff.ToTa
+	this.frTa = buff.FrTa
+	this.toTa = buff.ToTa
 	this.tok = buff.Tok
 	this.date = buff.Date
 	return nil

@@ -19,34 +19,35 @@ import (
 	"crypto"
 	"github.com/realglobe-Inc/edo-lib/base64url"
 	hashutil "github.com/realglobe-Inc/edo-lib/hash"
-	"github.com/realglobe-Inc/go-lib/erro"
 	"hash"
 )
 
 // related_users に入れるハッシュ値の文字列としての長さを返す。
-func StringSize(alg string) (int, error) {
+// 該当するものが無い場合は 0。
+func Size(alg string) int {
 	switch alg {
-	case "SHA256":
-		return (128 + 5) / 6, nil
-	case "SHA384":
-		return (192 + 5) / 6, nil
-	case "SHA512":
-		return (256 + 5) / 6, nil
+	case tagSha256:
+		return (256/2 + 5) / 6
+	case tagSha384:
+		return (384/2 + 5) / 6
+	case tagSha512:
+		return (512/2 + 5) / 6
 	default:
-		return 0, erro.New("unsupported algorithm " + alg)
+		return 0
 	}
 }
 
-func HashFunction(alg string) (crypto.Hash, error) {
+// 該当するものが無い場合は 0。
+func Generator(alg string) crypto.Hash {
 	switch alg {
-	case "SHA256":
-		return crypto.SHA256, nil
-	case "SHA384":
-		return crypto.SHA384, nil
-	case "SHA512":
-		return crypto.SHA512, nil
+	case tagSha256:
+		return crypto.SHA256
+	case tagSha384:
+		return crypto.SHA384
+	case tagSha512:
+		return crypto.SHA512
 	default:
-		return 0, erro.New("unsupported algorithm " + alg)
+		return 0
 	}
 }
 

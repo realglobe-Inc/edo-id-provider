@@ -71,7 +71,7 @@ func newTestHandler(keys []jwk.Key, acnts []account.Element, tas []tadb.Element)
 	).(*handler)
 }
 
-// ID プロバイダが 1 つの場合の正常系。
+// 1 つ目の ID プロバイダとしての正常系。
 // レスポンスが access_token, ids_token を含むことの検査。
 // レスポンスが Cache-Control: no-store, Pragma: no-cache ヘッダを含むことの検査。
 // IDs トークンが署名されていることの検査。
@@ -87,7 +87,7 @@ func TestMainNormal(t *testing.T) {
 	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{acnt, subAcnt1}, []tadb.Element{test_frTa, test_toTa})
 
 	now := time.Now()
-	cod := newTestCode()
+	cod := newTestMainCode()
 	hndl.codDb.Save(cod, now.Add(time.Minute))
 
 	for _, acntId := range []string{acnt.Id(), subAcnt1.Id()} {
@@ -190,6 +190,76 @@ func TestMainNormal(t *testing.T) {
 	}
 }
 
+// TA 固有アカウント ID に対応していることの検査。
+func TestPairwise(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	acnt := newTestMainAccount()
+	subAcnt1 := newTestSubAccount1()
+	toTa := tadb.New("https://to.example.org", nil, nil, []jwk.Key{test_toTaKey}, true, "")
+	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{acnt, subAcnt1}, []tadb.Element{test_frTa, toTa})
+
+	now := time.Now()
+	cod := newTestMainCode()
+	hndl.codDb.Save(cod, now.Add(time.Minute))
+
+	for _, acntId := range []string{acnt.Id(), subAcnt1.Id()} {
+		cons := consent.New(acntId, toTa.Id())
+		cons.Scope().SetAllow("openid")
+		hndl.consDb.Save(cons)
+	}
+
+	r, err := newTestMainRequest(hndl.selfId + hndl.pathCoopTo)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	w := httptest.NewRecorder()
+	hndl.ServeHTTP(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Error(w.Code)
+		t.Fatal(http.StatusOK)
+	} else if contType, contType2 := "application/json", w.HeaderMap.Get("Content-Type"); contType2 != contType {
+		t.Error(contType2)
+		t.Fatal(contType)
+	}
+
+	var buff struct{ Ids_token string }
+	if err := json.NewDecoder(w.Body).Decode(&buff); err != nil {
+		t.Fatal(err)
+	} else if buff.Ids_token == "" {
+		t.Fatal("no IDs token")
+	}
+
+	idsTok, err := jwt.Parse([]byte(buff.Ids_token))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var idTokBuff struct {
+		Ids struct {
+			Main struct {
+				Sub string
+			} `json:"main-user"`
+			Sub struct {
+				Sub string
+			} `json:"sub-user1"`
+		}
+	}
+	if err := json.Unmarshal(idsTok.RawBody(), &idTokBuff); err != nil {
+		t.Fatal(err)
+	} else if idTokBuff.Ids.Main.Sub == "" || idTokBuff.Ids.Main.Sub == acnt.Id() {
+		t.Error("not pairwise")
+		t.Fatal(idTokBuff.Ids.Main.Sub)
+	} else if idTokBuff.Ids.Sub.Sub == "" || idTokBuff.Ids.Sub.Sub == subAcnt1.Id() {
+		t.Error("not pairwise")
+		t.Fatal(idTokBuff.Ids.Sub.Sub)
+	}
+}
+
 // クライアント認証に失敗したら拒否できることの検査。
 func TestDenyInvalidTa(t *testing.T) {
 	// ////////////////////////////////
@@ -202,7 +272,7 @@ func TestDenyInvalidTa(t *testing.T) {
 	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{acnt, subAcnt1}, []tadb.Element{test_frTa, test_toTa})
 
 	now := time.Now()
-	cod := newTestCode()
+	cod := newTestMainCode()
 	hndl.codDb.Save(cod, now.Add(time.Minute))
 
 	for _, acntId := range []string{acnt.Id(), subAcnt1.Id()} {
@@ -275,7 +345,7 @@ func testDenyNoSomething(t *testing.T, something string) {
 	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{acnt, subAcnt1}, []tadb.Element{test_frTa, test_toTa})
 
 	now := time.Now()
-	cod := newTestCode()
+	cod := newTestMainCode()
 	hndl.codDb.Save(cod, now.Add(time.Minute))
 
 	for _, acntId := range []string{acnt.Id(), subAcnt1.Id()} {
@@ -329,7 +399,7 @@ func TestDenyInvalidCode(t *testing.T) {
 	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{acnt, subAcnt1}, []tadb.Element{test_frTa, test_toTa})
 
 	now := time.Now()
-	cod := newTestCode()
+	cod := newTestMainCode()
 	hndl.codDb.Save(cod, now.Add(time.Minute))
 
 	for _, acntId := range []string{acnt.Id(), subAcnt1.Id()} {
@@ -371,7 +441,7 @@ func TestDenyInvalidCode(t *testing.T) {
 	}
 }
 
-// 仲介コードが発行された要請先でなかったら拒否できることの検査。
+// 仲介コードが発行された連携先でなかったら拒否できることの検査。
 func TestDenyDifferentTa(t *testing.T) {
 	// ////////////////////////////////
 	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
@@ -428,7 +498,7 @@ func TestDenyInvalidTag(t *testing.T) {
 	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{acnt, subAcnt1}, []tadb.Element{test_frTa, test_toTa})
 
 	now := time.Now()
-	cod := newTestCode()
+	cod := newTestMainCode()
 	hndl.codDb.Save(cod, now.Add(time.Minute))
 
 	for _, acntId := range []string{acnt.Id(), subAcnt1.Id()} {
@@ -486,7 +556,7 @@ func TestDenyNoConsent(t *testing.T) {
 	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{acnt, subAcnt1}, []tadb.Element{test_frTa, test_toTa})
 
 	now := time.Now()
-	cod := newTestCode()
+	cod := newTestMainCode()
 	hndl.codDb.Save(cod, now.Add(time.Minute))
 
 	for _, acntId := range []string{acnt.Id(), subAcnt1.Id()} {
@@ -531,5 +601,106 @@ func TestDenyNoConsent(t *testing.T) {
 	} else if err := "access_denied"; buff.Error != err {
 		t.Error(buff.Error)
 		t.Fatal(err)
+	}
+}
+
+// 2 つ目以降の ID プロバイダとしての正常系。
+// レスポンスが Cache-Control: no-store, Pragma: no-cache ヘッダを含むことの検査。
+// IDs トークンが署名されていることの検査。
+// IDs トークンが iss, sub, aud, exp, iat, ids クレームを含むことの検査。
+func TestSubNormal(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	subAcnt2 := newTestSubAccount2()
+	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{subAcnt2}, []tadb.Element{test_frTa, test_toTa})
+
+	now := time.Now()
+	cod := newTestSubCode()
+	hndl.codDb.Save(cod, now.Add(time.Minute))
+
+	for _, acntId := range []string{subAcnt2.Id()} {
+		cons := consent.New(acntId, test_toTa.Id())
+		cons.Scope().SetAllow("openid")
+		hndl.consDb.Save(cons)
+	}
+
+	r, err := newTestSubRequest(hndl.selfId + hndl.pathCoopTo)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	w := httptest.NewRecorder()
+	hndl.ServeHTTP(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Error(w.Code)
+		t.Fatal(http.StatusOK)
+	} else if contType, contType2 := "application/json", w.HeaderMap.Get("Content-Type"); contType2 != contType {
+		t.Error(contType2)
+		t.Fatal(contType)
+	} else if cc, cc2 := "no-store", w.HeaderMap.Get("Cache-Control"); cc2 != cc {
+		t.Error(cc2)
+		t.Fatal(cc)
+	} else if prgm, prgm2 := "no-cache", w.HeaderMap.Get("Pragma"); prgm2 != prgm {
+		t.Error(prgm2)
+		t.Fatal(prgm)
+	}
+
+	var buff struct {
+		Ids_token string
+	}
+	if err := json.NewDecoder(w.Body).Decode(&buff); err != nil {
+		t.Fatal(err)
+	} else if buff.Ids_token == "" {
+		t.Fatal("no IDs token")
+	}
+
+	idsTok, err := jwt.Parse([]byte(buff.Ids_token))
+	if err != nil {
+		t.Fatal(err)
+	} else if alg, _ := idsTok.Header("alg").(string); alg != hndl.sigAlg {
+		t.Error(alg)
+		t.Fatal(hndl.sigAlg)
+	} else if !idsTok.IsSigned() {
+		t.Fatal("not signed ID token")
+	} else if err := idsTok.Verify([]jwk.Key{test_idpKey}); err != nil {
+		t.Fatal(err)
+	}
+	var idsTokBuff struct {
+		Iss string
+		Sub string
+		Aud audience.Audience
+		Exp int
+		Iat int
+		Ids map[string]map[string]interface{}
+	}
+	if err := json.Unmarshal(idsTok.RawBody(), &idsTokBuff); err != nil {
+		t.Fatal(err)
+	} else if idsTokBuff.Iss != hndl.selfId {
+		t.Error(idsTokBuff.Iss)
+		t.Fatal(hndl.selfId)
+	} else if idsTokBuff.Sub != test_frTa.Id() {
+		t.Error(idsTokBuff.Sub)
+		t.Fatal(test_frTa.Id())
+	} else if !idsTokBuff.Aud[test_toTa.Id()] {
+		t.Error(idsTokBuff.Aud)
+		t.Fatal(test_toTa.Id())
+	} else if idsTokBuff.Exp == 0 {
+		t.Fatal("no exp")
+	} else if idsTokBuff.Iat == 0 {
+		t.Fatal("no iat")
+	} else if idsTokBuff.Iat > idsTokBuff.Exp {
+		t.Fatal("iat after exp")
+	} else if ids := map[string]map[string]interface{}{
+		test_subAcnt2Tag: {
+			"sub": subAcnt2.Id(),
+		},
+	}; !reflect.DeepEqual(idsTokBuff.Ids, ids) {
+		t.Error(string(idsTok.RawBody()))
+		t.Error(idsTokBuff.Ids)
+		t.Fatal(ids)
 	}
 }

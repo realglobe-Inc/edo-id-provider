@@ -23,8 +23,8 @@ import (
 const (
 	test_id     = "1SblzkyNc6O867zqdZYPM0T-a7g1n5"
 	test_srcTok = "qLCaRl3jF9fNaI7VJEXK3Tj80Kojqx"
-	test_taFr   = "https://from.example.org"
-	test_taTo   = "https://to.example.org"
+	test_frTa   = "https://from.example.org"
+	test_toTa   = "https://to.example.org"
 
 	test_tok = "TM4CmjXyWQeqtasbRDqwSN80n26vuV"
 )
@@ -38,7 +38,7 @@ var (
 func TestElement(t *testing.T) {
 	exp := time.Now().Add(time.Minute)
 	tokExp := time.Now().Add(time.Minute)
-	elem := New(test_id, exp, test_acnt, test_srcTok, test_scop, tokExp, test_relAcnts, test_taFr, test_taTo)
+	elem := New(test_id, exp, test_acnt, test_srcTok, test_scop, tokExp, test_relAcnts, test_frTa, test_toTa)
 
 	if elem.Id() != test_id {
 		t.Error(elem.Id())
@@ -61,12 +61,12 @@ func TestElement(t *testing.T) {
 	} else if !reflect.DeepEqual(elem.Accounts(), test_relAcnts) {
 		t.Error(elem.Accounts())
 		t.Fatal(test_relAcnts)
-	} else if elem.FromTa() != test_taFr {
+	} else if elem.FromTa() != test_frTa {
 		t.Error(elem.FromTa())
-		t.Fatal(test_taFr)
-	} else if elem.ToTa() != test_taTo {
+		t.Fatal(test_frTa)
+	} else if elem.ToTa() != test_toTa {
 		t.Error(elem.ToTa())
-		t.Fatal(test_taTo)
+		t.Fatal(test_toTa)
 	} else if elem.Token() != "" {
 		t.Fatal(elem.Token())
 	}

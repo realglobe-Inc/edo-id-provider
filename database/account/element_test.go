@@ -33,4 +33,10 @@ func testElement(t *testing.T, elem Element) {
 		t.Error(elem.Attribute(test_attr))
 		t.Fatal(test_pds)
 	}
+
+	elem.SetAttribute(test_attr+"a", "abcde")
+	if !reflect.DeepEqual(elem.Attribute(test_attr+"a"), "abcde") {
+		t.Error(elem.Attribute(test_attr + "a"))
+		t.Fatal("abcde")
+	}
 }

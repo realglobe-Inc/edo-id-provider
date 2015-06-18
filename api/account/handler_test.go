@@ -113,7 +113,7 @@ func TestPairwise(t *testing.T) {
 	var buff struct{ Sub, Email string }
 	if err := json.NewDecoder(w.Body).Decode(&buff); err != nil {
 		t.Fatal(err)
-	} else if buff.Sub == acnt.Id() {
+	} else if buff.Sub == "" || buff.Sub == acnt.Id() {
 		t.Error("not pairwise")
 		t.Fatal(buff.Sub)
 	} else if buff.Email != test_email {

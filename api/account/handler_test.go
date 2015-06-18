@@ -82,3 +82,80 @@ func TestNormal(t *testing.T) {
 		}
 	}
 }
+
+// TA 固有アカウント ID に対応していることの検査。
+func TestPairwise(t *testing.T) {
+	acnt := newTestAccount()
+	ta := tadb.New("https://ta.example.org", nil, nil, nil, true, "")
+	hndl := newTestHandler([]account.Element{acnt}, []tadb.Element{ta})
+
+	now := time.Now()
+	tok := token.New(test_tokId, now.Add(time.Minute), acnt.Id(), strsetutil.New("openid"), strsetutil.New("email"), ta.Id())
+	hndl.tokDb.Save(tok, now.Add(time.Minute))
+
+	r, err := http.NewRequest("GET", "https://idp.example.org/userinfo", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Header.Set("Authorization", "Bearer "+tok.Id())
+
+	w := httptest.NewRecorder()
+	hndl.ServeHTTP(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Error(w.Code)
+		t.Fatal(http.StatusOK)
+	} else if contType, contType2 := "application/json", w.HeaderMap.Get("Content-Type"); contType2 != contType {
+		t.Error(contType2)
+		t.Fatal(contType)
+	}
+
+	var buff struct{ Sub, Email string }
+	if err := json.NewDecoder(w.Body).Decode(&buff); err != nil {
+		t.Fatal(err)
+	} else if buff.Sub == acnt.Id() {
+		t.Error("not pairwise")
+		t.Fatal(buff.Sub)
+	} else if buff.Email != test_email {
+		t.Error(buff.Email)
+		t.Fatal(test_email)
+	}
+}
+
+// スコープ属性の展開はしないことの検査。
+func TestNotUseScopeAttribute(t *testing.T) {
+	acnt := newTestAccount()
+	hndl := newTestHandler([]account.Element{acnt}, []tadb.Element{test_ta})
+
+	now := time.Now()
+	tok := token.New(test_tokId, now.Add(time.Minute), acnt.Id(), strsetutil.New("openid", "email"), nil, test_ta.Id())
+	hndl.tokDb.Save(tok, now.Add(time.Minute))
+
+	r, err := http.NewRequest("GET", "https://idp.example.org/userinfo", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Header.Set("Authorization", "Bearer "+tok.Id())
+
+	w := httptest.NewRecorder()
+	hndl.ServeHTTP(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Error(w.Code)
+		t.Fatal(http.StatusOK)
+	} else if contType, contType2 := "application/json", w.HeaderMap.Get("Content-Type"); contType2 != contType {
+		t.Error(contType2)
+		t.Fatal(contType)
+	}
+
+	var buff struct{ Sub, Email string }
+	if err := json.NewDecoder(w.Body).Decode(&buff); err != nil {
+		t.Fatal(err)
+	} else if buff.Sub != acnt.Id() {
+		t.Error(buff.Sub)
+		t.Fatal(acnt.Id())
+	} else if buff.Email != "" {
+		t.Error("got scope attribute")
+		t.Fatal(buff.Email)
+	}
+}

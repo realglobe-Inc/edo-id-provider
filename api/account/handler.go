@@ -21,7 +21,6 @@ import (
 	"github.com/realglobe-Inc/edo-id-provider/database/sector"
 	"github.com/realglobe-Inc/edo-id-provider/database/token"
 	"github.com/realglobe-Inc/edo-id-provider/idputil"
-	"github.com/realglobe-Inc/edo-id-provider/scope"
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
 	requtil "github.com/realglobe-Inc/edo-idp-selector/request"
@@ -157,11 +156,6 @@ func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 	}
 
 	attrNames := map[string]bool{}
-	for scop := range tok.Scope() {
-		for attrName := range scope.Attributes(scop) {
-			attrNames[attrName] = true
-		}
-	}
 	for attrName := range tok.Attributes() {
 		attrNames[attrName] = true
 	}

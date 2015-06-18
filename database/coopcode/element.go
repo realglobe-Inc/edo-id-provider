@@ -36,9 +36,9 @@ type Element struct {
 	tokExp time.Time
 	// 関連アカウント。
 	acnts []*Account
-	// 要請元 TA の ID。
+	// 連携元 TA の ID。
 	frTa string
-	// 要請先 TA の ID。
+	// 連携先 TA の ID。
 	toTa string
 	// 発行したアクセストークン。
 	tok string
@@ -98,12 +98,12 @@ func (this *Element) Accounts() []*Account {
 	return this.acnts
 }
 
-// 要請元 TA の ID を返す。
+// 連携元 TA の ID を返す。
 func (this *Element) FromTa() string {
 	return this.frTa
 }
 
-// 要請先 TA の ID を返す。
+// 連携先 TA の ID を返す。
 func (this *Element) ToTa() string {
 	return this.toTa
 }
@@ -138,8 +138,8 @@ func (this *Element) Date() time.Time {
 //          <主体でないアカウント>,
 //          ...
 //      ],
-//      "client_from": <要請元 TA の ID>,
-//      "client_to": <要請先 TA の ID>,
+//      "client_from": <連携元 TA の ID>,
+//      "client_to": <連携先 TA の ID>,
 //      "token": <アクセストークン>,
 //      "date": <更新日時>,
 //  }

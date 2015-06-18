@@ -394,7 +394,7 @@ func TestMainDenyInvalidScope(t *testing.T) {
 	}
 }
 
-// 主体の ID プロバイダの場合に、要請先 TA が存在しないなら拒否できることの検査。
+// 主体の ID プロバイダの場合に、連携先 TA が存在しないなら拒否できることの検査。
 func TestMainDenyInvalidToTa(t *testing.T) {
 	// ////////////////////////////////
 	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
@@ -442,7 +442,7 @@ func TestMainDenyInvalidToTa(t *testing.T) {
 	}
 }
 
-// 主体の ID プロバイダの場合に、要請元 TA と要請先 TA が同じなら拒否できることの検査。
+// 主体の ID プロバイダの場合に、連携元 TA と連携先 TA が同じなら拒否できることの検査。
 func TestMainDenySameTa(t *testing.T) {
 	// ////////////////////////////////
 	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)

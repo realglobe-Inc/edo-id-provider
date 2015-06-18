@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// TA 間連携要請元仲介エンドポイント。
+// TA 間連携連携元仲介エンドポイント。
 package coopfrom
 
 import (

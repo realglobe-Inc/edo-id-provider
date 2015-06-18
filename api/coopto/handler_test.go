@@ -441,7 +441,7 @@ func TestDenyInvalidCode(t *testing.T) {
 	}
 }
 
-// 仲介コードが発行された要請先でなかったら拒否できることの検査。
+// 仲介コードが発行された連携先でなかったら拒否できることの検査。
 func TestDenyDifferentTa(t *testing.T) {
 	// ////////////////////////////////
 	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)

@@ -23,15 +23,13 @@ import (
 
 // テストするなら、mongodb を立てる必要あり。
 // 立ってなかったらテストはスキップ。
-var monPool *mgo.Session
+var monPool, _ = mgo.DialWithTimeout("localhost", time.Minute)
 
 func init() {
-	if monPool == nil {
-		monPool, _ = mgo.DialWithTimeout("localhost", time.Second)
+	if monPool != nil {
+		monPool.SetSyncTimeout(time.Minute)
 	}
 }
-
-var test_db = "test-db-" + strconv.FormatInt(time.Now().UnixNano(), 16)
 
 const (
 	test_coll = "test-collection"
@@ -42,6 +40,7 @@ func TestMongoDb(t *testing.T) {
 		t.SkipNow()
 	}
 
+	test_db := "test-db-" + strconv.FormatInt(time.Now().UnixNano(), 16)
 	conn := monPool.New()
 	defer conn.Close()
 	defer conn.DB(test_db).DropDatabase()

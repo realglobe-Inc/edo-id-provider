@@ -147,7 +147,7 @@ type testTaServer struct {
 // ダミー TA を立てる。
 func newTestTaServer(rediPath string) (*testTaServer, error) {
 	failed := true
-	server, err := test.NewHttpServer(30 * time.Second)
+	server, err := test.NewHttpServer(time.Minute)
 	if err != nil {
 		return nil, erro.Wrap(err)
 	}

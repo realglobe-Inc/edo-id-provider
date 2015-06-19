@@ -25,7 +25,7 @@ const (
 )
 
 func TestElement(t *testing.T) {
-	exp := time.Now().Add(time.Second)
+	exp := time.Now().Add(time.Minute)
 
 	if elem := New(test_iss, test_id, exp); elem.Issuer() != test_iss {
 		t.Error(elem.Issuer())

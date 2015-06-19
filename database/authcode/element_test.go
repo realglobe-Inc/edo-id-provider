@@ -36,7 +36,7 @@ var (
 
 func TestElement(t *testing.T) {
 	lgin := time.Now()
-	exp := time.Now().Add(time.Second)
+	exp := time.Now().Add(time.Minute)
 	elem := New(test_id, exp, test_acnt, lgin, test_scop, nil, test_acntAttrs, test_ta, test_rediUri, test_nonc)
 
 	if elem.Id() != test_id {

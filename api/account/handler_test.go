@@ -39,7 +39,7 @@ func newTestHandler(acnts []account.Element, tas []tadb.Element) *handler {
 		sector.NewMemoryDb(),
 		pairwise.NewMemoryDb(),
 		token.NewMemoryDb(),
-		rand.New(time.Second),
+		rand.New(time.Minute),
 		true,
 	).(*handler)
 }

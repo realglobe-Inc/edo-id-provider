@@ -67,7 +67,7 @@ func newTestHandler(keys []jwk.Key, acnts []account.Element, tas []tadb.Element,
 		coopcode.NewMemoryDb(),
 		token.NewMemoryDb(),
 		jtidb.NewMemoryDb(),
-		rand.New(time.Second),
+		rand.New(time.Minute),
 		true,
 	).(*handler)
 }

@@ -139,7 +139,7 @@ func TestElementNew(t *testing.T) {
 	elem.SetLanguage(test_lang)
 	for i := 0; i < 2*MaxHistory; i++ {
 		elem.SelectAccount(NewAccount(test_acntId+strconv.Itoa(i), test_acntName+strconv.Itoa(i)))
-		elem2 := elem.New(test_id+"2", exp.Add(time.Second))
+		elem2 := elem.New(test_id+"2", exp.Add(time.Minute))
 
 		if elem2.Id() == elem.Id() {
 			t.Error(i)
@@ -172,7 +172,7 @@ func TestElementNew(t *testing.T) {
 	for i := 0; i < MaxHistory; i++ {
 		elem.SelectAccount(NewAccount(test_acntId+strconv.Itoa(i), test_acntName+strconv.Itoa(i)))
 		elem.Account().Login()
-		elem2 := elem.New(test_id+"2", exp.Add(time.Second))
+		elem2 := elem.New(test_id+"2", exp.Add(time.Minute))
 
 		for _, acnt := range elem2.SelectedAccounts() {
 			if acnt.LoggedIn() {

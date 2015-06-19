@@ -29,7 +29,7 @@ func testDb(t *testing.T, db Db) {
 	}
 
 	lgin := time.Now()
-	exp := time.Now().Add(time.Second)
+	exp := time.Now().Add(time.Minute)
 	elem := New(test_id, exp, test_acnt, lgin, test_scop, nil, test_acntAttrs, test_ta, test_rediUri, test_nonc)
 	saveExp := exp.Add(time.Minute)
 

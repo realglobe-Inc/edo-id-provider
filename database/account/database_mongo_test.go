@@ -29,7 +29,7 @@ var monPool *mgo.Session
 
 func init() {
 	if monPool == nil {
-		monPool, _ = mgo.DialWithTimeout("localhost", time.Second)
+		monPool, _ = mgo.DialWithTimeout("localhost", time.Minute)
 	}
 }
 

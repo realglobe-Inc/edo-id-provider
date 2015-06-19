@@ -30,7 +30,7 @@ func testDb(t *testing.T, db Db) {
 	}
 
 	now := time.Now()
-	exp := now.Add(time.Second)
+	exp := now.Add(time.Minute)
 	tic := ticket.New(test_ticId, now.Add(time.Minute))
 	elem := New(test_id, exp)
 	elem.SelectAccount(test_acnt)

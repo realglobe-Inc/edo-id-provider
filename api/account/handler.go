@@ -59,15 +59,15 @@ func New(
 	debug bool,
 ) http.Handler {
 	return &handler{
-		stopper:   stopper,
-		pwSaltLen: pwSaltLen,
-		acntDb:    acntDb,
-		taDb:      taDb,
-		sectDb:    sectDb,
-		pwDb:      pwDb,
-		tokDb:     tokDb,
-		idGen:     idGen,
-		debug:     debug,
+		stopper,
+		pwSaltLen,
+		acntDb,
+		taDb,
+		sectDb,
+		pwDb,
+		tokDb,
+		idGen,
+		debug,
 	}
 }
 

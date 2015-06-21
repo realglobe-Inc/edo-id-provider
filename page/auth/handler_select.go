@@ -57,19 +57,12 @@ func (this *Page) HandleSelect(w http.ResponseWriter, r *http.Request) {
 	log.Info(sender, ": Received select request")
 	defer log.Info(sender, ": Handled select request")
 
-	if err := this.selectServe(w, r, sender); err != nil {
-		idperr.RespondHtml(w, r, erro.Wrap(err), this.errTmpl, sender)
-		return
-	}
-	return
-}
-
-func (this *Page) selectServe(w http.ResponseWriter, r *http.Request, sender *request.Request) (err error) {
 	var sess *session.Element
 	if sessId := sender.Session(); sessId != "" {
 		// セッションが通知された。
 		log.Debug(sender, ": Session is declared")
 
+		var err error
 		if sess, err = this.sessDb.Get(sessId); err != nil {
 			log.Err(sender, ": ", erro.Wrap(err))
 			// 新規発行すれば動くので諦めない。
@@ -90,10 +83,11 @@ func (this *Page) selectServe(w http.ResponseWriter, r *http.Request, sender *re
 
 	// セッションは決まった。
 
-	if err := this.selectServeWithSession(w, r, sender, sess); err != nil {
-		return this.respondErrorHtml(w, r, erro.Wrap(err), sender, sess)
+	env := (&environment{this, sender, sess})
+	if err := env.selectServe(w, r); err != nil {
+		env.respondErrorHtml(w, r, erro.Wrap(err))
+		return
 	}
-	return nil
 }
 
 // アカウント名の JSON 配列にする。
@@ -138,24 +132,24 @@ func languagesForm(lang string, langs []string) string {
 }
 
 // アカウント選択 UI にリダイレクトする。
-func (this *Page) redirectToSelectUi(w http.ResponseWriter, r *http.Request, sender *request.Request, sess *session.Element, msg string) error {
+func (this *environment) redirectToSelectUi(w http.ResponseWriter, r *http.Request, msg string) error {
 	// TODO 試行回数でエラー。
 
 	uri, err := url.Parse(this.pathSelUi)
 	if err != nil {
-		return this.respondErrorHtml(w, r, erro.Wrap(err), sender, sess)
+		return erro.Wrap(err)
 	}
 
 	// アカウント選択ページに渡すクエリパラメータを生成。
 	q := uri.Query()
 	q.Set(tagIssuer, this.selfId)
-	if acnts := sess.SelectedAccounts(); len(acnts) > 0 {
+	if acnts := this.sess.SelectedAccounts(); len(acnts) > 0 {
 		q.Set(tagUsernames, accountSetForm(acnts))
 	}
-	if disp := sess.Request().Display(); disp != "" {
+	if disp := this.sess.Request().Display(); disp != "" {
 		q.Set(tagDisplay, disp)
 	}
-	if lang, langs := sess.Language(), sess.Request().Languages(); lang != "" || len(langs) > 0 {
+	if lang, langs := this.sess.Language(), this.sess.Request().Languages(); lang != "" || len(langs) > 0 {
 		q.Set(tagLocales, languagesForm(lang, langs))
 	}
 	if msg != "" {
@@ -165,27 +159,28 @@ func (this *Page) redirectToSelectUi(w http.ResponseWriter, r *http.Request, sen
 
 	// チケットを発行。
 	uri.Fragment = this.idGen.String(this.ticLen)
-	sess.SetTicket(ticket.New(uri.Fragment, time.Now().Add(this.ticExpIn)))
-	log.Info(sender, ": Published ticket "+logutil.Mosaic(uri.Fragment))
+	this.sess.SetTicket(ticket.New(uri.Fragment, time.Now().Add(this.ticExpIn)))
+	log.Info(this.sender, ": Published ticket "+logutil.Mosaic(uri.Fragment))
 
-	log.Info(sender, ": Redirect to select UI")
-	return this.redirectTo(w, r, uri, sender, sess)
+	log.Info(this.sender, ": Redirect to select UI")
+	this.redirectTo(w, r, uri)
+	return nil
 }
 
-func (this *Page) selectServeWithSession(w http.ResponseWriter, r *http.Request, sender *request.Request, sess *session.Element) error {
-	authReq := sess.Request()
+func (this *environment) selectServe(w http.ResponseWriter, r *http.Request) error {
+	authReq := this.sess.Request()
 	if authReq == nil {
 		// ユーザー認証・認可処理が始まっていない。
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "session is not in authentication process", http.StatusBadRequest, nil))
 	}
 
 	// ユーザー認証中。
-	log.Debug(sender, ": Session is in authentication process")
+	log.Debug(this.sender, ": Session is in authentication process")
 
 	req, err := parseSelectRequest(r)
 	if err != nil {
 		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, erro.Unwrap(err).Error(), err))
-	} else if tic := sess.Ticket(); tic == nil {
+	} else if tic := this.sess.Ticket(); tic == nil {
 		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, "no consent session", nil))
 	} else if req.ticket() != tic.Id() {
 		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, "invalid ticket", nil))
@@ -194,59 +189,59 @@ func (this *Page) selectServeWithSession(w http.ResponseWriter, r *http.Request,
 	}
 
 	// チケットが有効だった。
-	log.Debug(sender, ": Ticket "+logutil.Mosaic(req.ticket())+" is OK")
+	log.Debug(this.sender, ": Ticket "+logutil.Mosaic(req.ticket())+" is OK")
 
 	if req.accountName() == "" {
 		// アカウント選択情報不備。
-		log.Warn(sender, ": Account is not specified")
-		return this.redirectToSelectUi(w, r, sender, sess, "Please select your account")
+		log.Warn(this.sender, ": Account is not specified")
+		return this.redirectToSelectUi(w, r, "Please select your account")
 	}
 
 	// アカウント選択情報があった。
-	log.Debug(sender, ": Account "+req.accountName()+" is specified")
+	log.Debug(this.sender, ": Account "+req.accountName()+" is specified")
 
 	acnt, err := this.acntDb.GetByName(req.accountName())
 	if err != nil {
 		return erro.Wrap(err)
 	} else if acnt == nil {
 		// アカウントが無い。
-		log.Debug(sender, ": Specified accout "+req.accountName()+" is not exist")
-		return this.redirectToSelectUi(w, r, sender, sess, "Accout "+req.accountName()+" is not exist. Please select your account")
+		log.Debug(this.sender, ": Specified accout "+req.accountName()+" is not exist")
+		return this.redirectToSelectUi(w, r, "Accout "+req.accountName()+" is not exist. Please select your account")
 	}
 
 	// アカウント選択できた。
-	log.Info(sender, ": Specified account "+req.accountName()+" is exist")
+	log.Info(this.sender, ": Specified account "+req.accountName()+" is exist")
 
-	if cur := sess.Account(); cur == nil || cur.Id() != acnt.Id() {
-		sess.SelectAccount(session.NewAccount(acnt.Id(), acnt.Name()))
+	if cur := this.sess.Account(); cur == nil || cur.Id() != acnt.Id() {
+		this.sess.SelectAccount(session.NewAccount(acnt.Id(), acnt.Name()))
 	}
 
 	if lang := req.language(); lang != "" {
-		sess.SetLanguage(lang)
+		this.sess.SetLanguage(lang)
 
 		// 言語を選択してた。
-		log.Debug(sender, ": Language "+lang+" was selected")
+		log.Debug(this.sender, ": Language "+lang+" was selected")
 	}
 
-	return this.afterSelect(w, r, sender, sess, nil, acnt)
+	return this.afterSelect(w, r, nil, acnt)
 }
 
 // アカウント選択が終わったところから。
-func (this *Page) afterSelect(w http.ResponseWriter, r *http.Request, sender *request.Request, sess *session.Element, ta tadb.Element, acnt account.Element) error {
+func (this *environment) afterSelect(w http.ResponseWriter, r *http.Request, ta tadb.Element, acnt account.Element) error {
 
-	prmpts := sess.Request().Prompt()
+	prmpts := this.sess.Request().Prompt()
 	if prmpts[tagLogin] {
 		if prmpts[tagNone] {
 			return erro.Wrap(newErrorForRedirect(idperr.Login_required, "cannot login without UI", nil))
 		}
 
-		return this.redirectToLoginUi(w, r, sender, sess, "Please log in")
+		return this.redirectToLoginUi(w, r, "Please log in")
 	}
 
-	if sess.Account() != nil && sess.Account().LoggedIn() {
-		if maxAge := sess.Request().MaxAge(); maxAge < 0 || time.Now().Sub(sess.Account().LoginDate()) <= time.Duration(maxAge*time.Second) {
+	if this.sess.Account() != nil && this.sess.Account().LoggedIn() {
+		if maxAge := this.sess.Request().MaxAge(); maxAge < 0 || time.Now().Sub(this.sess.Account().LoginDate()) <= time.Duration(maxAge*time.Second) {
 			// ログイン済み。
-			return this.afterLogin(w, r, sender, sess, ta, acnt)
+			return this.afterLogin(w, r, ta, acnt)
 		}
 	}
 
@@ -254,5 +249,5 @@ func (this *Page) afterSelect(w http.ResponseWriter, r *http.Request, sender *re
 		return erro.Wrap(newErrorForRedirect(idperr.Login_required, "cannot login without UI", nil))
 	}
 
-	return this.redirectToLoginUi(w, r, sender, sess, "Please log in")
+	return this.redirectToLoginUi(w, r, "Please log in")
 }

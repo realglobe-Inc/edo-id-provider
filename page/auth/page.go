@@ -184,73 +184,81 @@ func (this *Page) newCookie(sess *session.Element) *http.Cookie {
 	}
 }
 
+// environment のメソッドは idperr.Error を返す。
+type environment struct {
+	*Page
+
+	sender *request.Request
+	sess   *session.Element
+}
+
 // ユーザーエージェント向けにエラーを返す。
-func (this *Page) respondErrorHtml(w http.ResponseWriter, r *http.Request, origErr error, sender *request.Request, sess *session.Element) (err error) {
+func (this *environment) respondErrorHtml(w http.ResponseWriter, r *http.Request, origErr error) {
 	var uri *url.URL
-	if sess.Request() != nil {
-		uri, err = url.Parse(sess.Request().RedirectUri())
+	if this.sess.Request() != nil {
+		var err error
+		uri, err = url.Parse(this.sess.Request().RedirectUri())
 		if err != nil {
-			log.Err(sender, ": ", erro.Unwrap(err))
-			log.Debug(sender, ": ", erro.Wrap(err))
-		} else if sess.Request().State() != "" {
+			log.Err(this.sender, ": ", erro.Unwrap(err))
+			log.Debug(this.sender, ": ", erro.Wrap(err))
+		} else if this.sess.Request().State() != "" {
 			q := uri.Query()
-			q.Set(tagState, sess.Request().State())
+			q.Set(tagState, this.sess.Request().State())
 			uri.RawQuery = q.Encode()
 		}
 	}
 
 	// 経過を破棄。
-	sess.Clear()
-	if err := this.sessDb.Save(sess, sess.Expires().Add(this.sessDbExpIn-this.sessExpIn)); err != nil {
-		log.Err(sender, ": ", erro.Wrap(err))
+	this.sess.Clear()
+	if err := this.sessDb.Save(this.sess, this.sess.Expires().Add(this.sessDbExpIn-this.sessExpIn)); err != nil {
+		log.Err(this.sender, ": ", erro.Wrap(err))
 	} else {
-		log.Debug(sender, ": Saved session "+logutil.Mosaic(sess.Id()))
+		log.Debug(this.sender, ": Saved session "+logutil.Mosaic(this.sess.Id()))
 	}
 
-	if !sess.Saved() {
+	if !this.sess.Saved() {
 		// 未通知セッションの通知。
-		http.SetCookie(w, this.newCookie(sess))
-		log.Debug(sender, ": Report session "+logutil.Mosaic(sess.Id()))
+		http.SetCookie(w, this.newCookie(this.sess))
+		log.Debug(this.sender, ": Report session "+logutil.Mosaic(this.sess.Id()))
 	}
 
 	if uri != nil {
-		idperr.RedirectError(w, r, origErr, uri, sender)
+		idperr.RedirectError(w, r, origErr, uri, this.sender)
 	}
 
-	idperr.RespondHtml(w, r, origErr, this.errTmpl, sender)
-	return nil
+	idperr.RespondHtml(w, r, origErr, this.errTmpl, this.sender)
 }
 
 // セッション処理をしてリダイレクトさせる。
-func (this *Page) redirectTo(w http.ResponseWriter, r *http.Request, uri *url.URL, sender *request.Request, sess *session.Element) error {
-	if err := this.sessDb.Save(sess, sess.Expires().Add(this.sessDbExpIn-this.sessExpIn)); err != nil {
-		log.Err(sender, ": ", erro.Wrap(err))
+func (this *environment) redirectTo(w http.ResponseWriter, r *http.Request, uri *url.URL) {
+	if err := this.sessDb.Save(this.sess, this.sess.Expires().Add(this.sessDbExpIn-this.sessExpIn)); err != nil {
+		log.Err(this.sender, ": ", erro.Wrap(err))
 	} else {
-		log.Debug(sender, ": Saved session "+logutil.Mosaic(sess.Id()))
+		log.Debug(this.sender, ": Saved session "+logutil.Mosaic(this.sess.Id()))
 	}
 
-	if !sess.Saved() {
-		http.SetCookie(w, this.newCookie(sess))
-		log.Debug(sender, ": Report session "+logutil.Mosaic(sess.Id()))
+	if !this.sess.Saved() {
+		http.SetCookie(w, this.newCookie(this.sess))
+		log.Debug(this.sender, ": Report session "+logutil.Mosaic(this.sess.Id()))
 	}
 
 	w.Header().Add(tagCache_control, tagNo_store)
 	w.Header().Add(tagPragma, tagNo_cache)
 	http.Redirect(w, r, uri.String(), http.StatusFound)
-	return nil
 }
 
 // リダイレクトで認可コードを返す。
-func (this *Page) redirectCode(w http.ResponseWriter, r *http.Request, cod *authcode.Element, idTok string, sender *request.Request, sess *session.Element) error {
+func (this *environment) redirectCode(w http.ResponseWriter, r *http.Request, cod *authcode.Element, idTok string) {
 
-	uri, err := url.Parse(sess.Request().RedirectUri())
+	uri, err := url.Parse(this.sess.Request().RedirectUri())
 	if err != nil {
-		return this.respondErrorHtml(w, r, erro.Wrap(err), sender, sess)
+		this.respondErrorHtml(w, r, erro.Wrap(err))
+		return
 	}
 
 	// 経過を破棄。
-	req := sess.Request()
-	sess.Clear()
+	req := this.sess.Request()
+	this.sess.Clear()
 
 	q := uri.Query()
 	q.Set(tagCode, cod.Id())
@@ -262,6 +270,6 @@ func (this *Page) redirectCode(w http.ResponseWriter, r *http.Request, cod *auth
 	}
 	uri.RawQuery = q.Encode()
 
-	log.Info(sender, ": Redirect "+logutil.Mosaic(sess.Id())+" to TA "+req.Ta())
-	return this.redirectTo(w, r, uri, sender, sess)
+	log.Info(this.sender, ": Redirect "+logutil.Mosaic(this.sess.Id())+" to TA "+req.Ta())
+	this.redirectTo(w, r, uri)
 }

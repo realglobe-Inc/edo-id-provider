@@ -53,19 +53,12 @@ func (this *Page) HandleAuth(w http.ResponseWriter, r *http.Request) {
 	log.Info(sender, ": Received authentication request")
 	defer log.Info(sender, ": Handled authentication request")
 
-	if err := this.authServe(w, r, sender); err != nil {
-		idperr.RespondHtml(w, r, erro.Wrap(err), this.errTmpl, sender)
-		return
-	}
-	return
-}
-
-func (this *Page) authServe(w http.ResponseWriter, r *http.Request, sender *request.Request) (err error) {
 	var sess *session.Element
 	if sessId := sender.Session(); sessId != "" {
 		// セッションが通知された。
 		log.Debug(sender, ": Session is declared")
 
+		var err error
 		if sess, err = this.sessDb.Get(sessId); err != nil {
 			log.Err(sender, ": ", erro.Wrap(err))
 			// 新規発行すれば動くので諦めない。
@@ -92,54 +85,60 @@ func (this *Page) authServe(w http.ResponseWriter, r *http.Request, sender *requ
 
 	// セッションは決まった。
 
+	env := (&environment{this, sender, sess})
 	authReq, err := session.ParseRequest(r)
 	if err != nil {
 		err = erro.Wrap(idperr.New(idperr.Invalid_request, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
-		return this.respondErrorHtmlBeforeGetRedirectUri(w, r, authReq, err, sender, sess)
+		env.respondErrorHtmlBeforeGetRedirectUri(w, r, authReq, err)
+		return
 	}
 
-	if err := this.afterParseAuthRequest(w, r, authReq, sender, sess); err != nil {
-		return this.respondErrorHtml(w, r, erro.Wrap(err), sender, sess)
+	if err := env.afterParseAuthRequest(w, r, authReq); err != nil {
+		env.respondErrorHtml(w, r, erro.Wrap(err))
+		return
 	}
-	return nil
 }
 
-func (this *Page) respondErrorHtmlBeforeGetRedirectUri(w http.ResponseWriter, r *http.Request, req *session.Request, origErr error, sender *request.Request, sess *session.Element) error {
+func (this *environment) respondErrorHtmlBeforeGetRedirectUri(w http.ResponseWriter, r *http.Request, req *session.Request, origErr error) {
 	// リダイレクトエンドポイントが正しければ、リダイレクトでエラーを返す。
 
 	if req == nil || req.Ta() == "" || req.RedirectUri() == "" {
-		return this.respondErrorHtml(w, r, origErr, sender, sess)
+		this.respondErrorHtml(w, r, origErr)
+		return
 	}
 
 	// TA とリダイレクトエンドポイントが指定されてる。
 
 	ta, err := this.taDb.Get(req.Ta())
 	if err != nil {
-		log.Err(sender, ": ", erro.Wrap(err))
-		return this.respondErrorHtml(w, r, origErr, sender, sess)
+		log.Err(this.sender, ": ", erro.Wrap(err))
+		this.respondErrorHtml(w, r, origErr)
+		return
 	} else if ta == nil {
-		log.Warn(sender, ": Declared TA "+req.Ta()+" is not exist")
-		return this.respondErrorHtml(w, r, origErr, sender, sess)
+		log.Warn(this.sender, ": Declared TA "+req.Ta()+" is not exist")
+		this.respondErrorHtml(w, r, origErr)
+		return
 	}
 
 	// TA は存在する。
-	return this.respondErrorHtmlBeforeGetRedirectUriWithTa(w, r, req, ta, origErr, sender, sess)
+	this.respondErrorHtmlBeforeGetRedirectUriWithTa(w, r, req, ta, origErr)
 }
 
-func (this *Page) respondErrorHtmlBeforeGetRedirectUriWithTa(w http.ResponseWriter, r *http.Request, req *session.Request, ta tadb.Element, origErr error, sender *request.Request, sess *session.Element) error {
+func (this *environment) respondErrorHtmlBeforeGetRedirectUriWithTa(w http.ResponseWriter, r *http.Request, req *session.Request, ta tadb.Element, origErr error) {
 	if !ta.RedirectUris()[req.RedirectUri()] {
-		log.Warn(sender, ": Declared redirect URI "+req.RedirectUri()+" is not registered")
-		return this.respondErrorHtml(w, r, origErr, sender, sess)
+		log.Warn(this.sender, ": Declared redirect URI "+req.RedirectUri()+" is not registered")
+		this.respondErrorHtml(w, r, origErr)
+		return
 	}
 
 	// リダイレクトエンドポイントも正しい。
 
-	sess.SetRequest(req)
-	return this.respondErrorHtml(w, r, origErr, sender, sess)
+	this.sess.SetRequest(req)
+	this.respondErrorHtml(w, r, origErr)
 }
 
 // request や request_uri パラメータを読み込む。
-func (this *Page) parseRequestObject(req *session.Request, ta tadb.Element) error {
+func (this *environment) parseRequestObject(req *session.Request, ta tadb.Element) error {
 	if req.Request() != nil {
 		if req.RequestUri() != "" {
 			return erro.Wrap(idperr.New(idperr.Invalid_request, "cannot use "+tagRequest+" and "+tagRequest_uri+" together", http.StatusBadRequest, nil))
@@ -161,7 +160,7 @@ func (this *Page) parseRequestObject(req *session.Request, ta tadb.Element) erro
 }
 
 // 正しいリダイレクト URI が分かる前。
-func (this *Page) afterParseAuthRequest(w http.ResponseWriter, r *http.Request, req *session.Request, sender *request.Request, sess *session.Element) error {
+func (this *environment) afterParseAuthRequest(w http.ResponseWriter, r *http.Request, req *session.Request) error {
 	ta, err := this.taDb.Get(req.Ta())
 	if err != nil {
 		return erro.Wrap(err)
@@ -170,11 +169,12 @@ func (this *Page) afterParseAuthRequest(w http.ResponseWriter, r *http.Request, 
 	}
 
 	// TA は存在する。
-	log.Debug(sender, ": Declared TA "+ta.Id()+" is exist")
+	log.Debug(this.sender, ": Declared TA "+ta.Id()+" is exist")
 
 	// request と request_uri パラメータの読み込み。
 	if err := this.parseRequestObject(req, ta); err != nil {
-		return this.respondErrorHtmlBeforeGetRedirectUriWithTa(w, r, req, ta, erro.Wrap(err), sender, sess)
+		this.respondErrorHtmlBeforeGetRedirectUriWithTa(w, r, req, ta, erro.Wrap(err))
+		return nil
 	}
 
 	if req.RedirectUri() == "" {
@@ -184,17 +184,14 @@ func (this *Page) afterParseAuthRequest(w http.ResponseWriter, r *http.Request, 
 	}
 
 	// リダイレクトエンドポイントも正しい。
-	log.Debug(sender, ": Declared redirect URI "+req.RedirectUri()+" is registered")
+	log.Debug(this.sender, ": Declared redirect URI "+req.RedirectUri()+" is registered")
 
-	sess.SetRequest(req)
-	if err := this.afterGetRedirectUri(w, r, req, ta, sender, sess); err != nil {
-		return this.respondErrorHtml(w, r, erro.Wrap(err), sender, sess)
-	}
-	return nil
+	this.sess.SetRequest(req)
+	return this.afterGetRedirectUri(w, r, req, ta)
 }
 
 // 正しいリダイレクト URI が分かった後。
-func (this *Page) afterGetRedirectUri(w http.ResponseWriter, r *http.Request, req *session.Request, ta tadb.Element, sender *request.Request, sess *session.Element) error {
+func (this *environment) afterGetRedirectUri(w http.ResponseWriter, r *http.Request, req *session.Request, ta tadb.Element) error {
 	// 重複パラメータが無いか検査。
 	for k, v := range r.Form {
 		if len(v) > 1 {
@@ -207,7 +204,7 @@ func (this *Page) afterGetRedirectUri(w http.ResponseWriter, r *http.Request, re
 	}
 
 	// scope には問題無い。
-	log.Debug(sender, ": Declared scope has "+tagOpenid)
+	log.Debug(this.sender, ": Declared scope has "+tagOpenid)
 
 	switch respTypes := req.ResponseType(); len(respTypes) {
 	case 0:
@@ -223,15 +220,15 @@ func (this *Page) afterGetRedirectUri(w http.ResponseWriter, r *http.Request, re
 	}
 
 	// response_type には問題無い。
-	log.Debug(sender, ": Response type is ", req.ResponseType())
+	log.Debug(this.sender, ": Response type is ", req.ResponseType())
 
 	if req.Prompt()[tagSelect_account] {
 		if req.Prompt()[tagNone] {
 			return erro.Wrap(newErrorForRedirect(idperr.Account_selection_required, "cannot select account without UI", nil))
 		}
 
-		return this.redirectToSelectUi(w, r, sender, sess, "Please select your account")
+		return this.redirectToSelectUi(w, r, "Please select your account")
 	}
 
-	return this.afterSelect(w, r, sender, sess, ta, nil)
+	return this.afterSelect(w, r, ta, nil)
 }

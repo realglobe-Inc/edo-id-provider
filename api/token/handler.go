@@ -153,13 +153,20 @@ func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Info(sender, ": Received token request")
 	defer log.Info(sender, ": Handled token request")
 
-	if err := this.serve(w, r, sender); err != nil {
+	if err := (&environment{this, sender}).serve(w, r); err != nil {
 		idperr.RespondJson(w, r, erro.Wrap(err), sender)
 		return
 	}
 }
 
-func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requtil.Request) error {
+// environment のメソッドは idperr.Error を返す。
+type environment struct {
+	*handler
+
+	sender *requtil.Request
+}
+
+func (this *environment) serve(w http.ResponseWriter, r *http.Request) error {
 	if r.Method != tagPost {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "unsupported method "+r.Method, http.StatusMethodNotAllowed, nil))
 	}
@@ -175,14 +182,14 @@ func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 		return erro.Wrap(idperr.New(idperr.Unsupported_grant_type, "unsupported grant type "+grntType, http.StatusBadRequest, nil))
 	}
 
-	log.Debug(sender, ": Grant type is "+tagAuthorization_code)
+	log.Debug(this.sender, ": Grant type is "+tagAuthorization_code)
 
 	codId := req.code()
 	if codId == "" {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "no "+tagCode, http.StatusBadRequest, nil))
 	}
 
-	log.Debug(sender, ": Code "+logutil.Mosaic(codId)+" is declared")
+	log.Debug(this.sender, ": Code "+logutil.Mosaic(codId)+" is declared")
 
 	now := time.Now()
 
@@ -194,11 +201,11 @@ func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 	} else if cod.Expires().Before(now) {
 		return erro.Wrap(idperr.New(idperr.Invalid_grant, "code "+logutil.Mosaic(codId)+" is expired", http.StatusBadRequest, nil))
 	} else if cod.Token() != "" {
-		disposeCode(this, codId)
+		disposeCode(this.handler, codId)
 		return erro.Wrap(idperr.New(idperr.Invalid_grant, "code "+logutil.Mosaic(codId)+" is invalid", http.StatusBadRequest, nil))
 	}
 
-	log.Debug(sender, ": Code "+logutil.Mosaic(codId)+" is exist")
+	log.Debug(this.sender, ": Code "+logutil.Mosaic(codId)+" is exist")
 	savedCodDate := cod.Date()
 
 	if req.ta() == "" {
@@ -206,7 +213,7 @@ func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 	} else if req.ta() != cod.Ta() {
 		return erro.Wrap(idperr.New(idperr.Invalid_grant, "you are not code holder", http.StatusBadRequest, nil))
 	} else {
-		log.Debug(sender, ": TA "+req.ta()+" is declared")
+		log.Debug(this.sender, ": TA "+req.ta()+" is declared")
 	}
 
 	rediUri := req.redirectUri()
@@ -216,7 +223,7 @@ func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 		return erro.Wrap(idperr.New(idperr.Invalid_grant, "invalid "+tagRedirect_uri, http.StatusBadRequest, nil))
 	}
 
-	log.Debug(sender, ": "+tagRedirect_uri+" matches that of code")
+	log.Debug(this.sender, ": "+tagRedirect_uri+" matches that of code")
 
 	if taAssType := req.taAssertionType(); taAssType == "" {
 		return erro.Wrap(idperr.New(idperr.Invalid_client, "no "+tagClient_assertion_type, http.StatusBadRequest, nil))
@@ -224,13 +231,13 @@ func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 		return erro.Wrap(idperr.New(idperr.Invalid_client, "unsupported assertion type "+taAssType, http.StatusBadRequest, nil))
 	}
 
-	log.Debug(sender, ": "+tagClient_assertion_type+" is "+cliAssTypeJwt_bearer)
+	log.Debug(this.sender, ": "+tagClient_assertion_type+" is "+cliAssTypeJwt_bearer)
 
 	if req.taAssertion() == nil {
 		return erro.Wrap(idperr.New(idperr.Invalid_client, "no "+tagClient_assertion, http.StatusBadRequest, nil))
 	}
 
-	log.Debug(sender, ": "+tagClient_assertion+" is found")
+	log.Debug(this.sender, ": "+tagClient_assertion+" is found")
 
 	// Authorization ヘッダと client_secret パラメータも認識はする。
 	if r.Header.Get(tagAuthorization) != "" || r.FormValue(tagClient_secret) != "" {
@@ -252,12 +259,12 @@ func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 	}
 
 	// クライアント認証できた。
-	log.Debug(sender, ": Authenticated "+req.ta())
+	log.Debug(this.sender, ": Authenticated "+req.ta())
 
 	tokId := this.idGen.String(this.tokLen)
 
 	// アクセストークンが決まった。
-	log.Debug(sender, ": Generated token "+logutil.Mosaic(tokId))
+	log.Debug(this.sender, ": Generated token "+logutil.Mosaic(tokId))
 
 	// ID トークンの作成。
 	acnt, err := this.acntDb.Get(cod.Account())
@@ -286,7 +293,7 @@ func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 	}
 
 	// ID トークンができた。
-	log.Debug(sender, ": Generated ID token")
+	log.Debug(this.sender, ": Generated ID token")
 
 	tok := token.New(
 		tokId,
@@ -302,18 +309,18 @@ func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 	if ok, err := this.codDb.Replace(cod, savedCodDate); err != nil {
 		return erro.Wrap(idperr.New(idperr.Server_error, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
 	} else if !ok {
-		disposeCode(this, codId)
+		disposeCode(this.handler, codId)
 		return erro.Wrap(idperr.New(idperr.Invalid_grant, "code "+logutil.Mosaic(codId)+" is used by others", http.StatusBadRequest, nil))
 	}
 
-	log.Debug(sender, ": Linked token "+logutil.Mosaic(tok.Id())+" to code "+logutil.Mosaic(cod.Id()))
+	log.Debug(this.sender, ": Linked token "+logutil.Mosaic(tok.Id())+" to code "+logutil.Mosaic(cod.Id()))
 
 	// アクセストークンを保存する。
 	if err := this.tokDb.Save(tok, now.Add(this.tokDbExpIn)); err != nil {
 		return erro.Wrap(err)
 	}
 
-	log.Debug(sender, ": Saved token "+logutil.Mosaic(tok.Id()))
+	log.Debug(this.sender, ": Saved token "+logutil.Mosaic(tok.Id()))
 
 	m := map[string]interface{}{
 		tagAccess_token: tok.Id(),

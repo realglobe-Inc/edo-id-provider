@@ -100,13 +100,20 @@ func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Info(sender, ": Received account request")
 	defer log.Info(sender, ": Handled account request")
 
-	if err := this.serve(w, r, sender); err != nil {
+	if err := (&environment{this, sender}).serve(w, r); err != nil {
 		idperr.RespondJson(w, r, erro.Wrap(err), sender)
 		return
 	}
 }
 
-func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requtil.Request) error {
+// environment のメソッドは idperr.Error を返す。
+type environment struct {
+	*handler
+
+	sender *requtil.Request
+}
+
+func (this *environment) serve(w http.ResponseWriter, r *http.Request) error {
 	req, err := parseRequest(r)
 	if err != nil {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
@@ -114,13 +121,13 @@ func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "unsupported authorization scheme "+req.scheme(), http.StatusBadRequest, nil))
 	}
 
-	log.Debug(sender, ": Authrization scheme "+req.scheme()+" is OK")
+	log.Debug(this.sender, ": Authrization scheme "+req.scheme()+" is OK")
 
 	if req.token() == "" {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "no access token", http.StatusBadRequest, nil))
 	}
 
-	log.Debug(sender, ": Access token "+logutil.Mosaic(req.token())+" is declared")
+	log.Debug(this.sender, ": Access token "+logutil.Mosaic(req.token())+" is declared")
 
 	tok, err := this.tokDb.Get(req.token())
 	if err != nil {
@@ -131,7 +138,7 @@ func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 		return erro.Wrap(idperr.New(idperr.Invalid_token, "token is invalid", http.StatusBadRequest, nil))
 	}
 
-	log.Debug(sender, ": Declared access token "+logutil.Mosaic(tok.Id())+" is OK")
+	log.Debug(this.sender, ": Declared access token "+logutil.Mosaic(tok.Id())+" is OK")
 
 	ta, err := this.taDb.Get(tok.Ta())
 	if err != nil {
@@ -140,7 +147,7 @@ func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 		return erro.Wrap(idperr.New(idperr.Invalid_token, "TA "+tok.Ta()+" is not exist", http.StatusBadRequest, nil))
 	}
 
-	log.Debug(sender, ": TA "+ta.Id()+" is exist")
+	log.Debug(this.sender, ": TA "+ta.Id()+" is exist")
 
 	acnt, err := this.acntDb.Get(tok.Account())
 	if err != nil {
@@ -149,7 +156,7 @@ func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 		return erro.Wrap(idperr.New(idperr.Invalid_token, "account is not exist", http.StatusBadRequest, nil))
 	}
 
-	log.Debug(sender, ": Account "+acnt.Id()+" is exist")
+	log.Debug(this.sender, ": Account "+acnt.Id()+" is exist")
 
 	if err := idputil.SetSub(this, acnt, ta); err != nil {
 		return erro.Wrap(err)
@@ -161,7 +168,7 @@ func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 	}
 	attrNames[tagSub] = true
 
-	log.Debug(sender, ": Return attributes ", attrNames)
+	log.Debug(this.sender, ": Return attributes ", attrNames)
 
 	attrs := map[string]interface{}{}
 	for attrName := range attrNames {

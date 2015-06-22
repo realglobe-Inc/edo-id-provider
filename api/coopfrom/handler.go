@@ -388,7 +388,7 @@ func (this *environment) serveAsSub(w http.ResponseWriter, r *http.Request, req 
 	if err != nil {
 		return erro.Wrap(err)
 	} else if frTa == nil {
-		return erro.Wrap(idperr.New(idperr.Invalid_grant, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
+		return erro.Wrap(idperr.New(idperr.Invalid_grant, "from-TA "+ref.fromTa()+" is not exist", http.StatusBadRequest, err))
 	}
 
 	log.Debug(this.sender, ": From-TA "+frTa.Id()+" is exist")
@@ -409,7 +409,7 @@ func (this *environment) serveAsSub(w http.ResponseWriter, r *http.Request, req 
 	if err != nil {
 		return erro.Wrap(err)
 	} else if toTa == nil {
-		return erro.Wrap(idperr.New(idperr.Invalid_grant, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
+		return erro.Wrap(idperr.New(idperr.Invalid_grant, "to-TA "+ref.toTa()+" is not exist", http.StatusBadRequest, err))
 	}
 
 	log.Debug(this.sender, ": To-TA "+frTa.Id()+" is exist")

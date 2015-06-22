@@ -179,21 +179,9 @@ func TestDenyInvalidTa(t *testing.T) {
 	tok := token.New(test_tokId, now.Add(time.Minute), acnt.Id(), strsetutil.New("openid"), strsetutil.New("email"), test_frTa.Id())
 	hndl.tokDb.Save(tok, now.Add(time.Minute))
 
-	r, err := newTestSingleRequest(hndl.selfId + hndl.pathCoopFr)
+	r, err := newTestSingleRequestWithParams(hndl.selfId+hndl.pathCoopFr, map[string]interface{}{"client_assertion": "abcde"}, nil)
 	if err != nil {
 		t.Fatal(err)
-	}
-	{
-		var m map[string]interface{}
-		if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
-			t.Fatal(err)
-		}
-		m["client_assertion"] = "abcde"
-		body, err := json.Marshal(m)
-		if err != nil {
-			t.Fatal(err)
-		}
-		r.Body = ioutil.NopCloser(bytes.NewReader(body))
 	}
 
 	w := httptest.NewRecorder()
@@ -281,21 +269,9 @@ func testMainDenyNoSomething(t *testing.T, something string) {
 	tok := token.New(test_tokId, now.Add(time.Minute), acnt.Id(), strsetutil.New("openid"), strsetutil.New("email"), test_frTa.Id())
 	hndl.tokDb.Save(tok, now.Add(time.Minute))
 
-	r, err := newTestSingleRequest(hndl.selfId + hndl.pathCoopFr)
+	r, err := newTestSingleRequestWithParams(hndl.selfId+hndl.pathCoopFr, map[string]interface{}{something: nil}, nil)
 	if err != nil {
 		t.Fatal(err)
-	}
-	{
-		var m map[string]interface{}
-		if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
-			t.Fatal(err)
-		}
-		delete(m, something)
-		body, err := json.Marshal(m)
-		if err != nil {
-			t.Fatal(err)
-		}
-		r.Body = ioutil.NopCloser(bytes.NewReader(body))
 	}
 
 	w := httptest.NewRecorder()
@@ -303,7 +279,7 @@ func testMainDenyNoSomething(t *testing.T, something string) {
 
 	if w.Code != http.StatusBadRequest {
 		t.Error(w.Code)
-		t.Fatal(http.StatusOK)
+		t.Fatal(http.StatusBadRequest)
 	}
 	var buff struct{ Error string }
 	if err := json.NewDecoder(w.Body).Decode(&buff); err != nil {
@@ -361,21 +337,9 @@ func TestMainDenyInvalidScope(t *testing.T) {
 	tok := token.New(test_tokId, now.Add(time.Minute), acnt.Id(), strsetutil.New("openid"), strsetutil.New("email"), test_frTa.Id())
 	hndl.tokDb.Save(tok, now.Add(time.Minute))
 
-	r, err := newTestSingleRequest(hndl.selfId + hndl.pathCoopFr)
+	r, err := newTestSingleRequestWithParams(hndl.selfId+hndl.pathCoopFr, map[string]interface{}{"scope": "openid phone"}, nil)
 	if err != nil {
 		t.Fatal(err)
-	}
-	{
-		var m map[string]interface{}
-		if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
-			t.Fatal(err)
-		}
-		m["scope"] = "openid phone"
-		body, err := json.Marshal(m)
-		if err != nil {
-			t.Fatal(err)
-		}
-		r.Body = ioutil.NopCloser(bytes.NewReader(body))
 	}
 
 	w := httptest.NewRecorder()
@@ -409,21 +373,9 @@ func TestMainDenyInvalidToTa(t *testing.T) {
 	tok := token.New(test_tokId, now.Add(time.Minute), acnt.Id(), strsetutil.New("openid"), strsetutil.New("email"), test_frTa.Id())
 	hndl.tokDb.Save(tok, now.Add(time.Minute))
 
-	r, err := newTestSingleRequest(hndl.selfId + hndl.pathCoopFr)
+	r, err := newTestSingleRequestWithParams(hndl.selfId+hndl.pathCoopFr, map[string]interface{}{"to_client": test_toTa.Id() + "a"}, nil)
 	if err != nil {
 		t.Fatal(err)
-	}
-	{
-		var m map[string]interface{}
-		if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
-			t.Fatal(err)
-		}
-		m["to_client"] = test_toTa.Id() + "a"
-		body, err := json.Marshal(m)
-		if err != nil {
-			t.Fatal(err)
-		}
-		r.Body = ioutil.NopCloser(bytes.NewReader(body))
 	}
 
 	w := httptest.NewRecorder()
@@ -457,21 +409,9 @@ func TestMainDenySameTa(t *testing.T) {
 	tok := token.New(test_tokId, now.Add(time.Minute), acnt.Id(), strsetutil.New("openid"), strsetutil.New("email"), test_frTa.Id())
 	hndl.tokDb.Save(tok, now.Add(time.Minute))
 
-	r, err := newTestSingleRequest(hndl.selfId + hndl.pathCoopFr)
+	r, err := newTestSingleRequestWithParams(hndl.selfId+hndl.pathCoopFr, map[string]interface{}{"to_client": test_frTa.Id()}, nil)
 	if err != nil {
 		t.Fatal(err)
-	}
-	{
-		var m map[string]interface{}
-		if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
-			t.Fatal(err)
-		}
-		m["to_client"] = test_frTa.Id()
-		body, err := json.Marshal(m)
-		if err != nil {
-			t.Fatal(err)
-		}
-		r.Body = ioutil.NopCloser(bytes.NewReader(body))
 	}
 
 	w := httptest.NewRecorder()
@@ -505,21 +445,9 @@ func TestDenyInvalidUsers(t *testing.T) {
 	tok := token.New(test_tokId, now.Add(time.Minute), acnt.Id(), strsetutil.New("openid"), strsetutil.New("email"), test_frTa.Id())
 	hndl.tokDb.Save(tok, now.Add(time.Minute))
 
-	r, err := newTestSingleRequest(hndl.selfId + hndl.pathCoopFr)
+	r, err := newTestSingleRequestWithParams(hndl.selfId+hndl.pathCoopFr, map[string]interface{}{"users": map[string]string{test_subAcnt1Tag: subAcnt1.Id() + "a"}}, nil)
 	if err != nil {
 		t.Fatal(err)
-	}
-	{
-		var m map[string]interface{}
-		if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
-			t.Fatal(err)
-		}
-		m["users"] = map[string]string{test_subAcnt1Tag: subAcnt1.Id() + "a"}
-		body, err := json.Marshal(m)
-		if err != nil {
-			t.Fatal(err)
-		}
-		r.Body = ioutil.NopCloser(bytes.NewReader(body))
 	}
 
 	w := httptest.NewRecorder()
@@ -553,21 +481,9 @@ func TestDenyTagOverlap(t *testing.T) {
 	tok := token.New(test_tokId, now.Add(time.Minute), acnt.Id(), strsetutil.New("openid"), strsetutil.New("email"), test_frTa.Id())
 	hndl.tokDb.Save(tok, now.Add(time.Minute))
 
-	r, err := newTestSingleRequest(hndl.selfId + hndl.pathCoopFr)
+	r, err := newTestSingleRequestWithParams(hndl.selfId+hndl.pathCoopFr, map[string]interface{}{"users": map[string]string{test_acntTag: subAcnt1.Id()}}, nil)
 	if err != nil {
 		t.Fatal(err)
-	}
-	{
-		var m map[string]interface{}
-		if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
-			t.Fatal(err)
-		}
-		m["users"] = map[string]string{test_acntTag: subAcnt1.Id()}
-		body, err := json.Marshal(m)
-		if err != nil {
-			t.Fatal(err)
-		}
-		r.Body = ioutil.NopCloser(bytes.NewReader(body))
 	}
 
 	w := httptest.NewRecorder()

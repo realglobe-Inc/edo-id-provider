@@ -58,19 +58,12 @@ func (this *Page) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	log.Info(sender, ": Received login request")
 	defer log.Info(sender, ": Handled login request")
 
-	if err := this.loginServe(w, r, sender); err != nil {
-		idperr.RespondHtml(w, r, erro.Wrap(err), this.errTmpl, sender)
-		return
-	}
-	return
-}
-
-func (this *Page) loginServe(w http.ResponseWriter, r *http.Request, sender *request.Request) (err error) {
 	var sess *session.Element
 	if sessId := sender.Session(); sessId != "" {
 		// セッションが通知された。
 		log.Debug(sender, ": Session is declared")
 
+		var err error
 		if sess, err = this.sessDb.Get(sessId); err != nil {
 			log.Err(sender, ": ", erro.Wrap(err))
 			// 新規発行すれば動くので諦めない。
@@ -90,31 +83,32 @@ func (this *Page) loginServe(w http.ResponseWriter, r *http.Request, sender *req
 
 	// セッションは決まった。
 
-	if err := this.loginServeWithSession(w, r, sender, sess); err != nil {
-		return this.respondErrorHtml(w, r, erro.Wrap(err), sender, sess)
+	env := &environment{this, sender, sess}
+	if err := env.loginServe(w, r); err != nil {
+		env.respondErrorHtml(w, r, erro.Wrap(err))
+		return
 	}
-	return nil
 }
 
 // ログイン UI にリダイレクトする。
-func (this *Page) redirectToLoginUi(w http.ResponseWriter, r *http.Request, sender *request.Request, sess *session.Element, msg string) error {
+func (this *environment) redirectToLoginUi(w http.ResponseWriter, r *http.Request, msg string) error {
 	// TODO 試行回数でエラー。
 
 	uri, err := url.Parse(this.pathLginUi)
 	if err != nil {
-		return this.respondErrorHtml(w, r, erro.Wrap(err), sender, sess)
+		return erro.Wrap(err)
 	}
 
 	// ログインページに渡すクエリパラメータを生成。
 	q := uri.Query()
 	q.Set(tagIssuer, this.selfId)
-	if acnts := sess.SelectedAccounts(); len(acnts) > 0 {
+	if acnts := this.sess.SelectedAccounts(); len(acnts) > 0 {
 		q.Set(tagUsernames, accountSetForm(acnts))
 	}
-	if disp := sess.Request().Display(); disp != "" {
+	if disp := this.sess.Request().Display(); disp != "" {
 		q.Set(tagDisplay, disp)
 	}
-	if lang, langs := sess.Language(), sess.Request().Languages(); lang != "" || len(langs) > 0 {
+	if lang, langs := this.sess.Language(), this.sess.Request().Languages(); lang != "" || len(langs) > 0 {
 		q.Set(tagLocales, languagesForm(lang, langs))
 	}
 	if msg != "" {
@@ -124,27 +118,28 @@ func (this *Page) redirectToLoginUi(w http.ResponseWriter, r *http.Request, send
 
 	// チケットを発行。
 	uri.Fragment = this.idGen.String(this.ticLen)
-	sess.SetTicket(ticket.New(uri.Fragment, time.Now().Add(this.ticExpIn)))
-	log.Info(sender, ": Published ticket "+logutil.Mosaic(uri.Fragment))
+	this.sess.SetTicket(ticket.New(uri.Fragment, time.Now().Add(this.ticExpIn)))
+	log.Info(this.sender, ": Published ticket "+logutil.Mosaic(uri.Fragment))
 
-	log.Info(sender, ": Redirect to login UI")
-	return this.redirectTo(w, r, uri, sender, sess)
+	log.Info(this.sender, ": Redirect to login UI")
+	this.redirectTo(w, r, uri)
+	return nil
 }
 
-func (this *Page) loginServeWithSession(w http.ResponseWriter, r *http.Request, sender *request.Request, sess *session.Element) error {
-	authReq := sess.Request()
+func (this *environment) loginServe(w http.ResponseWriter, r *http.Request) error {
+	authReq := this.sess.Request()
 	if authReq == nil {
 		// ユーザー認証・認可処理が始まっていない。
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "session is not in authentication process", http.StatusBadRequest, nil))
 	}
 
 	// ユーザー認証中。
-	log.Debug(sender, ": Session is in authentication process")
+	log.Debug(this.sender, ": Session is in authentication process")
 
 	req, err := parseLoginRequest(r)
 	if err != nil {
 		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, erro.Unwrap(err).Error(), err))
-	} else if tic := sess.Ticket(); tic == nil {
+	} else if tic := this.sess.Ticket(); tic == nil {
 		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, "no consent session", nil))
 	} else if req.ticket() != tic.Id() {
 		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, "invalid ticket", nil))
@@ -153,59 +148,59 @@ func (this *Page) loginServeWithSession(w http.ResponseWriter, r *http.Request, 
 	}
 
 	// チケットが有効だった。
-	log.Debug(sender, ": Ticket "+logutil.Mosaic(req.ticket())+" is OK")
+	log.Debug(this.sender, ": Ticket "+logutil.Mosaic(req.ticket())+" is OK")
 
 	if req.accountName() == "" || req.passInfo() == nil {
 		// ログイン情報不備。
-		log.Debug(sender, ": No login info")
-		return this.redirectToLoginUi(w, r, sender, sess, "Please log in")
+		log.Debug(this.sender, ": No login info")
+		return this.redirectToLoginUi(w, r, "Please log in")
 	}
 
 	// ログイン情報があった。
-	log.Debug(sender, ": Login info is specified")
+	log.Debug(this.sender, ": Login info is specified")
 
 	acnt, err := this.acntDb.GetByName(req.accountName())
 	if err != nil {
 		return erro.Wrap(err)
 	} else if acnt == nil {
 		// アカウントが無い。
-		log.Debug(sender, ": Specified accout "+req.accountName()+" is not exist")
-		return this.redirectToLoginUi(w, r, sender, sess, "Accout "+req.accountName()+" is not exist. Please log in")
+		log.Debug(this.sender, ": Specified accout "+req.accountName()+" is not exist")
+		return this.redirectToLoginUi(w, r, "Accout "+req.accountName()+" is not exist. Please log in")
 	} else if err := acnt.Authenticator().Verify(req.passInfo().params()...); err != nil {
 		// パスワード間違い。
 		log.Warn(erro.Unwrap(err))
 		log.Debug(erro.Wrap(err))
-		return this.redirectToLoginUi(w, r, sender, sess, "Wrong password. Please log in")
+		return this.redirectToLoginUi(w, r, "Wrong password. Please log in")
 	}
 
 	// ログインできた。
-	log.Info(sender, ": Account "+acnt.Id()+" ("+acnt.Name()+") logged in")
+	log.Info(this.sender, ": Account "+acnt.Id()+" ("+acnt.Name()+") logged in")
 
-	sess.SelectAccount(session.NewAccount(acnt.Id(), acnt.Name()))
-	sess.Account().Login()
+	this.sess.SelectAccount(session.NewAccount(acnt.Id(), acnt.Name()))
+	this.sess.Account().Login()
 	if lang := req.language(); lang != "" {
-		sess.SetLanguage(lang)
+		this.sess.SetLanguage(lang)
 
 		// 言語を選択してた。
-		log.Debug(sender, ": Language "+lang+" was selected")
+		log.Debug(this.sender, ": Language "+lang+" was selected")
 	}
 
-	return this.afterLogin(w, r, sender, sess, nil, acnt)
+	return this.afterLogin(w, r, nil, acnt)
 }
 
 // ログインが終わったところから。
-func (this *Page) afterLogin(w http.ResponseWriter, r *http.Request, sender *request.Request, sess *session.Element, ta tadb.Element, acnt account.Element) (err error) {
+func (this *environment) afterLogin(w http.ResponseWriter, r *http.Request, ta tadb.Element, acnt account.Element) (err error) {
 
 	if ta == nil {
-		if ta, err = this.taDb.Get(sess.Request().Ta()); err != nil {
+		if ta, err = this.taDb.Get(this.sess.Request().Ta()); err != nil {
 			return erro.Wrap(err)
 		} else if ta == nil {
 			// TA が無い。
-			return erro.Wrap(newErrorForRedirect(idperr.Server_error, "TA "+logutil.Mosaic(sess.Request().Ta())+" is not exist", nil))
+			return erro.Wrap(newErrorForRedirect(idperr.Server_error, "TA "+logutil.Mosaic(this.sess.Request().Ta())+" is not exist", nil))
 		}
 	}
 	if acnt == nil {
-		if acnt, err = this.acntDb.Get(sess.Account().Id()); err != nil {
+		if acnt, err = this.acntDb.Get(this.sess.Account().Id()); err != nil {
 			return erro.Wrap(err)
 		} else if acnt == nil {
 			// アカウントが無い。
@@ -216,61 +211,61 @@ func (this *Page) afterLogin(w http.ResponseWriter, r *http.Request, sender *req
 	// クレーム指定の検査。
 	if err := idputil.SetSub(this, acnt, ta); err != nil {
 		return erro.Wrap(err)
-	} else if err := idputil.CheckClaims(acnt, sess.Request().Claims().IdTokenEntries()); err != nil {
+	} else if err := idputil.CheckClaims(acnt, this.sess.Request().Claims().IdTokenEntries()); err != nil {
 		// 指定を満たすのは無理。
 		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, erro.Unwrap(err).Error(), erro.Wrap(err)))
-	} else if err := idputil.CheckClaims(acnt, sess.Request().Claims().AccountEntries()); err != nil {
+	} else if err := idputil.CheckClaims(acnt, this.sess.Request().Claims().AccountEntries()); err != nil {
 		// 指定を満たすのは無理。
 		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, erro.Unwrap(err).Error(), erro.Wrap(err)))
 	}
 
-	prmpts := sess.Request().Prompt()
+	prmpts := this.sess.Request().Prompt()
 	if prmpts[tagConsent] {
 		if prmpts[tagNone] {
 			return erro.Wrap(newErrorForRedirect(idperr.Consent_required, "cannot consent without UI", nil))
 		}
 
-		log.Debug(sender, ": Consent is forced")
-		return this.redirectToConsentUi(w, r, sender, sess, "Please allow to provide these scope and attributes")
+		log.Debug(this.sender, ": Consent is forced")
+		return this.redirectToConsentUi(w, r, "Please allow to provide these scope and attributes")
 	}
 
 	// 事前同意を調べる。
-	cons, err := this.consDb.Get(sess.Account().Id(), sess.Request().Ta())
+	cons, err := this.consDb.Get(this.sess.Account().Id(), this.sess.Request().Ta())
 	if err != nil {
 		return erro.Wrap(err)
 	} else if cons == nil {
-		cons = consent.New(sess.Account().Id(), sess.Request().Ta())
+		cons = consent.New(this.sess.Account().Id(), this.sess.Request().Ta())
 	}
 
-	scop, err := idputil.ProvidedScopes(cons.Scope(), scope.RemoveUnknown(sess.Request().Scope()))
+	scop, err := idputil.ProvidedScopes(cons.Scope(), scope.RemoveUnknown(this.sess.Request().Scope()))
 	if err != nil {
 		if prmpts[tagNone] {
 			return erro.Wrap(newErrorForRedirect(idperr.Consent_required, "cannot consent without UI", nil))
 		}
 
-		log.Debug(sender, ": Consent is required: ", erro.Unwrap(err))
-		return this.redirectToConsentUi(w, r, sender, sess, "Please allow to provide these scope and attributes")
+		log.Debug(this.sender, ": Consent is required: ", erro.Unwrap(err))
+		return this.redirectToConsentUi(w, r, "Please allow to provide these scope and attributes")
 	}
-	idTokAttrs, err := idputil.ProvidedAttributes(cons.Scope(), cons.Attribute(), nil, sess.Request().Claims().IdTokenEntries())
+	idTokAttrs, err := idputil.ProvidedAttributes(cons.Scope(), cons.Attribute(), nil, this.sess.Request().Claims().IdTokenEntries())
 	if err != nil {
 		if prmpts[tagNone] {
 			return erro.Wrap(newErrorForRedirect(idperr.Consent_required, "cannot consent without UI", nil))
 		}
 
-		log.Debug(sender, ": Consent is required: ", erro.Unwrap(err))
-		return this.redirectToConsentUi(w, r, sender, sess, "Please allow to provide these scope and attributes")
+		log.Debug(this.sender, ": Consent is required: ", erro.Unwrap(err))
+		return this.redirectToConsentUi(w, r, "Please allow to provide these scope and attributes")
 	}
-	acntAttrs, err := idputil.ProvidedAttributes(cons.Scope(), cons.Attribute(), scop, sess.Request().Claims().AccountEntries())
+	acntAttrs, err := idputil.ProvidedAttributes(cons.Scope(), cons.Attribute(), scop, this.sess.Request().Claims().AccountEntries())
 	if err != nil {
 		if prmpts[tagNone] {
 			return erro.Wrap(newErrorForRedirect(idperr.Consent_required, "cannot consent without UI", nil))
 		}
 
-		log.Debug(sender, ": Consent is required: ", erro.Unwrap(err))
-		return this.redirectToConsentUi(w, r, sender, sess, "Please allow to provide these scope and attributes")
+		log.Debug(this.sender, ": Consent is required: ", erro.Unwrap(err))
+		return this.redirectToConsentUi(w, r, "Please allow to provide these scope and attributes")
 	}
 
 	// 事前同意で十分。
-	log.Debug(sender, ": Already consented")
-	return this.afterConsent(w, r, sender, sess, ta, acnt, scop, idTokAttrs, acntAttrs)
+	log.Debug(this.sender, ": Already consented")
+	return this.afterConsent(w, r, ta, acnt, scop, idTokAttrs, acntAttrs)
 }

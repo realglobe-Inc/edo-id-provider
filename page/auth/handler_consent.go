@@ -62,19 +62,12 @@ func (this *Page) HandleConsent(w http.ResponseWriter, r *http.Request) {
 	log.Info(sender, ": Received consent request")
 	defer log.Info(sender, ": Handled consent request")
 
-	if err := this.consentServe(w, r, sender); err != nil {
-		idperr.RespondHtml(w, r, erro.Wrap(err), this.errTmpl, sender)
-		return
-	}
-	return
-}
-
-func (this *Page) consentServe(w http.ResponseWriter, r *http.Request, sender *request.Request) (err error) {
 	var sess *session.Element
 	if sessId := sender.Session(); sessId != "" {
 		// セッションが通知された。
 		log.Debug(sender, ": Session is declared")
 
+		var err error
 		if sess, err = this.sessDb.Get(sessId); err != nil {
 			log.Err(sender, ": ", erro.Wrap(err))
 			// 新規発行すれば動くので諦めない。
@@ -94,29 +87,30 @@ func (this *Page) consentServe(w http.ResponseWriter, r *http.Request, sender *r
 
 	// セッションが決まった。
 
-	if err := this.consentServeWithSession(w, r, sender, sess); err != nil {
-		return this.respondErrorHtml(w, r, erro.Wrap(err), sender, sess)
+	env := (&environment{this, sender, sess})
+	if err := env.consentServe(w, r); err != nil {
+		env.respondErrorHtml(w, r, erro.Wrap(err))
+		return
 	}
-	return nil
 }
 
 // 同意 UI にリダイレクトする。
-func (this *Page) redirectToConsentUi(w http.ResponseWriter, r *http.Request, sender *request.Request, sess *session.Element, msg string) error {
+func (this *environment) redirectToConsentUi(w http.ResponseWriter, r *http.Request, msg string) error {
 
 	uri, err := url.Parse(this.pathConsUi)
 	if err != nil {
-		return this.respondErrorHtml(w, r, erro.Wrap(err), sender, sess)
+		return erro.Wrap(err)
 	}
 
 	// 同意ページに渡すクエリパラメータを生成。
 	q := uri.Query()
 	q.Set(tagIssuer, this.selfId)
-	q.Set(tagUsername, sess.Account().Name())
-	if scop := scope.RemoveUnknown(sess.Request().Scope()); len(scop) > 0 {
+	q.Set(tagUsername, this.sess.Account().Name())
+	if scop := scope.RemoveUnknown(this.sess.Request().Scope()); len(scop) > 0 {
 		q.Set(tagScope, request.ValueSetForm(scop))
 	}
-	if sess.Request().Claims() != nil {
-		attrs, optAttrs := sess.Request().Claims().Names()
+	if this.sess.Request().Claims() != nil {
+		attrs, optAttrs := this.sess.Request().Claims().Names()
 		if len(attrs) > 0 {
 			q.Set(tagClaims, request.ValueSetForm(attrs))
 		}
@@ -125,11 +119,11 @@ func (this *Page) redirectToConsentUi(w http.ResponseWriter, r *http.Request, se
 		}
 	}
 	q.Set(tagExpires_in, strconv.FormatInt(int64(this.tokExpIn/time.Second), 10))
-	q.Set(tagClient_id, sess.Request().Ta())
-	if disp := sess.Request().Display(); disp != "" {
+	q.Set(tagClient_id, this.sess.Request().Ta())
+	if disp := this.sess.Request().Display(); disp != "" {
 		q.Set(tagDisplay, disp)
 	}
-	if lang, langs := sess.Language(), sess.Request().Languages(); lang != "" || len(langs) > 0 {
+	if lang, langs := this.sess.Language(), this.sess.Request().Languages(); lang != "" || len(langs) > 0 {
 		q.Set(tagLocales, languagesForm(lang, langs))
 	}
 	if msg != "" {
@@ -139,27 +133,28 @@ func (this *Page) redirectToConsentUi(w http.ResponseWriter, r *http.Request, se
 
 	// チケットを発行。
 	uri.Fragment = this.idGen.String(this.ticLen)
-	sess.SetTicket(ticket.New(uri.Fragment, time.Now().Add(this.ticExpIn)))
-	log.Info(sender, ": Published ticket "+logutil.Mosaic(uri.Fragment))
+	this.sess.SetTicket(ticket.New(uri.Fragment, time.Now().Add(this.ticExpIn)))
+	log.Info(this.sender, ": Published ticket "+logutil.Mosaic(uri.Fragment))
 
-	log.Info(sender, ": Redirect to consent UI")
-	return this.redirectTo(w, r, uri, sender, sess)
+	log.Info(this.sender, ": Redirect to consent UI")
+	this.redirectTo(w, r, uri)
+	return nil
 }
 
-func (this *Page) consentServeWithSession(w http.ResponseWriter, r *http.Request, sender *request.Request, sess *session.Element) error {
-	authReq := sess.Request()
+func (this *environment) consentServe(w http.ResponseWriter, r *http.Request) error {
+	authReq := this.sess.Request()
 	if authReq == nil {
 		// ユーザー認証・認可処理が始まっていない。
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "session is not in authentication process", http.StatusBadRequest, nil))
 	}
 
 	// ユーザー認証・認可処理中。
-	log.Debug(sender, ": Session is in authentication process")
+	log.Debug(this.sender, ": Session is in authentication process")
 
 	req, err := parseConsentRequest(r)
 	if err != nil {
 		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, erro.Unwrap(err).Error(), err))
-	} else if tic := sess.Ticket(); tic == nil {
+	} else if tic := this.sess.Ticket(); tic == nil {
 		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, "no consent session", nil))
 	} else if req.ticket() != tic.Id() {
 		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, "invalid ticket", nil))
@@ -168,32 +163,32 @@ func (this *Page) consentServeWithSession(w http.ResponseWriter, r *http.Request
 	}
 
 	// チケットが有効だった。
-	log.Debug(sender, ": Ticket "+logutil.Mosaic(req.ticket())+" is OK")
+	log.Debug(this.sender, ": Ticket "+logutil.Mosaic(req.ticket())+" is OK")
 
 	scopCons := consent.Consent(req.allowedScope())
-	scop, err := idputil.ProvidedScopes(scopCons, scope.RemoveUnknown(sess.Request().Scope()))
+	scop, err := idputil.ProvidedScopes(scopCons, scope.RemoveUnknown(this.sess.Request().Scope()))
 	if err != nil {
 		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, erro.Unwrap(err).Error(), err))
 	}
 	attrCons := consent.Consent(req.allowedAttributes())
-	idTokAttrs, err := idputil.ProvidedAttributes(scopCons, attrCons, nil, sess.Request().Claims().IdTokenEntries())
+	idTokAttrs, err := idputil.ProvidedAttributes(scopCons, attrCons, nil, this.sess.Request().Claims().IdTokenEntries())
 	if err != nil {
 		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, erro.Unwrap(err).Error(), err))
 	}
-	acntAttrs, err := idputil.ProvidedAttributes(scopCons, attrCons, scop, sess.Request().Claims().AccountEntries())
+	acntAttrs, err := idputil.ProvidedAttributes(scopCons, attrCons, scop, this.sess.Request().Claims().AccountEntries())
 	if err != nil {
 		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, erro.Unwrap(err).Error(), err))
 	}
 
 	// 同意できた。
-	log.Debug(sender, ": Essential claims were allowed")
+	log.Debug(this.sender, ": Essential claims were allowed")
 
 	// 同意情報を更新。
-	cons, err := this.consDb.Get(sess.Account().Id(), sess.Request().Ta())
+	cons, err := this.consDb.Get(this.sess.Account().Id(), this.sess.Request().Ta())
 	if err != nil {
 		return erro.Wrap(err)
 	} else if cons == nil {
-		cons = consent.New(sess.Account().Id(), sess.Request().Ta())
+		cons = consent.New(this.sess.Account().Id(), this.sess.Request().Ta())
 	}
 
 	for v := range req.allowedScope() {
@@ -209,57 +204,57 @@ func (this *Page) consentServeWithSession(w http.ResponseWriter, r *http.Request
 		cons.Attribute().SetDeny(v)
 	}
 	if err := this.consDb.Save(cons); err != nil {
-		log.Err(sender, ": ", erro.Wrap(err))
+		log.Err(this.sender, ": ", erro.Wrap(err))
 		// 今回だけは動くので諦めない。
 	}
 
 	if loc := req.language(); loc != "" {
-		sess.SetLanguage(loc)
+		this.sess.SetLanguage(loc)
 
 		// 言語を選択してた。
-		log.Debug(sender, ": Locale "+loc+" was selected")
+		log.Debug(this.sender, ": Locale "+loc+" was selected")
 	}
 
-	return this.afterConsent(w, r, sender, sess, nil, nil, scop, idTokAttrs, acntAttrs)
+	return this.afterConsent(w, r, nil, nil, scop, idTokAttrs, acntAttrs)
 }
 
 // 同意が終わったところから。
-func (this *Page) afterConsent(w http.ResponseWriter, r *http.Request, sender *request.Request, sess *session.Element, ta tadb.Element, acnt account.Element, scop, idTokAttrs, acntAttrs map[string]bool) (err error) {
+func (this *environment) afterConsent(w http.ResponseWriter, r *http.Request, ta tadb.Element, acnt account.Element, scop, idTokAttrs, acntAttrs map[string]bool) (err error) {
 
 	if !scop[tagOpenid] {
 		// openid すら許されなかった。
 		return erro.Wrap(newErrorForRedirect(idperr.Access_denied, tagOpenid+" scope was denied", nil))
 	}
 
-	req := sess.Request()
+	req := this.sess.Request()
 
 	// 認可コードを発行する。
 	now := time.Now()
-	cod := authcode.New(this.idGen.String(this.codLen), now.Add(this.codExpIn), sess.Account().Id(),
-		sess.Account().LoginDate(), scop, idTokAttrs, acntAttrs, req.Ta(),
+	cod := authcode.New(this.idGen.String(this.codLen), now.Add(this.codExpIn), this.sess.Account().Id(),
+		this.sess.Account().LoginDate(), scop, idTokAttrs, acntAttrs, req.Ta(),
 		req.RedirectUri(), req.Nonce())
 
-	log.Debug(sender, ": Generated authorization code "+logutil.Mosaic(cod.Id()))
+	log.Debug(this.sender, ": Generated authorization code "+logutil.Mosaic(cod.Id()))
 
 	if err := this.codDb.Save(cod, now.Add(this.codDbExpIn)); err != nil {
 		return erro.Wrap(err)
 	}
 
 	// 認可コードを発行した。
-	log.Info(sender, ": Published authorization code "+logutil.Mosaic(cod.Id())+" to "+logutil.Mosaic(sess.Id()))
+	log.Info(this.sender, ": Published authorization code "+logutil.Mosaic(cod.Id())+" to "+logutil.Mosaic(this.sess.Id()))
 
 	var idTok string
 	if req.ResponseType()[tagId_token] {
 		if ta == nil {
-			if ta, err = this.taDb.Get(sess.Request().Ta()); err != nil {
+			if ta, err = this.taDb.Get(this.sess.Request().Ta()); err != nil {
 				return erro.Wrap(err)
 			} else if ta == nil {
 				// TA が無い。
-				return erro.Wrap(newErrorForRedirect(idperr.Invalid_request, "TA "+sess.Request().Ta()+" is not exist", nil))
+				return erro.Wrap(newErrorForRedirect(idperr.Invalid_request, "TA "+this.sess.Request().Ta()+" is not exist", nil))
 			}
 		}
 		if acnt == nil {
-			if acnt, err = this.acntDb.Get(sess.Account().Id()); err != nil {
+			if acnt, err = this.acntDb.Get(this.sess.Account().Id()); err != nil {
 				return erro.Wrap(err)
 			} else if acnt == nil {
 				// アカウントが無い。
@@ -268,8 +263,8 @@ func (this *Page) afterConsent(w http.ResponseWriter, r *http.Request, sender *r
 		}
 
 		clms := map[string]interface{}{}
-		if sess.Request().MaxAge() >= 0 {
-			clms[tagAuth_time] = sess.Account().LoginDate().Unix()
+		if this.sess.Request().MaxAge() >= 0 {
+			clms[tagAuth_time] = this.sess.Account().LoginDate().Unix()
 		}
 		if cod.Nonce() != "" {
 			clms[tagNonce] = cod.Nonce()
@@ -285,5 +280,6 @@ func (this *Page) afterConsent(w http.ResponseWriter, r *http.Request, sender *r
 		}
 	}
 
-	return this.redirectCode(w, r, cod, idTok, sender, sess)
+	this.redirectCode(w, r, cod, idTok)
+	return nil
 }

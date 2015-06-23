@@ -39,6 +39,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"regexp"
 	"testing"
 	"time"
 )
@@ -179,21 +180,9 @@ func TestDenyInvalidTa(t *testing.T) {
 	tok := token.New(test_tokId, now.Add(time.Minute), acnt.Id(), strsetutil.New("openid"), strsetutil.New("email"), test_frTa.Id())
 	hndl.tokDb.Save(tok, now.Add(time.Minute))
 
-	r, err := newTestSingleRequest(hndl.selfId + hndl.pathCoopFr)
+	r, err := newTestSingleRequestWithParams(hndl.selfId+hndl.pathCoopFr, map[string]interface{}{"client_assertion": "abcde"}, nil)
 	if err != nil {
 		t.Fatal(err)
-	}
-	{
-		var m map[string]interface{}
-		if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
-			t.Fatal(err)
-		}
-		m["client_assertion"] = "abcde"
-		body, err := json.Marshal(m)
-		if err != nil {
-			t.Fatal(err)
-		}
-		r.Body = ioutil.NopCloser(bytes.NewReader(body))
 	}
 
 	w := httptest.NewRecorder()
@@ -281,21 +270,9 @@ func testMainDenyNoSomething(t *testing.T, something string) {
 	tok := token.New(test_tokId, now.Add(time.Minute), acnt.Id(), strsetutil.New("openid"), strsetutil.New("email"), test_frTa.Id())
 	hndl.tokDb.Save(tok, now.Add(time.Minute))
 
-	r, err := newTestSingleRequest(hndl.selfId + hndl.pathCoopFr)
+	r, err := newTestSingleRequestWithParams(hndl.selfId+hndl.pathCoopFr, map[string]interface{}{something: nil}, nil)
 	if err != nil {
 		t.Fatal(err)
-	}
-	{
-		var m map[string]interface{}
-		if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
-			t.Fatal(err)
-		}
-		delete(m, something)
-		body, err := json.Marshal(m)
-		if err != nil {
-			t.Fatal(err)
-		}
-		r.Body = ioutil.NopCloser(bytes.NewReader(body))
 	}
 
 	w := httptest.NewRecorder()
@@ -303,7 +280,7 @@ func testMainDenyNoSomething(t *testing.T, something string) {
 
 	if w.Code != http.StatusBadRequest {
 		t.Error(w.Code)
-		t.Fatal(http.StatusOK)
+		t.Fatal(http.StatusBadRequest)
 	}
 	var buff struct{ Error string }
 	if err := json.NewDecoder(w.Body).Decode(&buff); err != nil {
@@ -361,21 +338,9 @@ func TestMainDenyInvalidScope(t *testing.T) {
 	tok := token.New(test_tokId, now.Add(time.Minute), acnt.Id(), strsetutil.New("openid"), strsetutil.New("email"), test_frTa.Id())
 	hndl.tokDb.Save(tok, now.Add(time.Minute))
 
-	r, err := newTestSingleRequest(hndl.selfId + hndl.pathCoopFr)
+	r, err := newTestSingleRequestWithParams(hndl.selfId+hndl.pathCoopFr, map[string]interface{}{"scope": "openid phone"}, nil)
 	if err != nil {
 		t.Fatal(err)
-	}
-	{
-		var m map[string]interface{}
-		if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
-			t.Fatal(err)
-		}
-		m["scope"] = "openid phone"
-		body, err := json.Marshal(m)
-		if err != nil {
-			t.Fatal(err)
-		}
-		r.Body = ioutil.NopCloser(bytes.NewReader(body))
 	}
 
 	w := httptest.NewRecorder()
@@ -409,21 +374,9 @@ func TestMainDenyInvalidToTa(t *testing.T) {
 	tok := token.New(test_tokId, now.Add(time.Minute), acnt.Id(), strsetutil.New("openid"), strsetutil.New("email"), test_frTa.Id())
 	hndl.tokDb.Save(tok, now.Add(time.Minute))
 
-	r, err := newTestSingleRequest(hndl.selfId + hndl.pathCoopFr)
+	r, err := newTestSingleRequestWithParams(hndl.selfId+hndl.pathCoopFr, map[string]interface{}{"to_client": test_toTa.Id() + "a"}, nil)
 	if err != nil {
 		t.Fatal(err)
-	}
-	{
-		var m map[string]interface{}
-		if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
-			t.Fatal(err)
-		}
-		m["to_client"] = test_toTa.Id() + "a"
-		body, err := json.Marshal(m)
-		if err != nil {
-			t.Fatal(err)
-		}
-		r.Body = ioutil.NopCloser(bytes.NewReader(body))
 	}
 
 	w := httptest.NewRecorder()
@@ -457,21 +410,9 @@ func TestMainDenySameTa(t *testing.T) {
 	tok := token.New(test_tokId, now.Add(time.Minute), acnt.Id(), strsetutil.New("openid"), strsetutil.New("email"), test_frTa.Id())
 	hndl.tokDb.Save(tok, now.Add(time.Minute))
 
-	r, err := newTestSingleRequest(hndl.selfId + hndl.pathCoopFr)
+	r, err := newTestSingleRequestWithParams(hndl.selfId+hndl.pathCoopFr, map[string]interface{}{"to_client": test_frTa.Id()}, nil)
 	if err != nil {
 		t.Fatal(err)
-	}
-	{
-		var m map[string]interface{}
-		if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
-			t.Fatal(err)
-		}
-		m["to_client"] = test_frTa.Id()
-		body, err := json.Marshal(m)
-		if err != nil {
-			t.Fatal(err)
-		}
-		r.Body = ioutil.NopCloser(bytes.NewReader(body))
 	}
 
 	w := httptest.NewRecorder()
@@ -505,21 +446,9 @@ func TestDenyInvalidUsers(t *testing.T) {
 	tok := token.New(test_tokId, now.Add(time.Minute), acnt.Id(), strsetutil.New("openid"), strsetutil.New("email"), test_frTa.Id())
 	hndl.tokDb.Save(tok, now.Add(time.Minute))
 
-	r, err := newTestSingleRequest(hndl.selfId + hndl.pathCoopFr)
+	r, err := newTestSingleRequestWithParams(hndl.selfId+hndl.pathCoopFr, map[string]interface{}{"users": map[string]string{test_subAcnt1Tag: subAcnt1.Id() + "a"}}, nil)
 	if err != nil {
 		t.Fatal(err)
-	}
-	{
-		var m map[string]interface{}
-		if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
-			t.Fatal(err)
-		}
-		m["users"] = map[string]string{test_subAcnt1Tag: subAcnt1.Id() + "a"}
-		body, err := json.Marshal(m)
-		if err != nil {
-			t.Fatal(err)
-		}
-		r.Body = ioutil.NopCloser(bytes.NewReader(body))
 	}
 
 	w := httptest.NewRecorder()
@@ -553,21 +482,9 @@ func TestDenyTagOverlap(t *testing.T) {
 	tok := token.New(test_tokId, now.Add(time.Minute), acnt.Id(), strsetutil.New("openid"), strsetutil.New("email"), test_frTa.Id())
 	hndl.tokDb.Save(tok, now.Add(time.Minute))
 
-	r, err := newTestSingleRequest(hndl.selfId + hndl.pathCoopFr)
+	r, err := newTestSingleRequestWithParams(hndl.selfId+hndl.pathCoopFr, map[string]interface{}{"users": map[string]string{test_acntTag: subAcnt1.Id()}}, nil)
 	if err != nil {
 		t.Fatal(err)
-	}
-	{
-		var m map[string]interface{}
-		if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
-			t.Fatal(err)
-		}
-		m["users"] = map[string]string{test_acntTag: subAcnt1.Id()}
-		body, err := json.Marshal(m)
-		if err != nil {
-			t.Fatal(err)
-		}
-		r.Body = ioutil.NopCloser(bytes.NewReader(body))
 	}
 
 	w := httptest.NewRecorder()
@@ -847,7 +764,7 @@ func TestPairwise(t *testing.T) {
 		"users": map[string]string{test_subAcnt2Tag: pw.Pairwise()},
 	}, map[string]interface{}{
 		"related_users": map[string]string{test_subAcnt2Tag: calcTestAccountHashValue(hndl.selfId, pw.Pairwise())},
-	})
+	}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -913,5 +830,378 @@ func TestPairwise(t *testing.T) {
 	} else if !bytes.Equal(refHash2, refHash) {
 		t.Error(refHash2)
 		t.Fatal(refHash)
+	}
+}
+
+// related_issuers におかしな ID プロバイダが含まれるなら拒否できることの検査。
+func TestDenyInvalidIdProvider(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	acnt := newTestMainAccount()
+	subAcnt1 := newTestSubAccount1()
+	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{acnt, subAcnt1}, []tadb.Element{test_frTa, test_toTa}, []idpdb.Element{test_idp2})
+
+	now := time.Now()
+	tok := token.New(test_tokId, now.Add(time.Minute), acnt.Id(), strsetutil.New("openid"), strsetutil.New("email"), test_frTa.Id())
+	hndl.tokDb.Save(tok, now.Add(time.Minute))
+
+	r, err := newTestMainRequest(hndl.selfId+hndl.pathCoopFr, test_idp2.Id()+"a")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	w := httptest.NewRecorder()
+	hndl.ServeHTTP(w, r)
+
+	if w.Code != http.StatusBadRequest {
+		t.Error(w.Code)
+		t.Fatal(http.StatusBadRequest)
+	}
+	var buff struct{ Error string }
+	if err := json.NewDecoder(w.Body).Decode(&buff); err != nil {
+		t.Fatal(err)
+	} else if err := "invalid_request"; buff.Error != err {
+		t.Error(buff.Error)
+		t.Fatal(err)
+	}
+}
+
+// referral の署名がおかしかったら拒否できることの検査。
+func TestSubDenyInvalidReferral(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	subAcnt2 := newTestSubAccount2()
+	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{subAcnt2}, []tadb.Element{test_frTa, test_toTa}, []idpdb.Element{test_idp2})
+
+	r, _, err := newTestSubRequest(hndl.selfId, hndl.selfId+hndl.pathCoopFr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	{
+		var m map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
+			t.Fatal(err)
+		}
+		m["referral"] = regexp.MustCompile("\\.[^.]+$").ReplaceAllString(m["referral"].(string), ".")
+		body, err := json.Marshal(m)
+		if err != nil {
+			t.Fatal(err)
+		}
+		r.Body = ioutil.NopCloser(bytes.NewReader(body))
+	}
+
+	w := httptest.NewRecorder()
+	hndl.ServeHTTP(w, r)
+
+	if w.Code != http.StatusBadRequest {
+		t.Error(w.Code)
+		t.Fatal(http.StatusBadRequest)
+	}
+	var buff struct{ Error string }
+	if err := json.NewDecoder(w.Body).Decode(&buff); err != nil {
+		t.Fatal(err)
+	} else if err := "invalid_grant"; buff.Error != err {
+		t.Error(buff.Error)
+		t.Fatal(err)
+	}
+}
+
+// 主体でないアカウントの ID プロバイダの場合に、response_type が無かったら拒否できることの検査。
+func TestSubDenyNoResponseType(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testSubDenyNoSomething(t, "response_type")
+}
+
+// 主体でないアカウントの ID プロバイダの場合に、grant_type が無かったら拒否できることの検査。
+func TestSubDenyNoGrantType(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testSubDenyNoSomething(t, "grant_type")
+}
+
+// 主体でないアカウントの ID プロバイダの場合に、referral が無かったら拒否できることの検査。
+func TestSubDenyNoReferral(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testSubDenyNoSomething(t, "referral")
+}
+
+// 主体でないアカウントの ID プロバイダの場合に、users が無かったら拒否できることの検査。
+func TestSubDenyNoUsers(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testSubDenyNoSomething(t, "users")
+}
+
+func testSubDenyNoSomething(t *testing.T, something string) {
+	subAcnt2 := newTestSubAccount2()
+	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{subAcnt2}, []tadb.Element{test_frTa, test_toTa}, []idpdb.Element{test_idp2})
+
+	r, _, err := newTestSubRequestWithParams(hndl.selfId, hndl.selfId+hndl.pathCoopFr, map[string]interface{}{something: nil}, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	w := httptest.NewRecorder()
+	hndl.ServeHTTP(w, r)
+
+	if w.Code != http.StatusBadRequest {
+		t.Error(w.Code)
+		t.Fatal(http.StatusBadRequest)
+	}
+	var buff struct{ Error string }
+	if err := json.NewDecoder(w.Body).Decode(&buff); err != nil {
+		t.Fatal(err)
+	} else if err := "invalid_request"; buff.Error != err {
+		t.Error(buff.Error)
+		t.Fatal(err)
+	}
+}
+
+// 主体でないアカウントの ID プロバイダの場合に、referral に iss が無かったら拒否できることの検査。
+func TestSubDenyReferralNoIss(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testSubDenyReferralNoSomething(t, "iss")
+}
+
+// 主体でないアカウントの ID プロバイダの場合に、referral に sub が無かったら拒否できることの検査。
+func TestSubDenyReferralNoSub(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testSubDenyReferralNoSomething(t, "sub")
+}
+
+// 主体でないアカウントの ID プロバイダの場合に、referral に aud が無かったら拒否できることの検査。
+func TestSubDenyReferralNoAud(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testSubDenyReferralNoSomething(t, "aud")
+}
+
+// 主体でないアカウントの ID プロバイダの場合に、referral に exp が無かったら拒否できることの検査。
+func TestSubDenyReferralNoExp(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testSubDenyReferralNoSomething(t, "exp")
+}
+
+// 主体でないアカウントの ID プロバイダの場合に、referral に jti が無かったら拒否できることの検査。
+func TestSubDenyReferralNoJti(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testSubDenyReferralNoSomething(t, "jti")
+}
+
+// 主体でないアカウントの ID プロバイダの場合に、referral に to_client が無かったら拒否できることの検査。
+func TestSubDenyReferralNoToClient(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testSubDenyReferralNoSomething(t, "to_client")
+}
+
+// 主体でないアカウントの ID プロバイダの場合に、referral に related_users が無かったら拒否できることの検査。
+func TestSubDenyReferralNoRelatedUsers(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testSubDenyReferralNoSomething(t, "related_users")
+}
+
+// 主体でないアカウントの ID プロバイダの場合に、referral に hash_alg が無かったら拒否できることの検査。
+func TestSubDenyReferralNoHashAlg(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	testSubDenyReferralNoSomething(t, "hash_alg")
+}
+
+func testSubDenyReferralNoSomething(t *testing.T, something string) {
+	subAcnt2 := newTestSubAccount2()
+	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{subAcnt2}, []tadb.Element{test_frTa, test_toTa}, []idpdb.Element{test_idp2})
+
+	r, _, err := newTestSubRequestWithParams(hndl.selfId, hndl.selfId+hndl.pathCoopFr, nil, map[string]interface{}{something: nil}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	w := httptest.NewRecorder()
+	hndl.ServeHTTP(w, r)
+
+	if w.Code != http.StatusBadRequest {
+		t.Error(w.Code)
+		t.Fatal(http.StatusBadRequest)
+	}
+	var buff struct{ Error string }
+	if err := json.NewDecoder(w.Body).Decode(&buff); err != nil {
+		t.Fatal(err)
+	} else if err := "invalid_grant"; buff.Error != err {
+		t.Error(buff.Error)
+		t.Fatal(err)
+	}
+}
+
+// 主体でないアカウントの ID プロバイダの場合に、連携先 TA が存在しないなら拒否できることの検査。
+func TestSubDenyInvalidToTa(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	subAcnt2 := newTestSubAccount2()
+	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{subAcnt2}, []tadb.Element{test_frTa, test_toTa}, []idpdb.Element{test_idp2})
+
+	r, _, err := newTestSubRequestWithParams(hndl.selfId, hndl.selfId+hndl.pathCoopFr, nil, map[string]interface{}{"to_client": test_toTa.Id() + "a"}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	w := httptest.NewRecorder()
+	hndl.ServeHTTP(w, r)
+
+	if w.Code != http.StatusBadRequest {
+		t.Error(w.Code)
+		t.Fatal(http.StatusBadRequest)
+	}
+	var buff struct{ Error string }
+	if err := json.NewDecoder(w.Body).Decode(&buff); err != nil {
+		t.Fatal(err)
+	} else if err := "invalid_grant"; buff.Error != err {
+		t.Error(buff.Error)
+		t.Fatal(err)
+	}
+}
+
+// 主体でないアカウントの ID プロバイダの場合に、連携元 TA と連携先 TA が同じなら拒否できることの検査。
+func TestSubDenySameTa(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	subAcnt2 := newTestSubAccount2()
+	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{subAcnt2}, []tadb.Element{test_frTa, test_toTa}, []idpdb.Element{test_idp2})
+
+	r, _, err := newTestSubRequestWithParams(hndl.selfId, hndl.selfId+hndl.pathCoopFr, nil, map[string]interface{}{"to_client": test_frTa.Id()}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	w := httptest.NewRecorder()
+	hndl.ServeHTTP(w, r)
+
+	if w.Code != http.StatusBadRequest {
+		t.Error(w.Code)
+		t.Fatal(http.StatusBadRequest)
+	}
+	var buff struct{ Error string }
+	if err := json.NewDecoder(w.Body).Decode(&buff); err != nil {
+		t.Fatal(err)
+	} else if err := "invalid_grant"; buff.Error != err {
+		t.Error(buff.Error)
+		t.Fatal(err)
+	}
+}
+
+// 主体でないアカウントの ID プロバイダの場合に、related_users に users のユーザーがなかったら拒否できることの検査。
+func TestDenyInvalidNoRelatedUsers(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	subAcnt2 := newTestSubAccount2()
+	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{subAcnt2}, []tadb.Element{test_frTa, test_toTa}, []idpdb.Element{test_idp2})
+
+	r, _, err := newTestSubRequestWithParams(hndl.selfId, hndl.selfId+hndl.pathCoopFr, nil, map[string]interface{}{"related_users": map[string]string{test_subAcnt2Tag + "a": calcTestSubAccount2HashValue(test_idp2.Id())}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	w := httptest.NewRecorder()
+	hndl.ServeHTTP(w, r)
+
+	if w.Code != http.StatusBadRequest {
+		t.Error(w.Code)
+		t.Fatal(http.StatusBadRequest)
+	}
+	var buff struct{ Error string }
+	if err := json.NewDecoder(w.Body).Decode(&buff); err != nil {
+		t.Fatal(err)
+	} else if err := "invalid_grant"; buff.Error != err {
+		t.Error(buff.Error)
+		t.Fatal(err)
+	}
+}
+
+// related_users におかしなユーザーいたら拒否できることの検査。
+func TestDenyInvalidRelatedUsers(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	subAcnt2 := newTestSubAccount2()
+	hndl := newTestHandler([]jwk.Key{test_idpKey}, []account.Element{subAcnt2}, []tadb.Element{test_frTa, test_toTa}, []idpdb.Element{test_idp2})
+
+	r, _, err := newTestSubRequestWithParams(hndl.selfId, hndl.selfId+hndl.pathCoopFr, nil, map[string]interface{}{"related_users": map[string]string{test_subAcnt2Tag: calcTestSubAccount2HashValue(test_idp2.Id()) + "a"}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	w := httptest.NewRecorder()
+	hndl.ServeHTTP(w, r)
+
+	if w.Code != http.StatusBadRequest {
+		t.Error(w.Code)
+		t.Fatal(http.StatusBadRequest)
+	}
+	var buff struct{ Error string }
+	if err := json.NewDecoder(w.Body).Decode(&buff); err != nil {
+		t.Fatal(err)
+	} else if err := "invalid_grant"; buff.Error != err {
+		t.Error(buff.Error)
+		t.Fatal(err)
 	}
 }

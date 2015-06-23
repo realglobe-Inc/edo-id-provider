@@ -142,6 +142,10 @@ func calcTestAccountHashValue(idp, id string) string {
 }
 
 func newTestSingleRequest(aud string) (*http.Request, error) {
+	return newTestSingleRequestWithParams(aud, nil, nil)
+}
+
+func newTestSingleRequestWithParams(aud string, params, assParams map[string]interface{}) (*http.Request, error) {
 	m := map[string]interface{}{
 		"response_type":         "code_token",
 		"from_client":           test_frTa.Id(),
@@ -153,23 +157,33 @@ func newTestSingleRequest(aud string) (*http.Request, error) {
 		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
 	}
 	{
-		jt := jwt.New()
-		jt.SetHeader("alg", test_frTaSigAlg)
-		jt.SetClaim("iss", test_frTa.Id())
-		jt.SetClaim("sub", test_frTa.Id())
-		jt.SetClaim("aud", audience.New(aud))
-		jt.SetClaim("jti", test_jti)
+		ass := jwt.New()
 		now := time.Now()
-		jt.SetClaim("exp", now.Add(time.Minute).Unix())
-		jt.SetClaim("iat", now.Unix())
-		if err := jt.Sign(test_frTa.Keys()); err != nil {
+		ass.SetHeader("alg", test_frTaSigAlg)
+		ass.SetClaim("iss", test_frTa.Id())
+		ass.SetClaim("sub", test_frTa.Id())
+		ass.SetClaim("aud", audience.New(aud))
+		ass.SetClaim("jti", test_jti)
+		ass.SetClaim("exp", now.Add(time.Minute).Unix())
+		ass.SetClaim("iat", now.Unix())
+		for k, v := range assParams {
+			ass.SetClaim(k, v)
+		}
+		if err := ass.Sign(test_frTa.Keys()); err != nil {
 			return nil, erro.Wrap(err)
 		}
-		buff, err := jt.Encode()
+		buff, err := ass.Encode()
 		if err != nil {
 			return nil, erro.Wrap(err)
 		}
 		m["client_assertion"] = string(buff)
+	}
+	for k, v := range params {
+		if v == nil {
+			delete(m, k)
+		} else {
+			m[k] = v
+		}
 	}
 	body, err := json.Marshal(m)
 	if err != nil {
@@ -184,6 +198,10 @@ func newTestSingleRequest(aud string) (*http.Request, error) {
 }
 
 func newTestMainRequest(aud, subIdp string) (*http.Request, error) {
+	return newTestMainRequestWithParams(aud, subIdp, nil, nil)
+}
+
+func newTestMainRequestWithParams(aud, subIdp string, params, assParams map[string]interface{}) (*http.Request, error) {
 	m := map[string]interface{}{
 		"response_type":         "code_token referral",
 		"from_client":           test_frTa.Id(),
@@ -194,27 +212,37 @@ func newTestMainRequest(aud, subIdp string) (*http.Request, error) {
 		"users":                 map[string]string{test_subAcnt1Tag: test_subAcnt1Id},
 		"related_users":         map[string]string{test_subAcnt2Tag: calcTestSubAccount2HashValue(subIdp)},
 		"hash_alg":              test_hAlg,
-		"related_issuers":       []string{test_idp2.Id()},
+		"related_issuers":       []string{subIdp},
 		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
 	}
 	{
-		jt := jwt.New()
-		jt.SetHeader("alg", test_frTaSigAlg)
-		jt.SetClaim("iss", test_frTa.Id())
-		jt.SetClaim("sub", test_frTa.Id())
-		jt.SetClaim("aud", audience.New(aud))
-		jt.SetClaim("jti", test_jti)
+		ass := jwt.New()
 		now := time.Now()
-		jt.SetClaim("exp", now.Add(time.Minute).Unix())
-		jt.SetClaim("iat", now.Unix())
-		if err := jt.Sign(test_frTa.Keys()); err != nil {
+		ass.SetHeader("alg", test_frTaSigAlg)
+		ass.SetClaim("iss", test_frTa.Id())
+		ass.SetClaim("sub", test_frTa.Id())
+		ass.SetClaim("aud", audience.New(aud))
+		ass.SetClaim("jti", test_jti)
+		ass.SetClaim("exp", now.Add(time.Minute).Unix())
+		ass.SetClaim("iat", now.Unix())
+		for k, v := range assParams {
+			ass.SetClaim(k, v)
+		}
+		if err := ass.Sign(test_frTa.Keys()); err != nil {
 			return nil, erro.Wrap(err)
 		}
-		buff, err := jt.Encode()
+		buff, err := ass.Encode()
 		if err != nil {
 			return nil, erro.Wrap(err)
 		}
 		m["client_assertion"] = string(buff)
+	}
+	for k, v := range params {
+		if v == nil {
+			delete(m, k)
+		} else {
+			m[k] = v
+		}
 	}
 	body, err := json.Marshal(m)
 	if err != nil {
@@ -229,10 +257,10 @@ func newTestMainRequest(aud, subIdp string) (*http.Request, error) {
 }
 
 func newTestSubRequest(idp, aud string) (r *http.Request, refHash []byte, err error) {
-	return newTestSubRequestWithParams(idp, aud, nil, nil)
+	return newTestSubRequestWithParams(idp, aud, nil, nil, nil)
 }
 
-func newTestSubRequestWithParams(idp, aud string, params, refParams map[string]interface{}) (r *http.Request, refHash []byte, err error) {
+func newTestSubRequestWithParams(idp, aud string, params, refParams, assParams map[string]interface{}) (r *http.Request, refHash []byte, err error) {
 	ref := jwt.New()
 	ref.SetHeader("alg", test_sigAlg)
 	ref.SetClaim("iss", test_idp2.Id())
@@ -253,6 +281,7 @@ func newTestSubRequestWithParams(idp, aud string, params, refParams map[string]i
 	if err != nil {
 		return nil, nil, erro.Wrap(err)
 	}
+
 	m := map[string]interface{}{
 		"response_type":         "code_token",
 		"grant_type":            "referral",
@@ -261,26 +290,33 @@ func newTestSubRequestWithParams(idp, aud string, params, refParams map[string]i
 		"client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
 	}
 	{
-		jt := jwt.New()
-		jt.SetHeader("alg", test_frTaSigAlg)
-		jt.SetClaim("iss", test_frTa.Id())
-		jt.SetClaim("sub", test_frTa.Id())
-		jt.SetClaim("aud", audience.New(aud))
-		jt.SetClaim("jti", test_jti)
+		ass := jwt.New()
 		now := time.Now()
-		jt.SetClaim("exp", now.Add(time.Minute).Unix())
-		jt.SetClaim("iat", now.Unix())
-		if err := jt.Sign(test_frTa.Keys()); err != nil {
+		ass.SetHeader("alg", test_frTaSigAlg)
+		ass.SetClaim("iss", test_frTa.Id())
+		ass.SetClaim("sub", test_frTa.Id())
+		ass.SetClaim("aud", audience.New(aud))
+		ass.SetClaim("jti", test_jti)
+		ass.SetClaim("exp", now.Add(time.Minute).Unix())
+		ass.SetClaim("iat", now.Unix())
+		for k, v := range assParams {
+			ref.SetClaim(k, v)
+		}
+		if err := ass.Sign(test_frTa.Keys()); err != nil {
 			return nil, nil, erro.Wrap(err)
 		}
-		buff, err := jt.Encode()
+		buff, err := ass.Encode()
 		if err != nil {
 			return nil, nil, erro.Wrap(err)
 		}
 		m["client_assertion"] = string(buff)
 	}
 	for k, v := range params {
-		m[k] = v
+		if v == nil {
+			delete(m, k)
+		} else {
+			m[k] = v
+		}
 	}
 	body, err := json.Marshal(m)
 	if err != nil {

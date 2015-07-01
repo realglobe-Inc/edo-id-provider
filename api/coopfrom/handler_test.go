@@ -888,7 +888,7 @@ func TestSubDenyInvalidReferral(t *testing.T) {
 		if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
 			t.Fatal(err)
 		}
-		m["referral"] = regexp.MustCompile("\\.[^.]+$").ReplaceAllString(m["referral"].(string), ".")
+		m["referral"] = regexp.MustCompile("\\.[^.]+$").ReplaceAllString(m["referral"].(string), ".AAAA")
 		body, err := json.Marshal(m)
 		if err != nil {
 			t.Fatal(err)

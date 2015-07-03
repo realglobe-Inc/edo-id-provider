@@ -34,15 +34,15 @@ import (
 )
 
 func init() {
-	logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	logutil.SetupConsole(logRoot, level.OFF)
 }
 
 // 正常にログイン UI にリダイレクトさせることの検査。
 // セッションが有効ならセッションを発行しないことの検査。
 func TestLoginPage(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	page := newTestPage([]jwk.Key{test_idpKey}, nil, []account.Element{test_acnt}, []tadb.Element{test_ta})
@@ -85,8 +85,8 @@ func TestLoginPage(t *testing.T) {
 // セッションが無ければセッションを発行することの検査。
 func TestLoginPageSessionPublication(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	page := newTestPage([]jwk.Key{test_idpKey}, nil, []account.Element{test_acnt}, []tadb.Element{test_ta})
@@ -111,8 +111,8 @@ func TestLoginPageSessionPublication(t *testing.T) {
 // 同意済みセッションならクライアントにリダイレクトさせることの検査。
 func TestLoginPageRedirectClient(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	page := newTestPage([]jwk.Key{test_idpKey}, nil, []account.Element{test_acnt}, []tadb.Element{test_ta})
@@ -154,8 +154,8 @@ func TestLoginPageRedirectClient(t *testing.T) {
 // 知らないパラメータを無視できることの検査。
 func TestLoginPageIgnoreUnknownParameter(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	page := newTestPage([]jwk.Key{test_idpKey}, nil, []account.Element{test_acnt}, []tadb.Element{test_ta})
@@ -205,8 +205,8 @@ func TestLoginPageIgnoreUnknownParameter(t *testing.T) {
 // 重複パラメータを拒否できることの検査。
 func TestLoginPageDenyOverlapParameter(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	page := newTestPage([]jwk.Key{test_idpKey}, nil, []account.Element{test_acnt}, []tadb.Element{test_ta})
@@ -245,8 +245,8 @@ func TestLoginPageDenyOverlapParameter(t *testing.T) {
 // 入力券が無ければ拒否できることの検査。
 func TestLoginPageDenyNoTicket(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	page := newTestPage([]jwk.Key{test_idpKey}, nil, []account.Element{test_acnt}, []tadb.Element{test_ta})
@@ -297,8 +297,8 @@ func TestLoginPageDenyNoTicket(t *testing.T) {
 // 入力券がおかしければ拒否できることの検査。
 func TestLoginPageDenyInvalidTicket(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	page := newTestPage([]jwk.Key{test_idpKey}, nil, []account.Element{test_acnt}, []tadb.Element{test_ta})
@@ -349,8 +349,8 @@ func TestLoginPageDenyInvalidTicket(t *testing.T) {
 // 入力券が期限切れなら拒否できることの検査。
 func TestLoginPageDenyExpiredTicket(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	page := newTestPage([]jwk.Key{test_idpKey}, nil, []account.Element{test_acnt}, []tadb.Element{test_ta})

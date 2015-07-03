@@ -30,12 +30,12 @@ import (
 
 // ユーザー認証開始。
 func (this *Page) HandleAuth(w http.ResponseWriter, r *http.Request) {
-	var sender *request.Request
+	var logPref string
 
 	// panic 対策。
 	defer func() {
 		if rcv := recover(); rcv != nil {
-			idperr.RespondHtml(w, r, erro.New(rcv), this.errTmpl, sender)
+			idperr.RespondHtml(w, r, erro.New(rcv), this.errTmpl, logPref)
 			return
 		}
 	}()
@@ -45,29 +45,29 @@ func (this *Page) HandleAuth(w http.ResponseWriter, r *http.Request) {
 		defer this.stopper.Unstop()
 	}
 
-	//////////////////////////////
-	server.LogRequest(level.DEBUG, r, this.debug)
-	//////////////////////////////
+	sender := request.Parse(r, this.sessLabel)
+	logPref = sender.String() + ": "
 
-	sender = request.Parse(r, this.sessLabel)
-	log.Info(sender, ": Received authentication request")
-	defer log.Info(sender, ": Handled authentication request")
+	server.LogRequest(level.DEBUG, r, this.debug, logPref)
+
+	log.Info(logPref, "Received authentication request")
+	defer log.Info(logPref, "Handled authentication request")
 
 	var sess *session.Element
 	if sessId := sender.Session(); sessId != "" {
 		// セッションが通知された。
-		log.Debug(sender, ": Session is declared")
+		log.Debug(logPref, "Session is declared")
 
 		var err error
 		if sess, err = this.sessDb.Get(sessId); err != nil {
-			log.Err(sender, ": ", erro.Wrap(err))
+			log.Err(logPref, erro.Wrap(err))
 			// 新規発行すれば動くので諦めない。
 		} else if sess == nil {
 			// セッションが無かった。
-			log.Warn(sender, ": Declared session is not exist")
+			log.Warn(logPref, "Declared session is not exist")
 		} else {
 			// セッションがあった。
-			log.Debug(sender, ": Declared session is exist")
+			log.Debug(logPref, "Declared session is exist")
 		}
 	}
 
@@ -75,17 +75,17 @@ func (this *Page) HandleAuth(w http.ResponseWriter, r *http.Request) {
 	if sess == nil {
 		// セッションを新規発行。
 		sess = session.New(this.idGen.String(this.sessLen), now.Add(this.sessExpIn))
-		log.Info(sender, ": Generated new session "+logutil.Mosaic(sess.Id())+" but not yet saved")
+		log.Info(logPref, "Generated new session "+logutil.Mosaic(sess.Id())+" but not yet saved")
 	} else if now.After(sess.Expires().Add(-this.sessRefDelay)) {
 		// セッションを更新。
 		old := sess
 		sess = sess.New(this.idGen.String(this.sessLen), now.Add(this.sessExpIn))
-		log.Info(sender, ": Refreshed session "+logutil.Mosaic(old.Id())+" to "+logutil.Mosaic(sess.Id())+" but not yet saved")
+		log.Info(logPref, "Refreshed session "+logutil.Mosaic(old.Id())+" to "+logutil.Mosaic(sess.Id())+" but not yet saved")
 	}
 
 	// セッションは決まった。
 
-	env := (&environment{this, sender, sess})
+	env := (&environment{this, logPref, sess})
 	authReq, err := session.ParseRequest(r)
 	if err != nil {
 		err = erro.Wrap(idperr.New(idperr.Invalid_request, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
@@ -111,11 +111,11 @@ func (this *environment) respondErrorHtmlBeforeGetRedirectUri(w http.ResponseWri
 
 	ta, err := this.taDb.Get(req.Ta())
 	if err != nil {
-		log.Err(this.sender, ": ", erro.Wrap(err))
+		log.Err(this.logPref, erro.Wrap(err))
 		this.respondErrorHtml(w, r, origErr)
 		return
 	} else if ta == nil {
-		log.Warn(this.sender, ": Declared TA "+req.Ta()+" is not exist")
+		log.Warn(this.logPref, "Declared TA "+req.Ta()+" is not exist")
 		this.respondErrorHtml(w, r, origErr)
 		return
 	}
@@ -126,7 +126,7 @@ func (this *environment) respondErrorHtmlBeforeGetRedirectUri(w http.ResponseWri
 
 func (this *environment) respondErrorHtmlBeforeGetRedirectUriWithTa(w http.ResponseWriter, r *http.Request, req *session.Request, ta tadb.Element, origErr error) {
 	if !ta.RedirectUris()[req.RedirectUri()] {
-		log.Warn(this.sender, ": Declared redirect URI "+req.RedirectUri()+" is not registered")
+		log.Warn(this.logPref, "Declared redirect URI "+req.RedirectUri()+" is not registered")
 		this.respondErrorHtml(w, r, origErr)
 		return
 	}
@@ -169,7 +169,7 @@ func (this *environment) afterParseAuthRequest(w http.ResponseWriter, r *http.Re
 	}
 
 	// TA は存在する。
-	log.Debug(this.sender, ": Declared TA "+ta.Id()+" is exist")
+	log.Debug(this.logPref, "Declared TA "+ta.Id()+" is exist")
 
 	// request と request_uri パラメータの読み込み。
 	if err := this.parseRequestObject(req, ta); err != nil {
@@ -184,7 +184,7 @@ func (this *environment) afterParseAuthRequest(w http.ResponseWriter, r *http.Re
 	}
 
 	// リダイレクトエンドポイントも正しい。
-	log.Debug(this.sender, ": Declared redirect URI "+req.RedirectUri()+" is registered")
+	log.Debug(this.logPref, "Declared redirect URI "+req.RedirectUri()+" is registered")
 
 	this.sess.SetRequest(req)
 	return this.afterGetRedirectUri(w, r, req, ta)
@@ -204,7 +204,7 @@ func (this *environment) afterGetRedirectUri(w http.ResponseWriter, r *http.Requ
 	}
 
 	// scope には問題無い。
-	log.Debug(this.sender, ": Declared scope has "+tagOpenid)
+	log.Debug(this.logPref, "Declared scope has "+tagOpenid)
 
 	switch respTypes := req.ResponseType(); len(respTypes) {
 	case 0:
@@ -220,7 +220,7 @@ func (this *environment) afterGetRedirectUri(w http.ResponseWriter, r *http.Requ
 	}
 
 	// response_type には問題無い。
-	log.Debug(this.sender, ": Response type is ", req.ResponseType())
+	log.Debug(this.logPref, "Response type is ", req.ResponseType())
 
 	if req.Prompt()[tagSelect_account] {
 		if req.Prompt()[tagNone] {

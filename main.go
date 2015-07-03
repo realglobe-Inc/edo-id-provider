@@ -57,7 +57,7 @@ func main() {
 	}()
 	defer rglog.Flush()
 
-	logutil.InitConsole("github.com/realglobe-Inc")
+	logutil.InitConsole(logRoot)
 
 	param, err := parseParameters(os.Args...)
 	if err != nil {
@@ -67,8 +67,8 @@ func main() {
 		return
 	}
 
-	logutil.SetupConsole("github.com/realglobe-Inc", param.consLv)
-	if err := logutil.Setup("github.com/realglobe-Inc", param.logType, param.logLv, param); err != nil {
+	logutil.SetupConsole(logRoot, param.consLv)
+	if err := logutil.Setup(logRoot, param.logType, param.logLv, param); err != nil {
 		log.Err(erro.Unwrap(err))
 		log.Debug(erro.Wrap(err))
 		exitCode = 1

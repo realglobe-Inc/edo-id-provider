@@ -122,12 +122,12 @@ func (this *handler) SetSelfId(selfId string) {
 }
 
 func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	var sender *requtil.Request
+	var logPref string
 
 	// panic 対策。
 	defer func() {
 		if rcv := recover(); rcv != nil {
-			idperr.RespondJson(w, r, erro.New(rcv), sender)
+			idperr.RespondJson(w, r, erro.New(rcv), logPref)
 			return
 		}
 	}()
@@ -137,16 +137,15 @@ func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		defer this.stopper.Unstop()
 	}
 
-	//////////////////////////////
-	server.LogRequest(level.DEBUG, r, this.debug)
-	//////////////////////////////
+	logPref = server.ParseSender(r) + ": "
 
-	sender = requtil.Parse(r, "")
-	log.Info(sender, ": Received cooperation-from request")
-	defer log.Info(sender, ": Handled cooperation-from request")
+	server.LogRequest(level.DEBUG, r, this.debug, logPref)
 
-	if err := (&environment{this, sender}).serve(w, r); err != nil {
-		idperr.RespondJson(w, r, erro.Wrap(err), sender)
+	log.Info(logPref, "Received cooperation-from request")
+	defer log.Info(logPref, "Handled cooperation-from request")
+
+	if err := (&environment{this, logPref}).serve(w, r); err != nil {
+		idperr.RespondJson(w, r, erro.Wrap(err), logPref)
 		return
 	}
 }
@@ -155,7 +154,7 @@ func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 type environment struct {
 	*handler
 
-	sender *requtil.Request
+	logPref string
 }
 
 func (this *environment) serve(w http.ResponseWriter, r *http.Request) error {
@@ -186,13 +185,13 @@ func (this *environment) serveAsMain(w http.ResponseWriter, r *http.Request, req
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "unsupported response type "+requtil.ValueSetForm(req.responseType()), http.StatusBadRequest, nil))
 	}
 
-	log.Debug(this.sender, ": Response types "+requtil.ValueSetForm(req.responseType())+" are OK")
+	log.Debug(this.logPref, "Response types "+requtil.ValueSetForm(req.responseType())+" are OK")
 
 	if req.fromTa() == "" {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "no from-TA ID", http.StatusBadRequest, nil))
 	}
 
-	log.Debug(this.sender, ": From-TA "+req.fromTa()+" is declared")
+	log.Debug(this.logPref, "From-TA "+req.fromTa()+" is declared")
 
 	frTa, err := this.taDb.Get(req.fromTa())
 	if err != nil {
@@ -209,7 +208,7 @@ func (this *environment) serveAsMain(w http.ResponseWriter, r *http.Request, req
 		return erro.New("JWT ID overlaps")
 	}
 
-	log.Debug(this.sender, ": Verified from-TA "+frTa.Id())
+	log.Debug(this.logPref, "Verified from-TA "+frTa.Id())
 
 	if req.toTa() == "" {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "no to-TA ID", http.StatusBadRequest, nil))
@@ -217,7 +216,7 @@ func (this *environment) serveAsMain(w http.ResponseWriter, r *http.Request, req
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "to-TA is from-TA", http.StatusBadRequest, nil))
 	}
 
-	log.Debug(this.sender, ": To-TA "+req.fromTa()+" is declared")
+	log.Debug(this.logPref, "To-TA "+req.fromTa()+" is declared")
 
 	toTa, err := this.taDb.Get(req.toTa())
 	if err != nil {
@@ -226,19 +225,19 @@ func (this *environment) serveAsMain(w http.ResponseWriter, r *http.Request, req
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "to-TA "+req.toTa()+" is not exist", http.StatusBadRequest, nil))
 	}
 
-	log.Debug(this.sender, ": To-TA "+toTa.Id()+" is exist")
+	log.Debug(this.logPref, "To-TA "+toTa.Id()+" is exist")
 
 	if req.grantType() != tagAccess_token {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "unsupported grant type "+req.grantType(), http.StatusBadRequest, nil))
 	}
 
-	log.Debug(this.sender, ": Grant type "+req.grantType()+" is OK")
+	log.Debug(this.logPref, "Grant type "+req.grantType()+" is OK")
 
 	if req.accessToken() == "" {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "no access token", http.StatusBadRequest, nil))
 	}
 
-	log.Debug(this.sender, ": Access token "+logutil.Mosaic(req.accessToken())+" is declared")
+	log.Debug(this.logPref, "Access token "+logutil.Mosaic(req.accessToken())+" is declared")
 
 	now := time.Now()
 	tok, err := this.tokDb.Get(req.accessToken())
@@ -252,28 +251,28 @@ func (this *environment) serveAsMain(w http.ResponseWriter, r *http.Request, req
 		return erro.Wrap(idperr.New(idperr.Invalid_grant, "access token expired", http.StatusBadRequest, nil))
 	}
 
-	log.Debug(this.sender, ": Access token "+logutil.Mosaic(req.accessToken())+" is valid")
+	log.Debug(this.logPref, "Access token "+logutil.Mosaic(req.accessToken())+" is valid")
 
 	var scop map[string]bool
 	if req.scope() == nil {
 		scop = tok.Scope()
-		log.Debug(this.sender, ": Use token scope ", scop)
+		log.Debug(this.logPref, "Use token scope ", scop)
 	} else {
 		scop = req.scope()
 		if !strsetutil.Contains(tok.Scope(), scop) {
 			return erro.Wrap(idperr.New(idperr.Invalid_scope, "not allowed scopes", http.StatusBadRequest, nil))
 		}
-		log.Debug(this.sender, ": Use given scope ", scop)
+		log.Debug(this.logPref, "Use given scope ", scop)
 	}
 
 	var exp time.Time
 	if req.expiresIn() == 0 {
 		exp = tok.Expires()
-		log.Debug(this.sender, ": Use token expiration date")
+		log.Debug(this.logPref, "Use token expiration date")
 	} else if exp = now.Add(req.expiresIn()); !tok.Expires().Before(exp) {
-		log.Debug(this.sender, ": Use given token expiration duration")
+		log.Debug(this.logPref, "Use given token expiration duration")
 	} else {
-		log.Debug(this.sender, ": Use token expiration date")
+		log.Debug(this.logPref, "Use token expiration date")
 		exp = tok.Expires()
 	}
 
@@ -281,7 +280,7 @@ func (this *environment) serveAsMain(w http.ResponseWriter, r *http.Request, req
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "no main account tag", http.StatusBadRequest, nil))
 	}
 
-	log.Debug(this.sender, ": Main account tag is "+req.accountTag())
+	log.Debug(this.logPref, "Main account tag is "+req.accountTag())
 
 	codAcnts, err := this.getAccounts(req.accounts(), frTa)
 	if err != nil {
@@ -310,7 +309,7 @@ func (this *environment) serveAsMain(w http.ResponseWriter, r *http.Request, req
 		} else if ref, err = this.makeReferral(req, keys); err != nil {
 			return erro.Wrap(err)
 		}
-		log.Info(this.sender, ": Generated referral")
+		log.Info(this.logPref, "Generated referral")
 
 		hGen := hashutil.Generator(req.hashAlgorithm())
 		if !hGen.Available() {
@@ -329,13 +328,13 @@ func (this *environment) serveAsMain(w http.ResponseWriter, r *http.Request, req
 	if err != nil {
 		return erro.Wrap(err)
 	}
-	log.Info(this.sender, ": Generated code token")
+	log.Info(this.logPref, "Generated code token")
 
 	cod := coopcode.New(codId, now.Add(this.codExpIn), coopcode.NewAccount(tok.Account(), req.accountTag()), tok.Id(), scop, exp, codAcnts, frTa.Id(), toTa.Id())
 	if err := this.codDb.Save(cod, now.Add(this.codDbExpIn)); err != nil {
 		return erro.Wrap(err)
 	}
-	log.Info(this.sender, ": Saved code")
+	log.Info(this.logPref, "Saved code")
 
 	m := map[string]interface{}{
 		tagCode_token: string(codTok),
@@ -352,13 +351,13 @@ func (this *environment) serveAsSub(w http.ResponseWriter, r *http.Request, req 
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "unsupported response type "+requtil.ValueSetForm(req.responseType()), http.StatusBadRequest, nil))
 	}
 
-	log.Debug(this.sender, ": Response types "+requtil.ValueSetForm(req.responseType())+" is OK")
+	log.Debug(this.logPref, "Response types "+requtil.ValueSetForm(req.responseType())+" is OK")
 
 	if req.grantType() != tagReferral {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "unsupported grant type "+req.grantType(), http.StatusBadRequest, nil))
 	}
 
-	log.Debug(this.sender, ": Grant type "+req.grantType()+" is OK")
+	log.Debug(this.logPref, "Grant type "+req.grantType()+" is OK")
 
 	if req.referral() == nil {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "no referral", http.StatusBadRequest, nil))
@@ -371,7 +370,7 @@ func (this *environment) serveAsSub(w http.ResponseWriter, r *http.Request, req 
 		return erro.Wrap(idperr.New(idperr.Invalid_grant, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
 	}
 
-	log.Debug(this.sender, ": Parsed referral")
+	log.Debug(this.logPref, "Parsed referral")
 
 	idp, err := this.idpDb.Get(ref.idProvider())
 	if err != nil {
@@ -382,7 +381,7 @@ func (this *environment) serveAsSub(w http.ResponseWriter, r *http.Request, req 
 		return erro.Wrap(idperr.New(idperr.Invalid_grant, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
 	}
 
-	log.Debug(this.sender, ": Primary ID provider "+idp.Id()+" is exist")
+	log.Debug(this.logPref, "Primary ID provider "+idp.Id()+" is exist")
 
 	frTa, err := this.taDb.Get(ref.fromTa())
 	if err != nil {
@@ -391,7 +390,7 @@ func (this *environment) serveAsSub(w http.ResponseWriter, r *http.Request, req 
 		return erro.Wrap(idperr.New(idperr.Invalid_grant, "from-TA "+ref.fromTa()+" is not exist", http.StatusBadRequest, err))
 	}
 
-	log.Debug(this.sender, ": From-TA "+frTa.Id()+" is exist")
+	log.Debug(this.logPref, "From-TA "+frTa.Id()+" is exist")
 
 	if ass, err := assertion.Parse(req.taAssertion()); err != nil {
 		return erro.Wrap(idperr.New(idperr.Invalid_client, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
@@ -403,7 +402,7 @@ func (this *environment) serveAsSub(w http.ResponseWriter, r *http.Request, req 
 		return erro.New("JWT ID overlaps")
 	}
 
-	log.Debug(this.sender, ": Authenticated from-TA "+frTa.Id())
+	log.Debug(this.logPref, "Authenticated from-TA "+frTa.Id())
 
 	toTa, err := this.taDb.Get(ref.toTa())
 	if err != nil {
@@ -412,14 +411,14 @@ func (this *environment) serveAsSub(w http.ResponseWriter, r *http.Request, req 
 		return erro.Wrap(idperr.New(idperr.Invalid_grant, "to-TA "+ref.toTa()+" is not exist", http.StatusBadRequest, err))
 	}
 
-	log.Debug(this.sender, ": To-TA "+frTa.Id()+" is exist")
+	log.Debug(this.logPref, "To-TA "+frTa.Id()+" is exist")
 
 	codAcnts, err := this.getAccounts(req.accounts(), frTa)
 	if err != nil {
 		return erro.Wrap(err)
 	}
 
-	log.Debug(this.sender, ": Accounts are exist")
+	log.Debug(this.logPref, "Accounts are exist")
 
 	hGen := hashutil.Generator(ref.hashAlgorithm())
 	if !hGen.Available() {
@@ -433,7 +432,7 @@ func (this *environment) serveAsSub(w http.ResponseWriter, r *http.Request, req 
 		}
 	}
 
-	log.Debug(this.sender, ": Account hashes are OK")
+	log.Debug(this.logPref, "Account hashes are OK")
 
 	codId := this.idGen.String(this.codLen)
 	keys, err := this.keyDb.Get()
@@ -445,14 +444,14 @@ func (this *environment) serveAsSub(w http.ResponseWriter, r *http.Request, req 
 	if err != nil {
 		return erro.Wrap(err)
 	}
-	log.Info(this.sender, ": Generated code token")
+	log.Info(this.logPref, "Generated code token")
 
 	now := time.Now()
 	cod := coopcode.New(codId, now.Add(this.codExpIn), nil, "", nil, time.Time{}, codAcnts, frTa.Id(), toTa.Id())
 	if err := this.codDb.Save(cod, now.Add(this.codDbExpIn)); err != nil {
 		return erro.Wrap(err)
 	}
-	log.Info(this.sender, ": Saved code")
+	log.Info(this.logPref, "Saved code")
 
 	return idputil.RespondJson(w, map[string]interface{}{
 		tagCode_token: string(codTok),
@@ -491,7 +490,7 @@ func (this *environment) makeReferral(req *request, keys []jwk.Key) ([]byte, err
 		return nil, erro.Wrap(idperr.New(idperr.Invalid_request, "unsupported hash algorithm "+req.hashAlgorithm(), http.StatusBadRequest, nil))
 	}
 
-	log.Debug(this.sender, ": Hash algorithm "+req.hashAlgorithm()+" is supported")
+	log.Debug(this.logPref, "Hash algorithm "+req.hashAlgorithm()+" is supported")
 
 	if len(req.relatedAccounts()) == 0 {
 		return nil, erro.Wrap(idperr.New(idperr.Invalid_request, "no related accounts", http.StatusBadRequest, nil))
@@ -502,7 +501,7 @@ func (this *environment) makeReferral(req *request, keys []jwk.Key) ([]byte, err
 		}
 	}
 
-	log.Debug(this.sender, ": Related accounts are OK")
+	log.Debug(this.logPref, "Related accounts are OK")
 
 	if len(req.relatedIdProviders()) == 0 {
 		return nil, erro.Wrap(idperr.New(idperr.Invalid_request, "no related ID providers", http.StatusBadRequest, nil))

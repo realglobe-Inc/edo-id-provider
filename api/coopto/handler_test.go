@@ -42,7 +42,7 @@ import (
 )
 
 func init() {
-	logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	logutil.SetupConsole(logRoot, level.OFF)
 }
 
 func newTestHandler(keys []jwk.Key, acnts []account.Element, tas []tadb.Element) *handler {
@@ -78,8 +78,8 @@ func newTestHandler(keys []jwk.Key, acnts []account.Element, tas []tadb.Element)
 // IDs トークンが iss, sub, aud, exp, iat, ids クレームを含むことの検査。
 func TestMainNormal(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestMainAccount()
@@ -193,8 +193,8 @@ func TestMainNormal(t *testing.T) {
 // TA 固有アカウント ID に対応していることの検査。
 func TestPairwise(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestMainAccount()
@@ -263,8 +263,8 @@ func TestPairwise(t *testing.T) {
 // クライアント認証に失敗したら拒否できることの検査。
 func TestDenyInvalidTa(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestMainAccount()
@@ -317,8 +317,8 @@ func TestDenyInvalidTa(t *testing.T) {
 // grant_type が無かったら拒否できることの検査。
 func TestDenyNoGrantType(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	testDenyNoSomething(t, "grant_type")
@@ -327,8 +327,8 @@ func TestDenyNoGrantType(t *testing.T) {
 // code が無かったら拒否できることの検査。
 func TestDenyNoCode(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	testDenyNoSomething(t, "code")
@@ -336,8 +336,8 @@ func TestDenyNoCode(t *testing.T) {
 
 func testDenyNoSomething(t *testing.T, something string) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestMainAccount()
@@ -390,8 +390,8 @@ func testDenyNoSomething(t *testing.T, something string) {
 // 仲介コードが有効でなかったら拒否できることの検査。
 func TestDenyInvalidCode(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestMainAccount()
@@ -444,8 +444,8 @@ func TestDenyInvalidCode(t *testing.T) {
 // 仲介コードが発行された連携先でなかったら拒否できることの検査。
 func TestDenyDifferentTa(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestMainAccount()
@@ -489,8 +489,8 @@ func TestDenyDifferentTa(t *testing.T) {
 // user_claims におかしなアカウントタグがあったら拒否できることの検査。
 func TestDenyInvalidTag(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestMainAccount()
@@ -547,8 +547,8 @@ func TestDenyInvalidTag(t *testing.T) {
 // 事前同意が無ければ拒否できることの検査。
 func TestDenyNoConsent(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestMainAccount()
@@ -610,8 +610,8 @@ func TestDenyNoConsent(t *testing.T) {
 // IDs トークンが iss, sub, aud, exp, iat, ids クレームを含むことの検査。
 func TestSubNormal(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	subAcnt2 := newTestSubAccount2()

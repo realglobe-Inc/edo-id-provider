@@ -128,12 +128,12 @@ func (this *handler) SetSelfId(selfId string) {
 }
 
 func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	var sender *requtil.Request
+	var logPref string
 
 	// panic 対策。
 	defer func() {
 		if rcv := recover(); rcv != nil {
-			idperr.RespondJson(w, r, erro.New(rcv), sender)
+			idperr.RespondJson(w, r, erro.New(rcv), logPref)
 			return
 		}
 	}()
@@ -143,16 +143,15 @@ func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		defer this.stopper.Unstop()
 	}
 
-	//////////////////////////////
-	server.LogRequest(level.DEBUG, r, this.debug)
-	//////////////////////////////
+	logPref = server.ParseSender(r) + ": "
 
-	sender = requtil.Parse(r, "")
-	log.Info(sender, ": Received cooperation-to request")
-	defer log.Info(sender, ": Handled cooperation-to request")
+	server.LogRequest(level.DEBUG, r, this.debug, logPref)
 
-	if err := (&environment{this, sender}).serve(w, r); err != nil {
-		idperr.RespondJson(w, r, erro.Wrap(err), sender)
+	log.Info(logPref, "Received cooperation-to request")
+	defer log.Info(logPref, "Handled cooperation-to request")
+
+	if err := (&environment{this, logPref}).serve(w, r); err != nil {
+		idperr.RespondJson(w, r, erro.Wrap(err), logPref)
 		return
 	}
 }
@@ -161,7 +160,7 @@ func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 type environment struct {
 	*handler
 
-	sender *requtil.Request
+	logPref string
 }
 
 func (this *environment) serve(w http.ResponseWriter, r *http.Request) error {
@@ -179,7 +178,7 @@ func (this *environment) serve(w http.ResponseWriter, r *http.Request) error {
 		return erro.Wrap(idperr.New(idperr.Invalid_grant, "declared code is not exist", http.StatusBadRequest, nil))
 	}
 
-	log.Debug(this.sender, ": Declared code is exist")
+	log.Debug(this.logPref, "Declared code is exist")
 
 	toTa, err := this.taDb.Get(cod.ToTa())
 	if err != nil {
@@ -198,7 +197,7 @@ func (this *environment) serve(w http.ResponseWriter, r *http.Request) error {
 		return erro.New("JWT ID overlaps")
 	}
 
-	log.Debug(this.sender, ": Verified to-TA "+toTa.Id())
+	log.Debug(this.logPref, "Verified to-TA "+toTa.Id())
 
 	tagToId := map[string]string{}
 	for _, acnt := range cod.Accounts() {
@@ -276,7 +275,7 @@ func (this *environment) serveAs(isMain bool, w http.ResponseWriter, r *http.Req
 		}
 		ids[cod.Account().Tag()] = m
 
-		log.Debug(this.sender, ": Account "+cod.Account().Tag()+" allowed required attributes")
+		log.Debug(this.logPref, "Account "+cod.Account().Tag()+" allowed required attributes")
 	}
 
 	for _, codAcnt := range cod.Accounts() {
@@ -307,7 +306,7 @@ func (this *environment) serveAs(isMain bool, w http.ResponseWriter, r *http.Req
 		}
 		ids[codAcnt.Tag()] = m
 
-		log.Debug(this.sender, ": Account "+codAcnt.Tag()+" allowed required attributes")
+		log.Debug(this.logPref, "Account "+codAcnt.Tag()+" allowed required attributes")
 	}
 
 	now := time.Now()
@@ -341,14 +340,14 @@ func (this *environment) serveAs(isMain bool, w http.ResponseWriter, r *http.Req
 		respParams[tagToken_type] = tagBearer
 
 		// TODO アクセストークンを元になったアクセストークンに紐付ける。
-		log.Warn(this.sender, ": Not linked token "+logutil.Mosaic(tok.Id())+" to source token "+logutil.Mosaic(cod.SourceToken()))
+		log.Warn(this.logPref, "Not linked token "+logutil.Mosaic(tok.Id())+" to source token "+logutil.Mosaic(cod.SourceToken()))
 
 		// アクセストークンを保存する。
 		if err := this.tokDb.Save(tok, tok.Expires().Add(this.tokDbExpIn-this.tokExpIn)); err != nil {
 			return erro.Wrap(err)
 		}
 
-		log.Debug(this.sender, ": Saved token "+logutil.Mosaic(tok.Id()))
+		log.Debug(this.logPref, "Saved token "+logutil.Mosaic(tok.Id()))
 
 		if !tok.Expires().IsZero() {
 			respParams[tagExpires_in] = int64(tok.Expires().Sub(time.Now()).Seconds())

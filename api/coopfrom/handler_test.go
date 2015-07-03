@@ -45,7 +45,7 @@ import (
 )
 
 func init() {
-	logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	logutil.SetupConsole(logRoot, level.OFF)
 }
 
 func newTestHandler(keys []jwk.Key, acnts []account.Element, tas []tadb.Element, idps []idpdb.Element) *handler {
@@ -80,8 +80,8 @@ func newTestHandler(keys []jwk.Key, acnts []account.Element, tas []tadb.Element,
 // コードトークンが iss, sub, aud, from_client, user_tag, user_tags クレームを含むことの検査。
 func TestSingleNormal(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestMainAccount()
@@ -168,8 +168,8 @@ func TestSingleNormal(t *testing.T) {
 // クライアント認証に失敗したら拒否できることの検査。
 func TestDenyInvalidTa(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestMainAccount()
@@ -204,8 +204,8 @@ func TestDenyInvalidTa(t *testing.T) {
 // response_type が無かったら拒否できることの検査。
 func TestDenyNoResponseType(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	testMainDenyNoSomething(t, "response_type")
@@ -214,8 +214,8 @@ func TestDenyNoResponseType(t *testing.T) {
 // grant_type が無かったら拒否できることの検査。
 func TestDenyNoGrantType(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	testMainDenyNoSomething(t, "grant_type")
@@ -224,8 +224,8 @@ func TestDenyNoGrantType(t *testing.T) {
 // 主体の ID プロバイダの場合に、from_client が無かったら拒否できることの検査。
 func TestMainDenyNoFromTa(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	testMainDenyNoSomething(t, "from_client")
@@ -234,8 +234,8 @@ func TestMainDenyNoFromTa(t *testing.T) {
 // 主体の ID プロバイダの場合に、to_client が無かったら拒否できることの検査。
 func TestMainDenyNoToTa(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	testMainDenyNoSomething(t, "to_client")
@@ -244,8 +244,8 @@ func TestMainDenyNoToTa(t *testing.T) {
 // 主体の ID プロバイダの場合に、access_token が無かったら拒否できることの検査。
 func TestMainDenyNoAccessToken(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	testMainDenyNoSomething(t, "access_token")
@@ -254,8 +254,8 @@ func TestMainDenyNoAccessToken(t *testing.T) {
 // 主体の ID プロバイダの場合に、user_tag が無かったら拒否できることの検査。
 func TestMainDenyNoUserTag(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	testMainDenyNoSomething(t, "user_tag")
@@ -294,8 +294,8 @@ func testMainDenyNoSomething(t *testing.T, something string) {
 // 主体の ID プロバイダの場合に、アクセストークンが有効でなかったら拒否できることの検査。
 func TestMainDenyInvalidAccessToken(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestMainAccount()
@@ -326,8 +326,8 @@ func TestMainDenyInvalidAccessToken(t *testing.T) {
 // 主体の ID プロバイダの場合に、許されない scope を含むなら拒否できることの検査。
 func TestMainDenyInvalidScope(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestMainAccount()
@@ -362,8 +362,8 @@ func TestMainDenyInvalidScope(t *testing.T) {
 // 主体の ID プロバイダの場合に、連携先 TA が存在しないなら拒否できることの検査。
 func TestMainDenyInvalidToTa(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestMainAccount()
@@ -398,8 +398,8 @@ func TestMainDenyInvalidToTa(t *testing.T) {
 // 主体の ID プロバイダの場合に、連携元 TA と連携先 TA が同じなら拒否できることの検査。
 func TestMainDenySameTa(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestMainAccount()
@@ -434,8 +434,8 @@ func TestMainDenySameTa(t *testing.T) {
 // users におかしなユーザーいたら拒否できることの検査。
 func TestDenyInvalidUsers(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestMainAccount()
@@ -470,8 +470,8 @@ func TestDenyInvalidUsers(t *testing.T) {
 // ユーザータグに重複があったら拒否できることの検査。
 func TestDenyTagOverlap(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestMainAccount()
@@ -512,8 +512,8 @@ func TestDenyTagOverlap(t *testing.T) {
 // referral が iss, sub, aud, exp, jti, to_client, related_users, hash_alg クレームを含むことの検査。
 func TestMainNormal(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestMainAccount()
@@ -670,8 +670,8 @@ func TestMainNormal(t *testing.T) {
 // コードトークンが iss, sub, aud, user_tags, ref_hash クレームを含むことの検査。
 func TestSubNormal(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	subAcnt2 := newTestSubAccount2()
@@ -749,8 +749,8 @@ func TestSubNormal(t *testing.T) {
 // 2 つ目以降の ID プロバイダで TA 固有のアカウント ID に対応できることの検査。
 func TestPairwise(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	subAcnt2 := newTestSubAccount2()
@@ -836,8 +836,8 @@ func TestPairwise(t *testing.T) {
 // related_issuers におかしな ID プロバイダが含まれるなら拒否できることの検査。
 func TestDenyInvalidIdProvider(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestMainAccount()
@@ -872,8 +872,8 @@ func TestDenyInvalidIdProvider(t *testing.T) {
 // referral の署名がおかしかったら拒否できることの検査。
 func TestSubDenyInvalidReferral(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	subAcnt2 := newTestSubAccount2()
@@ -915,8 +915,8 @@ func TestSubDenyInvalidReferral(t *testing.T) {
 // 主体でないアカウントの ID プロバイダの場合に、response_type が無かったら拒否できることの検査。
 func TestSubDenyNoResponseType(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	testSubDenyNoSomething(t, "response_type")
@@ -925,8 +925,8 @@ func TestSubDenyNoResponseType(t *testing.T) {
 // 主体でないアカウントの ID プロバイダの場合に、grant_type が無かったら拒否できることの検査。
 func TestSubDenyNoGrantType(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	testSubDenyNoSomething(t, "grant_type")
@@ -935,8 +935,8 @@ func TestSubDenyNoGrantType(t *testing.T) {
 // 主体でないアカウントの ID プロバイダの場合に、referral が無かったら拒否できることの検査。
 func TestSubDenyNoReferral(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	testSubDenyNoSomething(t, "referral")
@@ -945,8 +945,8 @@ func TestSubDenyNoReferral(t *testing.T) {
 // 主体でないアカウントの ID プロバイダの場合に、users が無かったら拒否できることの検査。
 func TestSubDenyNoUsers(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	testSubDenyNoSomething(t, "users")
@@ -980,8 +980,8 @@ func testSubDenyNoSomething(t *testing.T, something string) {
 // 主体でないアカウントの ID プロバイダの場合に、referral に iss が無かったら拒否できることの検査。
 func TestSubDenyReferralNoIss(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	testSubDenyReferralNoSomething(t, "iss")
@@ -990,8 +990,8 @@ func TestSubDenyReferralNoIss(t *testing.T) {
 // 主体でないアカウントの ID プロバイダの場合に、referral に sub が無かったら拒否できることの検査。
 func TestSubDenyReferralNoSub(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	testSubDenyReferralNoSomething(t, "sub")
@@ -1000,8 +1000,8 @@ func TestSubDenyReferralNoSub(t *testing.T) {
 // 主体でないアカウントの ID プロバイダの場合に、referral に aud が無かったら拒否できることの検査。
 func TestSubDenyReferralNoAud(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	testSubDenyReferralNoSomething(t, "aud")
@@ -1010,8 +1010,8 @@ func TestSubDenyReferralNoAud(t *testing.T) {
 // 主体でないアカウントの ID プロバイダの場合に、referral に exp が無かったら拒否できることの検査。
 func TestSubDenyReferralNoExp(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	testSubDenyReferralNoSomething(t, "exp")
@@ -1020,8 +1020,8 @@ func TestSubDenyReferralNoExp(t *testing.T) {
 // 主体でないアカウントの ID プロバイダの場合に、referral に jti が無かったら拒否できることの検査。
 func TestSubDenyReferralNoJti(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	testSubDenyReferralNoSomething(t, "jti")
@@ -1030,8 +1030,8 @@ func TestSubDenyReferralNoJti(t *testing.T) {
 // 主体でないアカウントの ID プロバイダの場合に、referral に to_client が無かったら拒否できることの検査。
 func TestSubDenyReferralNoToClient(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	testSubDenyReferralNoSomething(t, "to_client")
@@ -1040,8 +1040,8 @@ func TestSubDenyReferralNoToClient(t *testing.T) {
 // 主体でないアカウントの ID プロバイダの場合に、referral に related_users が無かったら拒否できることの検査。
 func TestSubDenyReferralNoRelatedUsers(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	testSubDenyReferralNoSomething(t, "related_users")
@@ -1050,8 +1050,8 @@ func TestSubDenyReferralNoRelatedUsers(t *testing.T) {
 // 主体でないアカウントの ID プロバイダの場合に、referral に hash_alg が無かったら拒否できることの検査。
 func TestSubDenyReferralNoHashAlg(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	testSubDenyReferralNoSomething(t, "hash_alg")
@@ -1085,8 +1085,8 @@ func testSubDenyReferralNoSomething(t *testing.T, something string) {
 // 主体でないアカウントの ID プロバイダの場合に、連携先 TA が存在しないなら拒否できることの検査。
 func TestSubDenyInvalidToTa(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	subAcnt2 := newTestSubAccount2()
@@ -1116,8 +1116,8 @@ func TestSubDenyInvalidToTa(t *testing.T) {
 // 主体でないアカウントの ID プロバイダの場合に、連携元 TA と連携先 TA が同じなら拒否できることの検査。
 func TestSubDenySameTa(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	subAcnt2 := newTestSubAccount2()
@@ -1147,8 +1147,8 @@ func TestSubDenySameTa(t *testing.T) {
 // 主体でないアカウントの ID プロバイダの場合に、related_users に users のユーザーがなかったら拒否できることの検査。
 func TestDenyInvalidNoRelatedUsers(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	subAcnt2 := newTestSubAccount2()
@@ -1178,8 +1178,8 @@ func TestDenyInvalidNoRelatedUsers(t *testing.T) {
 // related_users におかしなユーザーいたら拒否できることの検査。
 func TestDenyInvalidRelatedUsers(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	subAcnt2 := newTestSubAccount2()

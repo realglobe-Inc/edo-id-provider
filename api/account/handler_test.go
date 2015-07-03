@@ -21,14 +21,20 @@ import (
 	"github.com/realglobe-Inc/edo-id-provider/database/sector"
 	"github.com/realglobe-Inc/edo-id-provider/database/token"
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
+	logutil "github.com/realglobe-Inc/edo-lib/log"
 	"github.com/realglobe-Inc/edo-lib/rand"
 	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/edo-lib/strset/strsetutil"
+	"github.com/realglobe-Inc/go-lib/rglog/level"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 )
+
+func init() {
+	logutil.SetupConsole(logRoot, level.OFF)
+}
 
 func newTestHandler(acnts []account.Element, tas []tadb.Element) *handler {
 	return New(
@@ -46,6 +52,11 @@ func newTestHandler(acnts []account.Element, tas []tadb.Element) *handler {
 
 // GET と POST でのアカウント情報リクエストに対応するか。
 func TestNormal(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
+	// ////////////////////////////////
+
 	for _, meth := range []string{"GET", "POST"} {
 		acnt := newTestAccount()
 		hndl := newTestHandler([]account.Element{acnt}, []tadb.Element{test_ta})
@@ -85,6 +96,11 @@ func TestNormal(t *testing.T) {
 
 // TA 固有アカウント ID に対応していることの検査。
 func TestPairwise(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
+	// ////////////////////////////////
+
 	acnt := newTestAccount()
 	ta := tadb.New("https://ta.example.org", nil, nil, nil, true, "")
 	hndl := newTestHandler([]account.Element{acnt}, []tadb.Element{ta})
@@ -124,6 +140,11 @@ func TestPairwise(t *testing.T) {
 
 // スコープ属性の展開はしないことの検査。
 func TestNotUseScopeAttribute(t *testing.T) {
+	// ////////////////////////////////
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
+	// ////////////////////////////////
+
 	acnt := newTestAccount()
 	hndl := newTestHandler([]account.Element{acnt}, []tadb.Element{test_ta})
 

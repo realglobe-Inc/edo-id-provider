@@ -49,12 +49,10 @@ func (this *Page) HandleSelect(w http.ResponseWriter, r *http.Request) {
 		defer this.stopper.Unstop()
 	}
 
-	//////////////////////////////
-	server.LogRequest(level.DEBUG, r, this.debug)
-	//////////////////////////////
-
 	sender := request.Parse(r, this.sessLabel)
 	logPref = sender.String() + ": "
+
+	server.LogRequest(level.DEBUG, r, this.debug, logPref)
 
 	log.Info(logPref, "Received select request")
 	defer log.Info(logPref, "Handled select request")

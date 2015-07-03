@@ -137,11 +137,9 @@ func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		defer this.stopper.Unstop()
 	}
 
-	//////////////////////////////
-	server.LogRequest(level.DEBUG, r, this.debug)
-	//////////////////////////////
-
 	logPref = server.ParseSender(r) + ": "
+
+	server.LogRequest(level.DEBUG, r, this.debug, logPref)
 
 	log.Info(logPref, "Received cooperation-from request")
 	defer log.Info(logPref, "Handled cooperation-from request")

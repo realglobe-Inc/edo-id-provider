@@ -54,12 +54,10 @@ func (this *Page) HandleConsent(w http.ResponseWriter, r *http.Request) {
 		defer this.stopper.Unstop()
 	}
 
-	//////////////////////////////
-	server.LogRequest(level.DEBUG, r, this.debug)
-	//////////////////////////////
-
 	sender := request.Parse(r, this.sessLabel)
 	logPref = sender.String() + ": "
+
+	server.LogRequest(level.DEBUG, r, this.debug, logPref)
 
 	log.Info(logPref, "Received consent request")
 	defer log.Info(logPref, "Handled consent request")

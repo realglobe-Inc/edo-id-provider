@@ -145,11 +145,9 @@ func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		defer this.stopper.Unstop()
 	}
 
-	//////////////////////////////
-	server.LogRequest(level.DEBUG, r, this.debug)
-	//////////////////////////////
-
 	logPref = server.ParseSender(r) + ": "
+
+	server.LogRequest(level.DEBUG, r, this.debug, logPref)
 
 	log.Info(logPref, "Received token request")
 	defer log.Info(logPref, "Handled token request")

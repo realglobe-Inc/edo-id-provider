@@ -36,14 +36,14 @@ import (
 )
 
 func init() {
-	logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	logutil.SetupConsole(logRoot, level.OFF)
 }
 
 // 知らないパラメータを無視できるか。
 func TestIgnoreUnknownParameterInAuthRequest(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -104,8 +104,8 @@ func TestIgnoreUnknownParameterInAuthRequest(t *testing.T) {
 // エラーリダイレクトして error は invalid_request か。
 func TestDenyOverlapParameterInAuthRequest(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -149,8 +149,8 @@ func TestDenyOverlapParameterInAuthRequest(t *testing.T) {
 // 必須パラメータ無しでエラーリダイレクトして error は invalid_request か。
 func TestDenyNoScopeInAuthRequest(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -190,8 +190,8 @@ func TestDenyNoScopeInAuthRequest(t *testing.T) {
 // 知らない scope 値を無視できるか。
 func TestIgnoreUnknownScopes(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -248,8 +248,8 @@ func TestIgnoreUnknownScopes(t *testing.T) {
 // 認証リクエストに client_id が無い時に拒否できるか。
 func TestDenyNoClientIdInAuthRequest(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -291,8 +291,8 @@ func TestDenyNoClientIdInAuthRequest(t *testing.T) {
 // 必須パラメータ無しで error は invalid_request か。
 func TestDenyNoResponseTypeInAuthRequest(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -333,8 +333,8 @@ func TestDenyNoResponseTypeInAuthRequest(t *testing.T) {
 // error は unsupported_response_type か。
 func TestDenyUnknownResponseTypeInAuthRequest(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -374,8 +374,8 @@ func TestDenyUnknownResponseTypeInAuthRequest(t *testing.T) {
 // リソースオーナーが拒否したら error は access_denied か。
 func TestErrorWhenOwnerDenied(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -423,8 +423,8 @@ func TestErrorWhenOwnerDenied(t *testing.T) {
 // 結果をリダイレクトで返すときに redirect_uri のパラメータを維持できるか。
 func TestKeepRedirectUriParameter(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	ta, err := newTestTaServer("/callback?param_name=param_value")
@@ -479,8 +479,8 @@ func TestKeepRedirectUriParameter(t *testing.T) {
 // エラーをリダイレクトで返すときに redirect_uri のパラメータを維持できるか。
 func TestKeepRedirectUriParameterInError(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	ta, err := newTestTaServer("/callback?param_name=param_value")
@@ -528,8 +528,8 @@ func TestKeepRedirectUriParameterInError(t *testing.T) {
 // redirect_uri が登録値と異なるときにリダイレクトせずに拒否できるか。
 func TestDirectErrorResponseInInvalidRedirectUri(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -567,8 +567,8 @@ func TestDirectErrorResponseInInvalidRedirectUri(t *testing.T) {
 // redirect_uri が無いときにリダイレクトせずに拒否できるか。
 func TestDirectErrorResponseInNoRedirectUri(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -608,8 +608,8 @@ func TestDirectErrorResponseInNoRedirectUri(t *testing.T) {
 // 結果をリダイレクトで返すときに state パラメータも返せるか。
 func TestReturnStateParameter(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -662,8 +662,8 @@ func TestReturnStateParameter(t *testing.T) {
 // エラーをリダイレクトで返すときに state パラメータも返せるか。
 func TestReturnStateAtError(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -707,8 +707,8 @@ func TestReturnStateAtError(t *testing.T) {
 // POST での認証リクエストにも対応するか。
 func TestPostAuthRequest(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -756,8 +756,8 @@ func TestPostAuthRequest(t *testing.T) {
 // prompt が login を含むなら認証させるか。
 func TestForceLogin(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -829,8 +829,8 @@ func TestForceLogin(t *testing.T) {
 // prompt が none と login を含むならエラーを返すか。
 func TestForceLoginError(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -876,8 +876,8 @@ func TestForceLoginError(t *testing.T) {
 // prompt が consent を含むなら同意させるか。
 func TestForceConsent(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -949,8 +949,8 @@ func TestForceConsent(t *testing.T) {
 // prompt が none と consent を含むならエラーを返すか。
 func TestForceConsentError(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -1021,8 +1021,8 @@ func TestForceConsentError(t *testing.T) {
 // prompt が select_account を含むならアカウント選択させるか。
 func TestForceSelect(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -1069,8 +1069,8 @@ func TestForceSelect(t *testing.T) {
 // prompt が none と select_account を含むならエラーを返すか。
 func TestForceSelectError(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -1116,8 +1116,8 @@ func TestForceSelectError(t *testing.T) {
 // 最後に認証してから max_age パラメータの値より時間が経っているときに認証させるか。
 func TestLoginTimeout(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -1189,8 +1189,8 @@ func TestLoginTimeout(t *testing.T) {
 // UI にパラメータが渡せてるか。
 func TestUiParameter(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -1245,8 +1245,8 @@ func TestUiParameter(t *testing.T) {
 // claims パラメータを処理できるか。
 func TestClaimsParameter(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -1314,8 +1314,8 @@ func TestClaimsParameter(t *testing.T) {
 // essential クレームを拒否されたら拒否できるか。
 func TestDenyDeniedEssentialClaim(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -1370,8 +1370,8 @@ func TestDenyDeniedEssentialClaim(t *testing.T) {
 // 値の違う sub クレームを要求されたら拒否できるか。
 func TestDenyInvalidSubClaim(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -1425,8 +1425,8 @@ func TestDenyInvalidSubClaim(t *testing.T) {
 // request パラメータを受け取れるか。
 func TestRequestParam(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()

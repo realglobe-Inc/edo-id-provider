@@ -46,7 +46,7 @@ import (
 )
 
 func init() {
-	logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	logutil.SetupConsole(logRoot, level.OFF)
 }
 
 func newTestHandler(keys []jwk.Key, acnts []account.Element, tas []tadb.Element) *handler {
@@ -85,8 +85,8 @@ func newTestHandler(keys []jwk.Key, acnts []account.Element, tas []tadb.Element)
 // ID トークンが at_hash クレームを含むことの検査。
 func TestNormal(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -194,8 +194,8 @@ func TestNormal(t *testing.T) {
 // POST でないリクエストを拒否できることの検査。
 func TestDenyNonPost(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -238,8 +238,8 @@ func TestDenyNonPost(t *testing.T) {
 // リクエストの未知のパラメータを無視できることの検査。
 func TestIgnoreUnknownParameter(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -284,8 +284,8 @@ func TestIgnoreUnknownParameter(t *testing.T) {
 // リクエストのパラメータが重複していたら拒否できることの検査。
 func TestDenyOverlappedParameter(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -331,8 +331,8 @@ func TestDenyOverlappedParameter(t *testing.T) {
 // client_id が無かったら拒否できることの検査。
 func TestDenyNoClientId(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -378,8 +378,8 @@ func TestDenyNoClientId(t *testing.T) {
 // リクエストに grant_type が無いなら拒否できることの検査。
 func TestDenyNoGrantType(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -425,8 +425,8 @@ func TestDenyNoGrantType(t *testing.T) {
 // リクエストに code が無いなら拒否できることの検査。
 func TestDenyNoCode(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -472,8 +472,8 @@ func TestDenyNoCode(t *testing.T) {
 // リクエストに redirect_uri が無いなら拒否できることの検査。
 func TestDenyNoRedirectUri(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -519,8 +519,8 @@ func TestDenyNoRedirectUri(t *testing.T) {
 // 知らない grant_type を拒否できることの検査。
 func TestDenyUnknownGrantType(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -566,8 +566,8 @@ func TestDenyUnknownGrantType(t *testing.T) {
 // 認可コードが発行されたクライアントでないなら拒否できることの検査。
 func TestDenyNonCodeHolder(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -614,8 +614,8 @@ func TestDenyNonCodeHolder(t *testing.T) {
 // 認可コードがおかしかったら拒否できることの検査。
 func TestDenyInvalidCode(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -649,8 +649,8 @@ func TestDenyInvalidCode(t *testing.T) {
 // 認証リクエストのときと違う redirect_uri を拒否できることの検査。
 func TestDenyInvalidRedirectUri(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -696,8 +696,8 @@ func TestDenyInvalidRedirectUri(t *testing.T) {
 // 複数のクライアント認証方式が使われていたら拒否できることの検査。
 func TestDenyMultiClientAuth(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -743,8 +743,8 @@ func TestDenyMultiClientAuth(t *testing.T) {
 // クライアント認証できなかったら拒否できることの検査。
 func TestDenyInvalidClient(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -790,8 +790,8 @@ func TestDenyInvalidClient(t *testing.T) {
 // 期限切れの認可コードを拒否できることの検査。
 func TestDenyExpiredCode(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -829,8 +829,8 @@ func TestDenyExpiredCode(t *testing.T) {
 // 2 回使われた認可コードで発行したアクセストークンを無効にできるか。
 func TestDenyUsedCode(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()

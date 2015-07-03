@@ -33,7 +33,7 @@ import (
 )
 
 func init() {
-	logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	logutil.SetupConsole(logRoot, level.OFF)
 }
 
 func newTestHandler(acnts []account.Element, tas []tadb.Element) *handler {
@@ -53,8 +53,8 @@ func newTestHandler(acnts []account.Element, tas []tadb.Element) *handler {
 // GET と POST でのアカウント情報リクエストに対応するか。
 func TestNormal(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	for _, meth := range []string{"GET", "POST"} {
@@ -97,8 +97,8 @@ func TestNormal(t *testing.T) {
 // TA 固有アカウント ID に対応していることの検査。
 func TestPairwise(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()
@@ -141,8 +141,8 @@ func TestPairwise(t *testing.T) {
 // スコープ属性の展開はしないことの検査。
 func TestNotUseScopeAttribute(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	acnt := newTestAccount()

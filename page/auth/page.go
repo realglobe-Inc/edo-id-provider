@@ -26,7 +26,6 @@ import (
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
 	webdb "github.com/realglobe-Inc/edo-idp-selector/database/web"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
-	"github.com/realglobe-Inc/edo-idp-selector/request"
 	logutil "github.com/realglobe-Inc/edo-lib/log"
 	"github.com/realglobe-Inc/edo-lib/rand"
 	"github.com/realglobe-Inc/edo-lib/server"
@@ -188,8 +187,8 @@ func (this *Page) newCookie(sess *session.Element) *http.Cookie {
 type environment struct {
 	*Page
 
-	sender *request.Request
-	sess   *session.Element
+	logPref string
+	sess    *session.Element
 }
 
 // ユーザーエージェント向けにエラーを返す。
@@ -199,8 +198,8 @@ func (this *environment) respondErrorHtml(w http.ResponseWriter, r *http.Request
 		var err error
 		uri, err = url.Parse(this.sess.Request().RedirectUri())
 		if err != nil {
-			log.Err(this.sender, ": ", erro.Unwrap(err))
-			log.Debug(this.sender, ": ", erro.Wrap(err))
+			log.Err(this.logPref, erro.Unwrap(err))
+			log.Debug(this.logPref, erro.Wrap(err))
 		} else if this.sess.Request().State() != "" {
 			q := uri.Query()
 			q.Set(tagState, this.sess.Request().State())
@@ -211,35 +210,35 @@ func (this *environment) respondErrorHtml(w http.ResponseWriter, r *http.Request
 	// 経過を破棄。
 	this.sess.Clear()
 	if err := this.sessDb.Save(this.sess, this.sess.Expires().Add(this.sessDbExpIn-this.sessExpIn)); err != nil {
-		log.Err(this.sender, ": ", erro.Wrap(err))
+		log.Err(this.logPref, erro.Wrap(err))
 	} else {
-		log.Debug(this.sender, ": Saved session "+logutil.Mosaic(this.sess.Id()))
+		log.Debug(this.logPref, "Saved session "+logutil.Mosaic(this.sess.Id()))
 	}
 
 	if !this.sess.Saved() {
 		// 未通知セッションの通知。
 		http.SetCookie(w, this.newCookie(this.sess))
-		log.Debug(this.sender, ": Report session "+logutil.Mosaic(this.sess.Id()))
+		log.Debug(this.logPref, "Report session "+logutil.Mosaic(this.sess.Id()))
 	}
 
 	if uri != nil {
-		idperr.RedirectError(w, r, origErr, uri, this.sender)
+		idperr.RedirectError(w, r, origErr, uri, this.logPref)
 	}
 
-	idperr.RespondHtml(w, r, origErr, this.errTmpl, this.sender)
+	idperr.RespondHtml(w, r, origErr, this.errTmpl, this.logPref)
 }
 
 // セッション処理をしてリダイレクトさせる。
 func (this *environment) redirectTo(w http.ResponseWriter, r *http.Request, uri *url.URL) {
 	if err := this.sessDb.Save(this.sess, this.sess.Expires().Add(this.sessDbExpIn-this.sessExpIn)); err != nil {
-		log.Err(this.sender, ": ", erro.Wrap(err))
+		log.Err(this.logPref, erro.Wrap(err))
 	} else {
-		log.Debug(this.sender, ": Saved session "+logutil.Mosaic(this.sess.Id()))
+		log.Debug(this.logPref, "Saved session "+logutil.Mosaic(this.sess.Id()))
 	}
 
 	if !this.sess.Saved() {
 		http.SetCookie(w, this.newCookie(this.sess))
-		log.Debug(this.sender, ": Report session "+logutil.Mosaic(this.sess.Id()))
+		log.Debug(this.logPref, "Report session "+logutil.Mosaic(this.sess.Id()))
 	}
 
 	w.Header().Add(tagCache_control, tagNo_store)
@@ -270,6 +269,6 @@ func (this *environment) redirectCode(w http.ResponseWriter, r *http.Request, co
 	}
 	uri.RawQuery = q.Encode()
 
-	log.Info(this.sender, ": Redirect "+logutil.Mosaic(this.sess.Id())+" to TA "+req.Ta())
+	log.Info(this.logPref, "Redirect "+logutil.Mosaic(this.sess.Id())+" to TA "+req.Ta())
 	this.redirectTo(w, r, uri)
 }

@@ -23,7 +23,6 @@ import (
 	"github.com/realglobe-Inc/edo-id-provider/idputil"
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
-	requtil "github.com/realglobe-Inc/edo-idp-selector/request"
 	logutil "github.com/realglobe-Inc/edo-lib/log"
 	"github.com/realglobe-Inc/edo-lib/rand"
 	"github.com/realglobe-Inc/edo-lib/server"
@@ -77,12 +76,12 @@ func (this *handler) PairwiseDb() pairwise.Db     { return this.pwDb }
 func (this *handler) IdGenerator() rand.Generator { return this.idGen }
 
 func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	var sender *requtil.Request
+	var logPref string
 
 	// panic 対策。
 	defer func() {
 		if rcv := recover(); rcv != nil {
-			idperr.RespondJson(w, r, erro.New(rcv), sender)
+			idperr.RespondJson(w, r, erro.New(rcv), logPref)
 			return
 		}
 	}()
@@ -96,12 +95,13 @@ func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	server.LogRequest(level.DEBUG, r, this.debug)
 	//////////////////////////////
 
-	sender = requtil.Parse(r, "")
-	log.Info(sender, ": Received account request")
-	defer log.Info(sender, ": Handled account request")
+	logPref = server.ParseSender(r) + ": "
 
-	if err := (&environment{this, sender}).serve(w, r); err != nil {
-		idperr.RespondJson(w, r, erro.Wrap(err), sender)
+	log.Info(logPref, "Received account request")
+	defer log.Info(logPref, "Handled account request")
+
+	if err := (&environment{this, logPref}).serve(w, r); err != nil {
+		idperr.RespondJson(w, r, erro.Wrap(err), logPref)
 		return
 	}
 }
@@ -110,7 +110,7 @@ func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 type environment struct {
 	*handler
 
-	sender *requtil.Request
+	logPref string
 }
 
 func (this *environment) serve(w http.ResponseWriter, r *http.Request) error {
@@ -121,13 +121,13 @@ func (this *environment) serve(w http.ResponseWriter, r *http.Request) error {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "unsupported authorization scheme "+req.scheme(), http.StatusBadRequest, nil))
 	}
 
-	log.Debug(this.sender, ": Authrization scheme "+req.scheme()+" is OK")
+	log.Debug(this.logPref, "Authrization scheme "+req.scheme()+" is OK")
 
 	if req.token() == "" {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "no access token", http.StatusBadRequest, nil))
 	}
 
-	log.Debug(this.sender, ": Access token "+logutil.Mosaic(req.token())+" is declared")
+	log.Debug(this.logPref, "Access token "+logutil.Mosaic(req.token())+" is declared")
 
 	tok, err := this.tokDb.Get(req.token())
 	if err != nil {
@@ -138,7 +138,7 @@ func (this *environment) serve(w http.ResponseWriter, r *http.Request) error {
 		return erro.Wrap(idperr.New(idperr.Invalid_token, "token is invalid", http.StatusBadRequest, nil))
 	}
 
-	log.Debug(this.sender, ": Declared access token "+logutil.Mosaic(tok.Id())+" is OK")
+	log.Debug(this.logPref, "Declared access token "+logutil.Mosaic(tok.Id())+" is OK")
 
 	ta, err := this.taDb.Get(tok.Ta())
 	if err != nil {
@@ -147,7 +147,7 @@ func (this *environment) serve(w http.ResponseWriter, r *http.Request) error {
 		return erro.Wrap(idperr.New(idperr.Invalid_token, "TA "+tok.Ta()+" is not exist", http.StatusBadRequest, nil))
 	}
 
-	log.Debug(this.sender, ": TA "+ta.Id()+" is exist")
+	log.Debug(this.logPref, "TA "+ta.Id()+" is exist")
 
 	acnt, err := this.acntDb.Get(tok.Account())
 	if err != nil {
@@ -156,7 +156,7 @@ func (this *environment) serve(w http.ResponseWriter, r *http.Request) error {
 		return erro.Wrap(idperr.New(idperr.Invalid_token, "account is not exist", http.StatusBadRequest, nil))
 	}
 
-	log.Debug(this.sender, ": Account "+acnt.Id()+" is exist")
+	log.Debug(this.logPref, "Account "+acnt.Id()+" is exist")
 
 	if err := idputil.SetSub(this, acnt, ta); err != nil {
 		return erro.Wrap(err)
@@ -168,7 +168,7 @@ func (this *environment) serve(w http.ResponseWriter, r *http.Request) error {
 	}
 	attrNames[tagSub] = true
 
-	log.Debug(this.sender, ": Return attributes ", attrNames)
+	log.Debug(this.logPref, "Return attributes ", attrNames)
 
 	attrs := map[string]interface{}{}
 	for attrName := range attrNames {

@@ -34,12 +34,12 @@ import (
 
 // アカウント UI ページからの入力を受け付けて続きをする。
 func (this *Page) HandleSelect(w http.ResponseWriter, r *http.Request) {
-	var sender *request.Request
+	var logPref string
 
 	// panic 対策。
 	defer func() {
 		if rcv := recover(); rcv != nil {
-			idperr.RespondHtml(w, r, erro.New(rcv), this.errTmpl, sender)
+			idperr.RespondHtml(w, r, erro.New(rcv), this.errTmpl, logPref)
 			return
 		}
 	}()
@@ -53,37 +53,39 @@ func (this *Page) HandleSelect(w http.ResponseWriter, r *http.Request) {
 	server.LogRequest(level.DEBUG, r, this.debug)
 	//////////////////////////////
 
-	sender = request.Parse(r, this.sessLabel)
-	log.Info(sender, ": Received select request")
-	defer log.Info(sender, ": Handled select request")
+	sender := request.Parse(r, this.sessLabel)
+	logPref = sender.String() + ": "
+
+	log.Info(logPref, "Received select request")
+	defer log.Info(logPref, "Handled select request")
 
 	var sess *session.Element
 	if sessId := sender.Session(); sessId != "" {
 		// セッションが通知された。
-		log.Debug(sender, ": Session is declared")
+		log.Debug(logPref, "Session is declared")
 
 		var err error
 		if sess, err = this.sessDb.Get(sessId); err != nil {
-			log.Err(sender, ": ", erro.Wrap(err))
+			log.Err(logPref, erro.Wrap(err))
 			// 新規発行すれば動くので諦めない。
 		} else if sess == nil {
 			// セッションが無かった。
-			log.Warn(sender, ": Declared session is not exist")
+			log.Warn(logPref, "Declared session is not exist")
 		} else {
 			// セッションがあった。
-			log.Debug(sender, ": Declared session is exist")
+			log.Debug(logPref, "Declared session is exist")
 		}
 	}
 
 	if now := time.Now(); sess == nil || now.After(sess.Expires()) {
 		// セッションを新規発行。
 		sess = session.New(this.idGen.String(this.sessLen), now.Add(this.sessExpIn))
-		log.Info(sender, ": Generated new session "+logutil.Mosaic(sess.Id())+" but not yet saved")
+		log.Info(logPref, "Generated new session "+logutil.Mosaic(sess.Id())+" but not yet saved")
 	}
 
 	// セッションは決まった。
 
-	env := (&environment{this, sender, sess})
+	env := (&environment{this, logPref, sess})
 	if err := env.selectServe(w, r); err != nil {
 		env.respondErrorHtml(w, r, erro.Wrap(err))
 		return
@@ -160,9 +162,9 @@ func (this *environment) redirectToSelectUi(w http.ResponseWriter, r *http.Reque
 	// チケットを発行。
 	uri.Fragment = this.idGen.String(this.ticLen)
 	this.sess.SetTicket(ticket.New(uri.Fragment, time.Now().Add(this.ticExpIn)))
-	log.Info(this.sender, ": Published ticket "+logutil.Mosaic(uri.Fragment))
+	log.Info(this.logPref, "Published ticket "+logutil.Mosaic(uri.Fragment))
 
-	log.Info(this.sender, ": Redirect to select UI")
+	log.Info(this.logPref, "Redirect to select UI")
 	this.redirectTo(w, r, uri)
 	return nil
 }
@@ -175,7 +177,7 @@ func (this *environment) selectServe(w http.ResponseWriter, r *http.Request) err
 	}
 
 	// ユーザー認証中。
-	log.Debug(this.sender, ": Session is in authentication process")
+	log.Debug(this.logPref, "Session is in authentication process")
 
 	req, err := parseSelectRequest(r)
 	if err != nil {
@@ -189,28 +191,28 @@ func (this *environment) selectServe(w http.ResponseWriter, r *http.Request) err
 	}
 
 	// チケットが有効だった。
-	log.Debug(this.sender, ": Ticket "+logutil.Mosaic(req.ticket())+" is OK")
+	log.Debug(this.logPref, "Ticket "+logutil.Mosaic(req.ticket())+" is OK")
 
 	if req.accountName() == "" {
 		// アカウント選択情報不備。
-		log.Warn(this.sender, ": Account is not specified")
+		log.Warn(this.logPref, "Account is not specified")
 		return this.redirectToSelectUi(w, r, "Please select your account")
 	}
 
 	// アカウント選択情報があった。
-	log.Debug(this.sender, ": Account "+req.accountName()+" is specified")
+	log.Debug(this.logPref, "Account "+req.accountName()+" is specified")
 
 	acnt, err := this.acntDb.GetByName(req.accountName())
 	if err != nil {
 		return erro.Wrap(err)
 	} else if acnt == nil {
 		// アカウントが無い。
-		log.Debug(this.sender, ": Specified accout "+req.accountName()+" is not exist")
+		log.Debug(this.logPref, "Specified accout "+req.accountName()+" is not exist")
 		return this.redirectToSelectUi(w, r, "Accout "+req.accountName()+" is not exist. Please select your account")
 	}
 
 	// アカウント選択できた。
-	log.Info(this.sender, ": Specified account "+req.accountName()+" is exist")
+	log.Info(this.logPref, "Specified account "+req.accountName()+" is exist")
 
 	if cur := this.sess.Account(); cur == nil || cur.Id() != acnt.Id() {
 		this.sess.SelectAccount(session.NewAccount(acnt.Id(), acnt.Name()))
@@ -220,7 +222,7 @@ func (this *environment) selectServe(w http.ResponseWriter, r *http.Request) err
 		this.sess.SetLanguage(lang)
 
 		// 言語を選択してた。
-		log.Debug(this.sender, ": Language "+lang+" was selected")
+		log.Debug(this.logPref, "Language "+lang+" was selected")
 	}
 
 	return this.afterSelect(w, r, nil, acnt)

@@ -39,12 +39,12 @@ import (
 
 // 同意 UI からの入力を受け付けて続きをする。
 func (this *Page) HandleConsent(w http.ResponseWriter, r *http.Request) {
-	var sender *request.Request
+	var logPref string
 
 	// panic 対策。
 	defer func() {
 		if rcv := recover(); rcv != nil {
-			idperr.RespondHtml(w, r, erro.New(rcv), this.errTmpl, sender)
+			idperr.RespondHtml(w, r, erro.New(rcv), this.errTmpl, logPref)
 			return
 		}
 	}()
@@ -58,36 +58,38 @@ func (this *Page) HandleConsent(w http.ResponseWriter, r *http.Request) {
 	server.LogRequest(level.DEBUG, r, this.debug)
 	//////////////////////////////
 
-	sender = request.Parse(r, this.sessLabel)
-	log.Info(sender, ": Received consent request")
-	defer log.Info(sender, ": Handled consent request")
+	sender := request.Parse(r, this.sessLabel)
+	logPref = sender.String() + ": "
+
+	log.Info(logPref, "Received consent request")
+	defer log.Info(logPref, "Handled consent request")
 
 	var sess *session.Element
 	if sessId := sender.Session(); sessId != "" {
 		// セッションが通知された。
-		log.Debug(sender, ": Session is declared")
+		log.Debug(logPref, "Session is declared")
 
 		var err error
 		if sess, err = this.sessDb.Get(sessId); err != nil {
-			log.Err(sender, ": ", erro.Wrap(err))
+			log.Err(logPref, erro.Wrap(err))
 			// 新規発行すれば動くので諦めない。
 		} else if sess == nil {
 			// セッションが無かった。
-			log.Warn(sender, ": Declared session is not exist")
+			log.Warn(logPref, "Declared session is not exist")
 		} else {
 			// セッションがあった。
-			log.Debug(sender, ": Declared session is exist")
+			log.Debug(logPref, "Declared session is exist")
 		}
 	}
 
 	if now := time.Now(); sess == nil || now.After(sess.Expires()) {
 		sess = session.New(this.idGen.String(this.sessLen), now.Add(this.sessExpIn))
-		log.Info(sender, ": Generated new session "+logutil.Mosaic(sess.Id())+" but not yet registered")
+		log.Info(logPref, "Generated new session "+logutil.Mosaic(sess.Id())+" but not yet registered")
 	}
 
 	// セッションが決まった。
 
-	env := (&environment{this, sender, sess})
+	env := (&environment{this, logPref, sess})
 	if err := env.consentServe(w, r); err != nil {
 		env.respondErrorHtml(w, r, erro.Wrap(err))
 		return
@@ -134,9 +136,9 @@ func (this *environment) redirectToConsentUi(w http.ResponseWriter, r *http.Requ
 	// チケットを発行。
 	uri.Fragment = this.idGen.String(this.ticLen)
 	this.sess.SetTicket(ticket.New(uri.Fragment, time.Now().Add(this.ticExpIn)))
-	log.Info(this.sender, ": Published ticket "+logutil.Mosaic(uri.Fragment))
+	log.Info(this.logPref, "Published ticket "+logutil.Mosaic(uri.Fragment))
 
-	log.Info(this.sender, ": Redirect to consent UI")
+	log.Info(this.logPref, "Redirect to consent UI")
 	this.redirectTo(w, r, uri)
 	return nil
 }
@@ -149,7 +151,7 @@ func (this *environment) consentServe(w http.ResponseWriter, r *http.Request) er
 	}
 
 	// ユーザー認証・認可処理中。
-	log.Debug(this.sender, ": Session is in authentication process")
+	log.Debug(this.logPref, "Session is in authentication process")
 
 	req, err := parseConsentRequest(r)
 	if err != nil {
@@ -163,7 +165,7 @@ func (this *environment) consentServe(w http.ResponseWriter, r *http.Request) er
 	}
 
 	// チケットが有効だった。
-	log.Debug(this.sender, ": Ticket "+logutil.Mosaic(req.ticket())+" is OK")
+	log.Debug(this.logPref, "Ticket "+logutil.Mosaic(req.ticket())+" is OK")
 
 	scopCons := consent.Consent(req.allowedScope())
 	scop, err := idputil.ProvidedScopes(scopCons, scope.RemoveUnknown(this.sess.Request().Scope()))
@@ -181,7 +183,7 @@ func (this *environment) consentServe(w http.ResponseWriter, r *http.Request) er
 	}
 
 	// 同意できた。
-	log.Debug(this.sender, ": Essential claims were allowed")
+	log.Debug(this.logPref, "Essential claims were allowed")
 
 	// 同意情報を更新。
 	cons, err := this.consDb.Get(this.sess.Account().Id(), this.sess.Request().Ta())
@@ -204,7 +206,7 @@ func (this *environment) consentServe(w http.ResponseWriter, r *http.Request) er
 		cons.Attribute().SetDeny(v)
 	}
 	if err := this.consDb.Save(cons); err != nil {
-		log.Err(this.sender, ": ", erro.Wrap(err))
+		log.Err(this.logPref, erro.Wrap(err))
 		// 今回だけは動くので諦めない。
 	}
 
@@ -212,7 +214,7 @@ func (this *environment) consentServe(w http.ResponseWriter, r *http.Request) er
 		this.sess.SetLanguage(loc)
 
 		// 言語を選択してた。
-		log.Debug(this.sender, ": Locale "+loc+" was selected")
+		log.Debug(this.logPref, "Locale "+loc+" was selected")
 	}
 
 	return this.afterConsent(w, r, nil, nil, scop, idTokAttrs, acntAttrs)
@@ -234,14 +236,14 @@ func (this *environment) afterConsent(w http.ResponseWriter, r *http.Request, ta
 		this.sess.Account().LoginDate(), scop, idTokAttrs, acntAttrs, req.Ta(),
 		req.RedirectUri(), req.Nonce())
 
-	log.Debug(this.sender, ": Generated authorization code "+logutil.Mosaic(cod.Id()))
+	log.Debug(this.logPref, "Generated authorization code "+logutil.Mosaic(cod.Id()))
 
 	if err := this.codDb.Save(cod, now.Add(this.codDbExpIn)); err != nil {
 		return erro.Wrap(err)
 	}
 
 	// 認可コードを発行した。
-	log.Info(this.sender, ": Published authorization code "+logutil.Mosaic(cod.Id())+" to "+logutil.Mosaic(this.sess.Id()))
+	log.Info(this.logPref, "Published authorization code "+logutil.Mosaic(cod.Id())+" to "+logutil.Mosaic(this.sess.Id()))
 
 	var idTok string
 	if req.ResponseType()[tagId_token] {

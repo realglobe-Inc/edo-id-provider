@@ -15,10 +15,11 @@
 package consent
 
 import (
-	"gopkg.in/mgo.v2"
 	"strconv"
 	"testing"
 	"time"
+
+	"gopkg.in/mgo.v2"
 )
 
 // テストするなら、mongodb を立てる必要あり。

@@ -16,12 +16,13 @@ package key
 
 import (
 	"encoding/json"
-	cryptoutil "github.com/realglobe-Inc/edo-lib/crypto"
-	"github.com/realglobe-Inc/edo-lib/jwk"
-	"github.com/realglobe-Inc/go-lib/erro"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	cryptoutil "github.com/realglobe-Inc/edo-lib/crypto"
+	"github.com/realglobe-Inc/edo-lib/jwk"
+	"github.com/realglobe-Inc/go-lib/erro"
 )
 
 // ファイルによる自身の鍵の格納庫。

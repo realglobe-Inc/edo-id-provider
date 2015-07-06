@@ -15,6 +15,8 @@
 package auth
 
 import (
+	"time"
+
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
 	"github.com/realglobe-Inc/edo-id-provider/database/authcode"
 	"github.com/realglobe-Inc/edo-id-provider/database/consent"
@@ -27,7 +29,6 @@ import (
 	"github.com/realglobe-Inc/edo-lib/jwk"
 	"github.com/realglobe-Inc/edo-lib/rand"
 	"github.com/realglobe-Inc/edo-lib/server"
-	"time"
 )
 
 func newTestPage(keys []jwk.Key, webs []webdb.Element, acnts []account.Element, tas []tadb.Element) *Page {

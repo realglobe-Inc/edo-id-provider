@@ -14,8 +14,6 @@
 
 package account
 
-import ()
-
 // アカウント情報。
 type Element interface {
 	Id() string

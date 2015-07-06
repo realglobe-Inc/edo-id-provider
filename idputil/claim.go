@@ -15,10 +15,11 @@
 package idputil
 
 import (
+	"reflect"
+
 	"github.com/realglobe-Inc/edo-id-provider/claims"
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
 	"github.com/realglobe-Inc/go-lib/erro"
-	"reflect"
 )
 
 // clms に応えられるかどうか。

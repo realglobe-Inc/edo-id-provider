@@ -16,8 +16,9 @@ package claims
 
 import (
 	"encoding/json"
-	"github.com/realglobe-Inc/go-lib/erro"
 	"strings"
+
+	"github.com/realglobe-Inc/go-lib/erro"
 )
 
 // 認証リクエストの claims パラメータの id_token や userinfo 要素。

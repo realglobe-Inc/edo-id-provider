@@ -17,6 +17,15 @@ package token
 import (
 	"bytes"
 	"encoding/json"
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"reflect"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
 	"github.com/realglobe-Inc/edo-id-provider/database/authcode"
 	jtidb "github.com/realglobe-Inc/edo-id-provider/database/jti"
@@ -35,14 +44,6 @@ import (
 	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/edo-lib/strset/strsetutil"
 	"github.com/realglobe-Inc/go-lib/rglog/level"
-	"io/ioutil"
-	"net/http"
-	"net/http/httptest"
-	"net/url"
-	"reflect"
-	"strings"
-	"testing"
-	"time"
 )
 
 func init() {

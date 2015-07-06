@@ -15,6 +15,10 @@
 package main
 
 import (
+	"html/template"
+	"net/http"
+	"time"
+
 	acntapi "github.com/realglobe-Inc/edo-id-provider/api/account"
 	"github.com/realglobe-Inc/edo-id-provider/api/coopfrom"
 	"github.com/realglobe-Inc/edo-id-provider/api/coopto"
@@ -37,9 +41,6 @@ import (
 	"github.com/realglobe-Inc/edo-lib/jwk"
 	"github.com/realglobe-Inc/edo-lib/rand"
 	"github.com/realglobe-Inc/edo-lib/server"
-	"html/template"
-	"net/http"
-	"time"
 )
 
 type system struct {

@@ -15,15 +15,16 @@
 package main
 
 import (
-	"github.com/realglobe-Inc/edo-id-provider/database/account"
-	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
-	logutil "github.com/realglobe-Inc/edo-lib/log"
-	"github.com/realglobe-Inc/go-lib/rglog/level"
 	"net/http"
 	"net/http/cookiejar"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/realglobe-Inc/edo-id-provider/database/account"
+	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
+	logutil "github.com/realglobe-Inc/edo-lib/log"
+	"github.com/realglobe-Inc/go-lib/rglog/level"
 )
 
 func init() {

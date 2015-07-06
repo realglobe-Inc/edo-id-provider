@@ -15,10 +15,11 @@
 package key
 
 import (
-	"github.com/realglobe-Inc/edo-lib/jwk"
-	"github.com/realglobe-Inc/edo-lib/test"
 	"testing"
 	"time"
+
+	"github.com/realglobe-Inc/edo-lib/jwk"
+	"github.com/realglobe-Inc/edo-lib/test"
 )
 
 const (

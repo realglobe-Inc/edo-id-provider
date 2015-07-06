@@ -16,14 +16,15 @@ package session
 
 import (
 	"encoding/json"
-	"github.com/realglobe-Inc/edo-id-provider/claims"
-	"github.com/realglobe-Inc/edo-lib/jwk"
 	"net/http"
 	"net/url"
 	"reflect"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/realglobe-Inc/edo-id-provider/claims"
+	"github.com/realglobe-Inc/edo-lib/jwk"
 )
 
 func TestRequest(t *testing.T) {

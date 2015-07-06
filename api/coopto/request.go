@@ -16,9 +16,10 @@ package coopto
 
 import (
 	"encoding/json"
+	"net/http"
+
 	"github.com/realglobe-Inc/edo-id-provider/claims"
 	"github.com/realglobe-Inc/go-lib/erro"
-	"net/http"
 )
 
 type request struct {

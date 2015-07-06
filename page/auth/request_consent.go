@@ -15,9 +15,10 @@
 package auth
 
 import (
+	"net/http"
+
 	"github.com/realglobe-Inc/edo-idp-selector/request"
 	"github.com/realglobe-Inc/go-lib/erro"
-	"net/http"
 )
 
 type consentRequest struct {

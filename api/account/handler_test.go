@@ -16,6 +16,11 @@ package account
 
 import (
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
 	"github.com/realglobe-Inc/edo-id-provider/database/pairwise"
 	"github.com/realglobe-Inc/edo-id-provider/database/sector"
@@ -26,10 +31,6 @@ import (
 	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/edo-lib/strset/strsetutil"
 	"github.com/realglobe-Inc/go-lib/rglog/level"
-	"net/http"
-	"net/http/httptest"
-	"testing"
-	"time"
 )
 
 func init() {

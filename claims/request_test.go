@@ -17,9 +17,10 @@ package claims
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/realglobe-Inc/edo-lib/strset/strsetutil"
 	"reflect"
 	"testing"
+
+	"github.com/realglobe-Inc/edo-lib/strset/strsetutil"
 )
 
 func TestRequestSample(t *testing.T) {

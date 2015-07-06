@@ -15,6 +15,11 @@
 package auth
 
 import (
+	"net/http"
+	"net/url"
+	"strconv"
+	"time"
+
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
 	"github.com/realglobe-Inc/edo-id-provider/database/authcode"
 	"github.com/realglobe-Inc/edo-id-provider/database/consent"
@@ -31,10 +36,6 @@ import (
 	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"github.com/realglobe-Inc/go-lib/rglog/level"
-	"net/http"
-	"net/url"
-	"strconv"
-	"time"
 )
 
 // 同意 UI からの入力を受け付けて続きをする。

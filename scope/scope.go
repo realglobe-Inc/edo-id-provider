@@ -15,8 +15,6 @@
 // スコープ周りの関数
 package scope
 
-import ()
-
 // サポートするスコープと紐付く属性。
 var knownScops = map[string]map[string]bool{
 	// ID トークンの被発行権。

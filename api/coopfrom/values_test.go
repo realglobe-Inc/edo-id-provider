@@ -17,6 +17,9 @@ package coopfrom
 import (
 	"bytes"
 	"encoding/json"
+	"net/http"
+	"time"
+
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
 	hashutil "github.com/realglobe-Inc/edo-id-provider/hash"
 	idpdb "github.com/realglobe-Inc/edo-idp-selector/database/idp"
@@ -26,8 +29,6 @@ import (
 	"github.com/realglobe-Inc/edo-lib/jwt"
 	"github.com/realglobe-Inc/edo-lib/jwt/audience"
 	"github.com/realglobe-Inc/go-lib/erro"
-	"net/http"
-	"time"
 )
 
 const (

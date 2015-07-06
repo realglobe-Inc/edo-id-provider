@@ -15,9 +15,10 @@
 package scope
 
 import (
-	"github.com/realglobe-Inc/edo-lib/strset/strsetutil"
 	"reflect"
 	"testing"
+
+	"github.com/realglobe-Inc/edo-lib/strset/strsetutil"
 )
 
 func TestRemoveUnknown(t *testing.T) {

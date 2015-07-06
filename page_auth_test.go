@@ -18,6 +18,14 @@ package main
 
 import (
 	"encoding/json"
+	"net/http"
+	"net/http/cookiejar"
+	"net/url"
+	"strconv"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
@@ -26,13 +34,6 @@ import (
 	logutil "github.com/realglobe-Inc/edo-lib/log"
 	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/go-lib/rglog/level"
-	"net/http"
-	"net/http/cookiejar"
-	"net/url"
-	"strconv"
-	"strings"
-	"testing"
-	"time"
 )
 
 func init() {

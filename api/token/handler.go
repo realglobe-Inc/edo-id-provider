@@ -16,6 +16,10 @@
 package token
 
 import (
+	"net/http"
+	"reflect"
+	"time"
+
 	"github.com/realglobe-Inc/edo-id-provider/assertion"
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
 	"github.com/realglobe-Inc/edo-id-provider/database/authcode"
@@ -35,9 +39,6 @@ import (
 	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"github.com/realglobe-Inc/go-lib/rglog/level"
-	"net/http"
-	"reflect"
-	"time"
 )
 
 type handler struct {

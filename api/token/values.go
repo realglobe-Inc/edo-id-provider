@@ -14,8 +14,6 @@
 
 package token
 
-import ()
-
 const (
 	// アンダースコア。
 	tagAccess_token          = "access_token"

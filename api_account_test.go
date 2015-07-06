@@ -18,16 +18,17 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/realglobe-Inc/edo-id-provider/database/account"
-	logutil "github.com/realglobe-Inc/edo-lib/log"
-	"github.com/realglobe-Inc/edo-lib/server"
-	"github.com/realglobe-Inc/go-lib/rglog/level"
 	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/realglobe-Inc/edo-id-provider/database/account"
+	logutil "github.com/realglobe-Inc/edo-lib/log"
+	"github.com/realglobe-Inc/edo-lib/server"
+	"github.com/realglobe-Inc/go-lib/rglog/level"
 )
 
 func init() {

@@ -15,11 +15,12 @@
 package idputil
 
 import (
+	"reflect"
+	"testing"
+
 	"github.com/realglobe-Inc/edo-id-provider/claims"
 	"github.com/realglobe-Inc/edo-id-provider/database/consent"
 	"github.com/realglobe-Inc/edo-lib/strset/strsetutil"
-	"reflect"
-	"testing"
 )
 
 func TestProvidedScopes(t *testing.T) {

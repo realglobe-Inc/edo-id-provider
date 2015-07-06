@@ -16,6 +16,9 @@ package auth
 
 import (
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/realglobe-Inc/edo-id-provider/database/session"
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
@@ -24,8 +27,6 @@ import (
 	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"github.com/realglobe-Inc/go-lib/rglog/level"
-	"net/http"
-	"time"
 )
 
 // ユーザー認証開始。

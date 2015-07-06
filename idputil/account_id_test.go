@@ -15,13 +15,14 @@
 package idputil
 
 import (
+	"testing"
+	"time"
+
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
 	"github.com/realglobe-Inc/edo-id-provider/database/pairwise"
 	"github.com/realglobe-Inc/edo-id-provider/database/sector"
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
 	"github.com/realglobe-Inc/edo-lib/rand"
-	"testing"
-	"time"
 )
 
 type setSubSystem struct {

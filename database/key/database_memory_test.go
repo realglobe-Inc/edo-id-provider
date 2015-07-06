@@ -15,8 +15,9 @@
 package key
 
 import (
-	"github.com/realglobe-Inc/edo-lib/jwk"
 	"testing"
+
+	"github.com/realglobe-Inc/edo-lib/jwk"
 )
 
 func TestMemoryDb(t *testing.T) {

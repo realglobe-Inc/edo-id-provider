@@ -16,6 +16,7 @@ package pairwise
 
 import (
 	"crypto/sha256"
+
 	"github.com/realglobe-Inc/edo-lib/base64url"
 	"github.com/realglobe-Inc/edo-lib/hash"
 	"github.com/realglobe-Inc/go-lib/erro"

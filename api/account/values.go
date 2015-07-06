@@ -14,8 +14,6 @@
 
 package account
 
-import ()
-
 const (
 	// アンダースコア。
 	tagSub = "sub"

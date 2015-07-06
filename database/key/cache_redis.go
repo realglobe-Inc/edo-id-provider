@@ -16,10 +16,11 @@ package key
 
 import (
 	"encoding/json"
+	"time"
+
 	"github.com/garyburd/redigo/redis"
 	"github.com/realglobe-Inc/edo-lib/jwk"
 	"github.com/realglobe-Inc/go-lib/erro"
-	"time"
 )
 
 // redis による自身の鍵のキャッシュ。

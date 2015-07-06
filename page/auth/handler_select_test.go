@@ -15,14 +15,6 @@
 package auth
 
 import (
-	"github.com/realglobe-Inc/edo-id-provider/database/account"
-	"github.com/realglobe-Inc/edo-id-provider/database/consent"
-	"github.com/realglobe-Inc/edo-id-provider/database/session"
-	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
-	"github.com/realglobe-Inc/edo-idp-selector/ticket"
-	"github.com/realglobe-Inc/edo-lib/jwk"
-	logutil "github.com/realglobe-Inc/edo-lib/log"
-	"github.com/realglobe-Inc/go-lib/rglog/level"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -31,6 +23,15 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/realglobe-Inc/edo-id-provider/database/account"
+	"github.com/realglobe-Inc/edo-id-provider/database/consent"
+	"github.com/realglobe-Inc/edo-id-provider/database/session"
+	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
+	"github.com/realglobe-Inc/edo-idp-selector/ticket"
+	"github.com/realglobe-Inc/edo-lib/jwk"
+	logutil "github.com/realglobe-Inc/edo-lib/log"
+	"github.com/realglobe-Inc/go-lib/rglog/level"
 )
 
 func init() {

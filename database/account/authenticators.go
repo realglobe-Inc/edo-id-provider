@@ -15,9 +15,10 @@
 package account
 
 import (
+	"strings"
+
 	"github.com/realglobe-Inc/edo-lib/base64url"
 	"github.com/realglobe-Inc/go-lib/erro"
-	"strings"
 )
 
 // json.Unmarshal した結果から復元する。

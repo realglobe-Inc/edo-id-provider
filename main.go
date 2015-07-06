@@ -459,5 +459,5 @@ func serve(param *parameters) (err error) {
 			stopper.Wait()
 		}
 	}()
-	return server.Serve(param, mux)
+	return server.Serve(mux, param.socType, param.protType, param)
 }

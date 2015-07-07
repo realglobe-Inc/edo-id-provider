@@ -106,7 +106,7 @@ func TestAccountInfo(t *testing.T) {
 		}
 		req.Header.Set("Authorization", "Bearer "+tok)
 		req.Header.Set("Connection", "close")
-		resp, err := (&http.Client{}).Do(req)
+		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			t.Fatal(err)
 		}

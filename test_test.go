@@ -505,7 +505,7 @@ func testGetTokenWithoutCheck(idp *testIdpServer, consResp *http.Response, assHe
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Connection", "close")
-	resp, err := (&http.Client{}).Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, erro.Wrap(err)
 	}
@@ -563,7 +563,7 @@ func testGetAccountInfoWithoutCheck(idp *testIdpServer, tokRes map[string]interf
 		req.Header.Set("Authorization", "Bearer "+tok)
 	}
 	req.Header.Set("Connection", "close")
-	resp, err := (&http.Client{}).Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, erro.Wrap(err)
 	}

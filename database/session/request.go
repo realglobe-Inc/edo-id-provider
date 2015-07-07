@@ -16,6 +16,11 @@ package session
 
 import (
 	"encoding/json"
+	"net/http"
+	"reflect"
+	"strconv"
+	"time"
+
 	"github.com/realglobe-Inc/edo-id-provider/claims"
 	"github.com/realglobe-Inc/edo-idp-selector/request"
 	"github.com/realglobe-Inc/edo-lib/duration"
@@ -23,10 +28,6 @@ import (
 	"github.com/realglobe-Inc/edo-lib/jwt"
 	"github.com/realglobe-Inc/edo-lib/strset"
 	"github.com/realglobe-Inc/go-lib/erro"
-	"net/http"
-	"reflect"
-	"strconv"
-	"time"
 )
 
 // セッションに付属させる認証リクエスト。

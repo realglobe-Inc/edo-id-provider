@@ -14,8 +14,6 @@
 
 package idputil
 
-import ()
-
 const (
 	test_acntId   = "EYClXo4mQKwSgPel"
 	test_acntName = "edo-id-provider-tester"

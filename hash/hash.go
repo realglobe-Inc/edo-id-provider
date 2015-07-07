@@ -17,9 +17,10 @@ package hash
 
 import (
 	"crypto"
+	"hash"
+
 	"github.com/realglobe-Inc/edo-lib/base64url"
 	hashutil "github.com/realglobe-Inc/edo-lib/hash"
-	"hash"
 )
 
 // related_users に入れるハッシュ値の文字列としての長さを返す。

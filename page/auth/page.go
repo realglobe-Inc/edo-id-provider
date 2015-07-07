@@ -16,6 +16,11 @@
 package auth
 
 import (
+	"html/template"
+	"net/http"
+	"net/url"
+	"time"
+
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
 	"github.com/realglobe-Inc/edo-id-provider/database/authcode"
 	"github.com/realglobe-Inc/edo-id-provider/database/consent"
@@ -30,10 +35,6 @@ import (
 	"github.com/realglobe-Inc/edo-lib/rand"
 	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/go-lib/erro"
-	"html/template"
-	"net/http"
-	"net/url"
-	"time"
 )
 
 type Page struct {

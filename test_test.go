@@ -16,6 +16,15 @@ package main
 
 import (
 	"encoding/json"
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
 	authpage "github.com/realglobe-Inc/edo-id-provider/page/auth"
 	idpdb "github.com/realglobe-Inc/edo-idp-selector/database/idp"
@@ -27,14 +36,6 @@ import (
 	"github.com/realglobe-Inc/edo-lib/test"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"github.com/realglobe-Inc/go-lib/rglog/level"
-	"io/ioutil"
-	"net/http"
-	"net/http/httptest"
-	"net/url"
-	"os"
-	"path/filepath"
-	"strings"
-	"time"
 )
 
 // テスト用の ID プロバイダ。

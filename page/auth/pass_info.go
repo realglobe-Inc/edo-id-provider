@@ -15,8 +15,9 @@
 package auth
 
 import (
-	"github.com/realglobe-Inc/go-lib/erro"
 	"net/http"
+
+	"github.com/realglobe-Inc/go-lib/erro"
 )
 
 // 認証情報。

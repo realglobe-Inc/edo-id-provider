@@ -15,8 +15,9 @@
 package account
 
 import (
-	"github.com/realglobe-Inc/edo-lib/base64url"
 	"testing"
+
+	"github.com/realglobe-Inc/edo-lib/base64url"
 )
 
 func TestAuthenticatorFromMapPbkdf2(t *testing.T) {

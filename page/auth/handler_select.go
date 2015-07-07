@@ -16,6 +16,10 @@ package auth
 
 import (
 	"encoding/json"
+	"net/http"
+	"net/url"
+	"time"
+
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
 	"github.com/realglobe-Inc/edo-id-provider/database/session"
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
@@ -27,9 +31,6 @@ import (
 	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"github.com/realglobe-Inc/go-lib/rglog/level"
-	"net/http"
-	"net/url"
-	"time"
 )
 
 // アカウント UI ページからの入力を受け付けて続きをする。

@@ -16,8 +16,9 @@ package session
 
 import (
 	"encoding/json"
-	"github.com/realglobe-Inc/go-lib/erro"
 	"time"
+
+	"github.com/realglobe-Inc/go-lib/erro"
 )
 
 // セッションに付属させるアカウント情報。

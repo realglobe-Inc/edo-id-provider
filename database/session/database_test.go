@@ -16,10 +16,11 @@ package session
 
 import (
 	"fmt"
-	"github.com/realglobe-Inc/edo-idp-selector/ticket"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/realglobe-Inc/edo-idp-selector/ticket"
 )
 
 func testDb(t *testing.T, db Db) {

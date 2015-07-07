@@ -16,9 +16,10 @@ package idputil
 
 import (
 	"encoding/json"
+	"testing"
+
 	"github.com/realglobe-Inc/edo-id-provider/claims"
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
-	"testing"
 )
 
 func TestCheckClaims(t *testing.T) {

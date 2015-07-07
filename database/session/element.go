@@ -17,10 +17,11 @@ package session
 import (
 	"container/list"
 	"encoding/json"
+	"time"
+
 	"github.com/realglobe-Inc/edo-idp-selector/ticket"
 	rist "github.com/realglobe-Inc/edo-lib/list"
 	"github.com/realglobe-Inc/go-lib/erro"
-	"time"
 )
 
 // セッション。

@@ -15,11 +15,12 @@
 package session
 
 import (
-	"github.com/realglobe-Inc/edo-idp-selector/ticket"
 	"reflect"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/realglobe-Inc/edo-idp-selector/ticket"
 )
 
 func TestElement(t *testing.T) {

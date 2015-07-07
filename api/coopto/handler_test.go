@@ -17,6 +17,13 @@ package coopto
 import (
 	"bytes"
 	"encoding/json"
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
+	"reflect"
+	"testing"
+	"time"
+
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
 	"github.com/realglobe-Inc/edo-id-provider/database/consent"
 	"github.com/realglobe-Inc/edo-id-provider/database/coopcode"
@@ -33,12 +40,6 @@ import (
 	"github.com/realglobe-Inc/edo-lib/rand"
 	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/go-lib/rglog/level"
-	"io/ioutil"
-	"net/http"
-	"net/http/httptest"
-	"reflect"
-	"testing"
-	"time"
 )
 
 func init() {

@@ -14,8 +14,6 @@
 
 package auth
 
-import ()
-
 const (
 	// アンダースコア。
 	tagAllowed_claims  = "allowed_claims"

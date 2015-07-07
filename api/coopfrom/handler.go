@@ -16,6 +16,10 @@
 package coopfrom
 
 import (
+	"hash"
+	"net/http"
+	"time"
+
 	"github.com/realglobe-Inc/edo-id-provider/assertion"
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
 	"github.com/realglobe-Inc/edo-id-provider/database/coopcode"
@@ -37,9 +41,6 @@ import (
 	"github.com/realglobe-Inc/edo-lib/strset/strsetutil"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"github.com/realglobe-Inc/go-lib/rglog/level"
-	"hash"
-	"net/http"
-	"time"
 )
 
 type handler struct {

@@ -15,12 +15,13 @@
 package account
 
 import (
-	"github.com/realglobe-Inc/edo-lib/base64url"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/realglobe-Inc/edo-lib/base64url"
+	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
 
 // テストするなら、mongodb を立てる必要あり。

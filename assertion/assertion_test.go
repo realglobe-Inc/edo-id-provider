@@ -15,9 +15,10 @@
 package assertion
 
 import (
-	"github.com/realglobe-Inc/edo-lib/jwk"
 	"testing"
 	"time"
+
+	"github.com/realglobe-Inc/edo-lib/jwk"
 )
 
 func TestAssertion(t *testing.T) {

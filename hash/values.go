@@ -14,8 +14,6 @@
 
 package hash
 
-import ()
-
 const (
 	tagSha256 = "SHA256"
 	tagSha384 = "SHA384"

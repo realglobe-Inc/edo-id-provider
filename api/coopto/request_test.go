@@ -16,11 +16,12 @@ package coopto
 
 import (
 	"bytes"
-	"github.com/realglobe-Inc/edo-id-provider/claims"
 	"net/http"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/realglobe-Inc/edo-id-provider/claims"
 )
 
 func TestRequestSample(t *testing.T) {

@@ -14,8 +14,6 @@
 
 package scope
 
-import ()
-
 const (
 	// アンダースコア。
 	tagOffline_access = "offline_access"

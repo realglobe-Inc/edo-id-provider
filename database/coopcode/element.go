@@ -16,9 +16,10 @@ package coopcode
 
 import (
 	"encoding/json"
+	"time"
+
 	"github.com/realglobe-Inc/edo-lib/strset"
 	"github.com/realglobe-Inc/go-lib/erro"
-	"time"
 )
 
 // 仲介コード情報。

@@ -16,6 +16,9 @@
 package coopto
 
 import (
+	"net/http"
+	"time"
+
 	"github.com/realglobe-Inc/edo-id-provider/assertion"
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
 	"github.com/realglobe-Inc/edo-id-provider/database/consent"
@@ -36,8 +39,6 @@ import (
 	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"github.com/realglobe-Inc/go-lib/rglog/level"
-	"net/http"
-	"time"
 )
 
 type handler struct {

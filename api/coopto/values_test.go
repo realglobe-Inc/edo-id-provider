@@ -17,6 +17,9 @@ package coopto
 import (
 	"bytes"
 	"encoding/json"
+	"net/http"
+	"time"
+
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
 	"github.com/realglobe-Inc/edo-id-provider/database/coopcode"
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
@@ -25,8 +28,6 @@ import (
 	"github.com/realglobe-Inc/edo-lib/jwt/audience"
 	"github.com/realglobe-Inc/edo-lib/strset/strsetutil"
 	"github.com/realglobe-Inc/go-lib/erro"
-	"net/http"
-	"time"
 )
 
 const (

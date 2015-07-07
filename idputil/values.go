@@ -14,8 +14,6 @@
 
 package idputil
 
-import ()
-
 const (
 	// アンダースコア。
 	tagAlg  = "alg"

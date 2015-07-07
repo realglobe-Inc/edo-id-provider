@@ -17,6 +17,14 @@ package coopfrom
 import (
 	"bytes"
 	"encoding/json"
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
+	"reflect"
+	"regexp"
+	"testing"
+	"time"
+
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
 	"github.com/realglobe-Inc/edo-id-provider/database/coopcode"
 	jtidb "github.com/realglobe-Inc/edo-id-provider/database/jti"
@@ -35,13 +43,6 @@ import (
 	"github.com/realglobe-Inc/edo-lib/strset"
 	"github.com/realglobe-Inc/edo-lib/strset/strsetutil"
 	"github.com/realglobe-Inc/go-lib/rglog/level"
-	"io/ioutil"
-	"net/http"
-	"net/http/httptest"
-	"reflect"
-	"regexp"
-	"testing"
-	"time"
 )
 
 func init() {

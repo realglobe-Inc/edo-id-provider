@@ -16,12 +16,13 @@ package coopfrom
 
 import (
 	"bytes"
-	"github.com/realglobe-Inc/edo-lib/strset/strsetutil"
 	"net/http"
 	"reflect"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/realglobe-Inc/edo-lib/strset/strsetutil"
 )
 
 func TestRequestSample(t *testing.T) {

@@ -15,8 +15,9 @@
 package coopcode
 
 import (
-	"github.com/realglobe-Inc/edo-lib/test"
 	"testing"
+
+	"github.com/realglobe-Inc/edo-lib/test"
 )
 
 const (

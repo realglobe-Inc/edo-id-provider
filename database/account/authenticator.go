@@ -14,8 +14,6 @@
 
 package account
 
-import ()
-
 // 認証機構。
 type Authenticator interface {
 	// 認証する。

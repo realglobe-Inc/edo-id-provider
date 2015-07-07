@@ -15,13 +15,14 @@
 package auth
 
 import (
+	"net/http"
+	"net/url"
+
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
 	"github.com/realglobe-Inc/edo-id-provider/database/session"
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
 	"github.com/realglobe-Inc/edo-lib/jwk"
 	"github.com/realglobe-Inc/edo-lib/strset/strsetutil"
-	"net/http"
-	"net/url"
 )
 
 const (

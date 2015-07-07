@@ -14,8 +14,6 @@
 
 package assertion
 
-import ()
-
 const (
 	tagAlg  = "alg"
 	tagNone = "none"

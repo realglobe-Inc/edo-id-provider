@@ -15,6 +15,12 @@
 package main
 
 import (
+	"html/template"
+	"net/http"
+	"os"
+	"strings"
+	"time"
+
 	acntapi "github.com/realglobe-Inc/edo-id-provider/api/account"
 	"github.com/realglobe-Inc/edo-id-provider/api/coopfrom"
 	"github.com/realglobe-Inc/edo-id-provider/api/coopto"
@@ -41,11 +47,6 @@ import (
 	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"github.com/realglobe-Inc/go-lib/rglog"
-	"html/template"
-	"net/http"
-	"os"
-	"strings"
-	"time"
 )
 
 func main() {
@@ -459,5 +460,5 @@ func serve(param *parameters) (err error) {
 			stopper.Wait()
 		}
 	}()
-	return server.Serve(param, mux)
+	return server.Serve(mux, param.socType, param.protType, param)
 }

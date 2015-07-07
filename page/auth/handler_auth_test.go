@@ -15,6 +15,16 @@
 package auth
 
 import (
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"reflect"
+	"regexp"
+	"strconv"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
 	"github.com/realglobe-Inc/edo-id-provider/database/consent"
 	"github.com/realglobe-Inc/edo-id-provider/database/session"
@@ -26,15 +36,6 @@ import (
 	logutil "github.com/realglobe-Inc/edo-lib/log"
 	"github.com/realglobe-Inc/edo-lib/strset/strsetutil"
 	"github.com/realglobe-Inc/go-lib/rglog/level"
-	"net/http"
-	"net/http/httptest"
-	"net/url"
-	"reflect"
-	"regexp"
-	"strconv"
-	"strings"
-	"testing"
-	"time"
 )
 
 func init() {

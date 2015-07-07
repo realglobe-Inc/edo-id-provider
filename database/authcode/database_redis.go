@@ -16,9 +16,10 @@ package authcode
 
 import (
 	"encoding/json"
+	"time"
+
 	"github.com/garyburd/redigo/redis"
 	"github.com/realglobe-Inc/go-lib/erro"
-	"time"
 )
 
 const (

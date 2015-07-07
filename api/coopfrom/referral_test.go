@@ -15,10 +15,11 @@
 package coopfrom
 
 import (
-	"github.com/realglobe-Inc/edo-lib/strset/strsetutil"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/realglobe-Inc/edo-lib/strset/strsetutil"
 )
 
 func TestReferral(t *testing.T) {

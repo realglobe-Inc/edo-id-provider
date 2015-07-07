@@ -16,8 +16,9 @@ package idputil
 
 import (
 	"encoding/json"
-	"github.com/realglobe-Inc/go-lib/erro"
 	"net/http"
+
+	"github.com/realglobe-Inc/go-lib/erro"
 )
 
 // 機密情報を JSON で返す。

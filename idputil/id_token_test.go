@@ -15,14 +15,15 @@
 package idputil
 
 import (
+	"testing"
+	"time"
+
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
 	keydb "github.com/realglobe-Inc/edo-id-provider/database/key"
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
 	"github.com/realglobe-Inc/edo-lib/jwk"
 	"github.com/realglobe-Inc/edo-lib/jwt"
 	"github.com/realglobe-Inc/edo-lib/strset/strsetutil"
-	"testing"
-	"time"
 )
 
 type idTokenSystem struct {

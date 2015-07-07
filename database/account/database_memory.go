@@ -14,8 +14,6 @@
 
 package account
 
-import ()
-
 // メモリ上のアカウント情報の格納庫。
 type memoryDb struct {
 	idToElem   map[string]Element

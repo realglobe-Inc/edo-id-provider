@@ -13,43 +13,41 @@
 // limitations under the License.
 
 function consent() {
-    var uri = "/auth/consent";
-
-    var ticket = location.hash.substring(1);
-    var queries = {};
-    var q = window.location.search.substring(1).split("&");
-    for (var i = 0; i < q.length; i++) {
-        var elem = q[i].split("=");
-
-        var key = elem[0];
-        var val = elem[1];
-        if (val) {
-            val = decodeURIComponent(val.replace(/\+/g, " "));
-        }
-
-        queries[key] = val;
-    }
-
-    document.write('ticket: ' + ticket + '<br/>');
-    for (key in queries) {
-        document.write(key + ': ' + queries[key] + '<br/>');
-    }
-
-    var scopes = "";
+    var ticket = location.hash.substring(1)
+    var queries = query_parse(window.location.search.substring(1));
+    var scope = "";
     if (queries["scope"]) {
-        scopes = queries["scope"];
+        scope = queries["scope"];
     }
     var claims = "";
-    if (queries["claim"]) {
-        claims = queries["claim"];
+    if (queries["claims"]) {
+        claims = queries["claims"];
+    }
+    if (queries["optional_claims"]) {
+        if (claims.length > 0) {
+            claims += " ";
+        }
+        claims += queries["optional_claims"];
+    }
+    var form = document.form;
+
+    if (! form) {
+        return;
     }
 
-    document.write('<form method="post" action="' + uri + '">');
-    document.write('同意するスコープ: <input type="text" name="consented_scope" size="50" value="' + scopes + '" /><br/>');
-    document.write('同意するクレーム: <input type="text" name="consented_claim" size="50" value="' + claims + '" /><br/>');
-    document.write('拒否するスコープ: <input type="text" name="denied_scope" size="50" /><br/>');
-    document.write('拒否するクレーム: <input type="text" name="denied_claim" size="50" /><br/>');
-    document.write('<input type="hidden" name="ticket" value="'+ticket+'" />');
-    document.write('<input type="submit" value="確認" />');
-    document.write('</form>');
+    if (ticket) {
+        var input = document.createElement("input");
+        input.type = "hidden";
+        input.name = "ticket";
+        input.value = ticket;
+        form.appendChild(input);
+    }
+
+
+    if (scope.length > 0) {
+        form.elements["allowed_scope"].value = scope;
+    }
+    if (claims.length > 0) {
+        form.elements["allowed_claims"].value = claims;
+    }
 }

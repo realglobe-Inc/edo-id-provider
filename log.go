@@ -18,14 +18,6 @@ import (
 	"github.com/realglobe-Inc/go-lib/rglog"
 )
 
-var log = rglog.Logger("github.com/realglobe-Inc/edo-id-provider")
+const logRoot = "github.com/realglobe-Inc"
 
-// ログにそのまま書くのが憚られるので隠す。
-func mosaic(str string) string {
-	const thres = 10
-	if len(str) <= thres {
-		return str
-	} else {
-		return str[:thres] + "..."
-	}
-}
+var log = rglog.Logger(logRoot + "/edo-id-provider")

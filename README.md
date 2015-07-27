@@ -17,149 +17,107 @@ limitations under the License.
 
 # edo-id-provider
 
-IdP。
-アカウント認証サーバー。
+[EDO] の ID プロバイダ。
 
 
-## 1. 起動
+## 1. インストール
 
-UI 用の HTML 等を html ディレクトリの下に置く。
+[go] が必要。
+go のインストールは http://golang.org/doc/install を参照のこと。
 
-```
-<任意のディレクトリ>/
-├── edo-id-provider
-└── html
-     ├── index.html
-     ...
+go をインストールしたら、
+
+```shell
+go get github.com/realglobe-Inc/edo-id-provider
 ```
 
-|オプション|値の意味・選択肢|
-|:--|:--|
-|-uiPath|UI 用 HTML 等を置くディレクトリパス。初期値は実行ファイルディレクトリにある html ディレクトリ|
+適宜、依存ライブラリを `go get` すること。
 
 
-## 2. URI
+## 2. 実行
 
-|URI|機能|
-|:--|:--|
-|/auth/consent|同意 UI からの入力を受け付ける|
-|/auth/login|ログイン UI からの入力を受け付ける|
-|/auth/select|アカウント選択 UI からの入力を受け付ける|
-|/auth|ユーザー認証・認可を始める|
-|/html/consent.html|同意 UI 用の HTML を提供する|
-|/html/login.html|ログイン UI 用の HTML を提供する|
-|/html/select.html|アカウント選択 UI 用の HTML を提供する|
-|/token|アクセストークンを発行する|
-|/userinfo|アカウント情報を提供する|
+以下ではバイナリファイルが `${GOPATH}/bin/edo-id-provider` にあるとする。
+パスが異なる場合は置き換えること。
 
 
-### 2.1. GET /auth
+### 2.1. DB の準備
 
-ユーザー認証・認可を始める。
+キャッシュやセッション等に [redis]、ID プロバイダ・TA・アカウント情報等に [mongodb] が必要になる。
 
-動作は OpenID Provider とほぼ同じ。
-違いは認可コードの形式が一部指定されていること。
-
-
-### 2.2. POST /auth/select
-
-username フォームパラメータでアカウント名を受け取り、ユーザー認証・認可を続ける。
+mongodb への ID プロバイダ・TA・アカウント情報等の同期は別口で行う。
 
 
-### 2.3. POST /auth/login
+### 2.2. UI の準備
 
-username と passwd フォームパラメータでアカウント名とパスワードを受け取り、ユーザー認証・認可を続ける。
+UI を edo-id-provider で提供する場合は、適当なディレクトリに UI 用ファイルを用意する。
 
+```
+<UI ディレクトリ>/
+├── consent.html
+├── login.html
+├── select.html
+...
+```
 
-### 2.4. POST /auth/consent
-
-フォームパラメータで同意情報を受け取り、ユーザー認証・認可を続ける。
-
-
-### 2.5. GET /html/select.html#{ticket}
-
-アカウント選択 UI 用の HTML を提供する。
-目的は、以下のパラメータを /auth/select に POST させること。
-
-|パラメータ|値|
-|:--|:--|
-|locale|ユーザーが選択した表示言語。必須ではない。|
-|username|アカウント名|
-|ticket|/auth 等からリダイレクトしたときにフラグメントで与えられる文字列|
-
-/auth 等からリダイレクトしたときに以下のパラメータが付加される場合がある。
-
-|パラメータ|値|
-|:--|:--|
-|display|画面表示形式。page/popup/touch/wap|
-|locales|優先表示言語。空白区切り|
-|usernames|候補となるアカウント名。JSON 配列|
+UI ディレクトリは起動オプションで指定する。
 
 
-### 2.6. GET /html/login.html#{ticket}
+### 2.3. 起動
 
-ログイン UI 用の HTML を提供する。
-目的は、以下のパラメータを /auth/login に POST させること。
+単独で実行できる。
 
-|パラメータ|値|
-|:--|:--|
-|locale|ユーザーが選択した表示言語。必須ではない。|
-|username|アカウント名|
-|password|アカウントのパスワード|
-|ticket|/auth 等からリダイレクトしたときにフラグメントで与えられる文字列|
+```shell
+${GOPATH}/bin/edo-idp-selector
+```
 
-/auth 等からリダイレクトしたときに以下のパラメータが付加される場合がある。
+### 2.4. 起動オプション
 
-|パラメータ|値|
-|:--|:--|
-|display|画面表示形式。page/popup/touch/wap|
-|locales|優先表示言語。空白区切り|
-|usernames|候補となるアカウント名。JSON 配列|
+|オプション名|初期値|値|
+|:--|:--|:--|
+|-uiDir||UI 用ファイルを置くディレクトリパス|
 
 
-### 2.7. GET /html/consent.html#{ticket}
+### 2.5. デーモン化
 
-同意 UI 用の HTML を提供する。
-目的は、以下のパラメータを /auth/consent に POST させること。
-
-|パラメータ|値|
-|:--|:--|
-|consented_claim|同意されたクレーム。空白区切り|
-|consented_scope|同意された scope。空白区切り|
-|denied_claim|拒否されたクレーム。空白区切り|
-|denied_scope|拒否された scope。空白区切り|
-|locale|ユーザーが選択した表示言語。必須ではない。|
-|ticket|/auth 等からリダイレクトしたときにフラグメントで与えられる文字列|
-
-/auth 等からリダイレクトしたときに以下のパラメータが付加される。
-
-|パラメータ|値|
-|:--|:--|
-|claim|同意が求められるクレームの空白区切りリスト|
-|client_id|情報提供先 TA の ID|
-|client_name|情報提供先 TA の名前|
-|display|画面表示形式。page/popup/touch/wap|
-|expires_in|発行されるアクセストークンの有効期間 (秒)|
-|locales|優先表示言語。空白区切り|
-|scope|同意が求められる scope。空白区切り|
-|username|アカウント名|
+単独ではデーモンとして実行できないため、[Supervisor] 等と組み合わせて行う。
 
 
-### 2.8. POST /token
+## 3. 動作仕様
 
-アクセストークンを発行する。
-
-動作は OpenID Provider とほぼ同じ。
-違いはトークンリクエスト時に署名によるクライアント認証を強制する点。
+ユーザー認証および TA 間連携の仲介を行う。
 
 
-### 2.9. GET /userinfo
+### 3.1. エンドポイント
 
-ユーザー情報を提供する。
+|エンドポイント名|初期パス|機能|
+|:--|:--|:--|
+|ユーザー認証|/auth|[ユーザー認証機能](/page/auth)を参照|
+|アカウント選択|/auth/select|[ユーザー認証機能](/page/auth)を参照|
+|ログイン|/auth/login|[ユーザー認証機能](/page/auth)を参照|
+|同意|/auth/consent|[ユーザー認証機能](/page/auth)を参照|
+|アカウント選択 UI|/ui/select.html|[ユーザー認証機能](/page/auth)を参照|
+|ログイン UI|/ui/login.html|[ユーザー認証機能](/page/auth)を参照|
+|同意 UI|/ui/consent.html|[ユーザー認証機能](/page/auth)を参照|
+|TA 情報|/api/info/ta|[TA 情報提供機能](https://github.com/realglobe-Inc/edo-idp-selector/blob/master/api/ta)を参照|
+|アクセストークン|/api/token|[アクセストークン発行機能](/api/token)を参照|
+|アカウント情報|/api/info/account|[アカウント情報提供機能](/api/account)を参照|
+|TA 間連携元|/api/coop/from|[連携元用 TA 間連携仲介機能](/api/coopfrom)を参照|
+|TA 間連携先|/api/coop/to|[連携先用 TA 間連携仲介機能](/api/coopto)を参照|
 
-動作は OpenID Provider とほぼ同じ。
+
+## 4. API
+
+[GoDoc](http://godoc.org/github.com/realglobe-Inc/edo-idp-selector)
 
 
-## 3. ライセンス
+## 5. ライセンス
 
 Apache License, Version 2.0
+
+
+<!-- 参照 -->
+[EDO]: https://github.com/realglobe-Inc/edo/
+[Supervisor]: http://supervisord.org/
+[go]: http://golang.org/
+[mongodb]: https://www.mongodb.org/
+[redis]: http://redis.io/

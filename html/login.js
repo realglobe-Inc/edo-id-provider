@@ -12,41 +12,57 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+function calculate(issuer, username, password) {
+    var plus = new RegExp("\\+", "g");
+    var slash = new RegExp("/", "g");
+    var shaObj = new jsSHA(issuer + "\0" + username + "\0" + password, "TEXT");
+    var hash = shaObj.getHash("SHA-256", "B64");
+    hash = hash.substring(0, 43); // 256 bit を 6 bit 区切りにすると 43 文字。
+    hash = hash.replace(plus, "-");
+    hash = hash.replace(slash, "-");
+    return hash;
+}
+
 function login() {
-    var uri = "/auth/login";
-
-    var ticket = location.hash.substring(1);
-    var queries = {};
-    var q = window.location.search.substring(1).split("&");
-    for (var i = 0; i < q.length; i++) {
-        var elem = q[i].split("=");
-
-        var key = elem[0];
-        var val = elem[1];
-        if (val) {
-            val = decodeURIComponent(val.replace(/\+/g, " "));
-        }
-
-        queries[key] = val;
-    }
-
-    document.write('ticket: ' + ticket + '<br/>');
-    for (key in queries) {
-        document.write(key + ': ' + queries[key] + '<br/>');
-    }
-
-    var username = "";
+    var ticket = location.hash.substring(1)
+    var queries = query_parse(window.location.search.substring(1));
+    var username
     if (queries["usernames"]) {
-        var buff = JSON.parse(queries["usernames"])
-        if (buff[0]) {
-            username = buff[0];
+        if (window.JSON) {
+            a = JSON.parse(queries["usernames"]);
+            if (a.length > 0) {
+                username = a[0];
+            }
         }
     }
+    var form = document.form;
 
-    document.write('<form method="post" action="' + uri + '">');
-    document.write('アカウント: <input type="text" name="username" size="20" value="' + username + '" /> ');
-    document.write('パスワード: <input type="password" name="password" size="20" /> ');
-    document.write('<input type="hidden" name="ticket" value="' + ticket + '" />');
-    document.write('<input type="submit" value="ログイン" />');
-    document.write('</form>');
+    if (! form) {
+        return;
+    }
+
+    if (ticket) {
+        var input = document.createElement("input");
+        input.type = "hidden";
+        input.name = "ticket";
+        input.value = ticket;
+        form.appendChild(input);
+    }
+
+    if (username) {
+        form.elements["username"].value = username;
+    }
+
+    document.form.onsubmit = function (e) {
+        var input = document.createElement("input");
+        input.type = "hidden";
+        input.name = "pass_type";
+        input.value = "password";
+        form.appendChild(input);
+
+        // var issuer = queries["issuer"];
+        // var username = form.elements["username"].value;
+        // var password = form.elements["password"].value;
+        // form.elements["password"].value = calculate(issuer, username, password)
+    }
 }

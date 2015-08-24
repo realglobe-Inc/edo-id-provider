@@ -16,6 +16,7 @@ package token
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -35,7 +36,6 @@ import (
 	"github.com/realglobe-Inc/edo-id-provider/database/token"
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
 	requtil "github.com/realglobe-Inc/edo-idp-selector/request"
-	"github.com/realglobe-Inc/edo-lib/base64url"
 	"github.com/realglobe-Inc/edo-lib/hash"
 	"github.com/realglobe-Inc/edo-lib/jwk"
 	"github.com/realglobe-Inc/edo-lib/jwt"
@@ -184,7 +184,7 @@ func TestNormal(t *testing.T) {
 	atHash = atHash[:len(atHash)/2]
 	if rawAtHash, _ := idTok.Claim("at_hash").(string); rawAtHash == "" {
 		t.Fatal("no at_hash")
-	} else if atHash2, err := base64url.DecodeString(rawAtHash); err != nil {
+	} else if atHash2, err := base64.RawURLEncoding.DecodeString(rawAtHash); err != nil {
 		t.Fatal(err)
 	} else if !bytes.Equal(atHash2, atHash) {
 		t.Error(atHash2)

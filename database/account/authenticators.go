@@ -15,9 +15,9 @@
 package account
 
 import (
+	"encoding/base64"
 	"strings"
 
-	"github.com/realglobe-Inc/edo-lib/base64url"
 	"github.com/realglobe-Inc/go-lib/erro"
 )
 
@@ -35,13 +35,13 @@ func authenticatorFromMap(m map[string]interface{}) (auth Authenticator, err err
 		var salt []byte
 		if s, _ := m[tagSalt].(string); s == "" {
 			return nil, erro.New("no salt")
-		} else if salt, err = base64url.DecodeString(s); err != nil {
+		} else if salt, err = base64.RawURLEncoding.DecodeString(s); err != nil {
 			return nil, erro.Wrap(err)
 		}
 		var hVal []byte
 		if s, _ := m[tagHash].(string); s == "" {
 			return nil, erro.New("no hash value")
-		} else if hVal, err = base64url.DecodeString(s); err != nil {
+		} else if hVal, err = base64.RawURLEncoding.DecodeString(s); err != nil {
 			return nil, erro.Wrap(err)
 		}
 		return newPasswordAuthenticator(alg, salt, hVal), nil

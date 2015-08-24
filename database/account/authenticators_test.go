@@ -15,16 +15,15 @@
 package account
 
 import (
+	"encoding/base64"
 	"testing"
-
-	"github.com/realglobe-Inc/edo-lib/base64url"
 )
 
 func TestAuthenticatorFromMapPbkdf2(t *testing.T) {
 	m := map[string]interface{}{
 		"algorithm": test_alg,
-		"salt":      base64url.EncodeToString(test_salt),
-		"hash":      base64url.EncodeToString(test_pbkdf2Hash),
+		"salt":      base64.RawURLEncoding.EncodeToString(test_salt),
+		"hash":      base64.RawURLEncoding.EncodeToString(test_pbkdf2Hash),
 	}
 
 	auth, err := authenticatorFromMap(m)

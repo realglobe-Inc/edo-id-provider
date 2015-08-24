@@ -16,8 +16,8 @@ package pairwise
 
 import (
 	"crypto/sha256"
+	"encoding/base64"
 
-	"github.com/realglobe-Inc/edo-lib/base64url"
 	"github.com/realglobe-Inc/edo-lib/hash"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"gopkg.in/mgo.v2/bson"
@@ -59,7 +59,7 @@ func (this *Element) Pairwise() string {
 // セクタ固有のアカウントを計算する。
 func Generate(acnt, sect string, salt []byte) *Element {
 	h := hash.Hashing(sha256.New(), []byte(acnt), []byte{0}, []byte(sect), []byte{0}, salt)
-	return New(acnt, sect, base64url.EncodeToString(h))
+	return New(acnt, sect, base64.RawURLEncoding.EncodeToString(h))
 }
 
 //  {

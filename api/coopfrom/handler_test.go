@@ -16,6 +16,7 @@ package coopfrom
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -33,7 +34,6 @@ import (
 	"github.com/realglobe-Inc/edo-id-provider/database/token"
 	idpdb "github.com/realglobe-Inc/edo-idp-selector/database/idp"
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
-	"github.com/realglobe-Inc/edo-lib/base64url"
 	"github.com/realglobe-Inc/edo-lib/jwk"
 	"github.com/realglobe-Inc/edo-lib/jwt"
 	"github.com/realglobe-Inc/edo-lib/jwt/audience"
@@ -620,7 +620,7 @@ func TestMainNormal(t *testing.T) {
 		t.Error(string(codTok.RawBody()))
 		t.Error(codTokBuff.User_tags)
 		t.Fatal(acntTags)
-	} else if refHash2, err := base64url.DecodeString(codTokBuff.Ref_Hash); err != nil {
+	} else if refHash2, err := base64.RawURLEncoding.DecodeString(codTokBuff.Ref_Hash); err != nil {
 		t.Fatal(err)
 	} else if !bytes.Equal(refHash2, refHash) {
 		t.Error(refHash2)
@@ -739,7 +739,7 @@ func TestSubNormal(t *testing.T) {
 	} else if acntTags := strsetutil.New(test_subAcnt2Tag); !reflect.DeepEqual(map[string]bool(codTokBuff.User_tags), acntTags) {
 		t.Error(codTokBuff.User_tags)
 		t.Fatal(acntTags)
-	} else if refHash2, err := base64url.DecodeString(codTokBuff.Ref_Hash); err != nil {
+	} else if refHash2, err := base64.RawURLEncoding.DecodeString(codTokBuff.Ref_Hash); err != nil {
 		t.Fatal(err)
 	} else if !bytes.Equal(refHash2, refHash) {
 		t.Error(refHash2)
@@ -826,7 +826,7 @@ func TestPairwise(t *testing.T) {
 	} else if acntTags := strsetutil.New(test_subAcnt2Tag); !reflect.DeepEqual(map[string]bool(codTokBuff.User_tags), acntTags) {
 		t.Error(codTokBuff.User_tags)
 		t.Fatal(acntTags)
-	} else if refHash2, err := base64url.DecodeString(codTokBuff.Ref_Hash); err != nil {
+	} else if refHash2, err := base64.RawURLEncoding.DecodeString(codTokBuff.Ref_Hash); err != nil {
 		t.Fatal(err)
 	} else if !bytes.Equal(refHash2, refHash) {
 		t.Error(refHash2)

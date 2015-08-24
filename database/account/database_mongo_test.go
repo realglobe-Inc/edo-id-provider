@@ -15,11 +15,11 @@
 package account
 
 import (
+	"encoding/base64"
 	"strconv"
 	"testing"
 	"time"
 
-	"github.com/realglobe-Inc/edo-lib/base64url"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -51,8 +51,8 @@ func TestMongoDb(t *testing.T) {
 		"username": test_name,
 		"authenticator": bson.M{
 			"algorithm": "pbkdf2:sha256:1000",
-			"salt":      base64url.EncodeToString(test_salt),
-			"hash":      base64url.EncodeToString(test_pbkdf2Hash),
+			"salt":      base64.RawURLEncoding.EncodeToString(test_salt),
+			"hash":      base64.RawURLEncoding.EncodeToString(test_pbkdf2Hash),
 		},
 		"pds": test_pds,
 	}); err != nil {

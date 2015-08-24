@@ -18,6 +18,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -31,7 +32,6 @@ import (
 	"github.com/realglobe-Inc/edo-id-provider/database/account"
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
-	"github.com/realglobe-Inc/edo-lib/base64url"
 	"github.com/realglobe-Inc/edo-lib/hash"
 	"github.com/realglobe-Inc/edo-lib/jwk"
 	"github.com/realglobe-Inc/edo-lib/jwt"
@@ -1867,7 +1867,7 @@ func TestIdTokenSign(t *testing.T) {
 	ah, _ := jt.Claim("at_hash").(string)
 	if ah == "" {
 		t.Fatal("no at_hash")
-	} else if buff, err := base64url.DecodeString(ah); err != nil {
+	} else if buff, err := base64.RawURLEncoding.DecodeString(ah); err != nil {
 		t.Fatal(err)
 	} else if !bytes.Equal(buff, hVal) {
 		t.Error(buff)

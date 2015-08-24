@@ -17,9 +17,9 @@ package hash
 
 import (
 	"crypto"
+	"encoding/base64"
 	"hash"
 
-	"github.com/realglobe-Inc/edo-lib/base64url"
 	hashutil "github.com/realglobe-Inc/edo-lib/hash"
 )
 
@@ -55,5 +55,5 @@ func Generator(alg string) crypto.Hash {
 // ハッシュ値を計算して前半分を Base64URL エンコードして返す。
 func Hashing(hFun hash.Hash, data ...[]byte) string {
 	sum := hashutil.Hashing(hFun, data...)
-	return base64url.EncodeToString(sum[:len(sum)/2])
+	return base64.RawURLEncoding.EncodeToString(sum[:len(sum)/2])
 }

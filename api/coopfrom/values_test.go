@@ -16,6 +16,7 @@ package coopfrom
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -24,7 +25,6 @@ import (
 	hashutil "github.com/realglobe-Inc/edo-id-provider/hash"
 	idpdb "github.com/realglobe-Inc/edo-idp-selector/database/idp"
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
-	"github.com/realglobe-Inc/edo-lib/base64url"
 	"github.com/realglobe-Inc/edo-lib/jwk"
 	"github.com/realglobe-Inc/edo-lib/jwt"
 	"github.com/realglobe-Inc/edo-lib/jwt/audience"
@@ -139,7 +139,7 @@ func calcTestAccountHashValue(idp, id string) string {
 	hFun.Write([]byte{0})
 	hFun.Write([]byte(id))
 	hVal := hFun.Sum(nil)
-	return base64url.EncodeToString(hVal[:len(hVal)/2])
+	return base64.RawURLEncoding.EncodeToString(hVal[:len(hVal)/2])
 }
 
 func newTestSingleRequest(aud string) (*http.Request, error) {

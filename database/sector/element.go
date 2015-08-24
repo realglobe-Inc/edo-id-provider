@@ -15,7 +15,8 @@
 package sector
 
 import (
-	"github.com/realglobe-Inc/edo-lib/base64url"
+	"encoding/base64"
+
 	"github.com/realglobe-Inc/go-lib/erro"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -56,7 +57,7 @@ func (this *Element) GetBSON() (interface{}, error) {
 
 	return map[string]interface{}{
 		"id":   this.id,
-		"salt": base64url.EncodeToString(this.salt),
+		"salt": base64.RawURLEncoding.EncodeToString(this.salt),
 	}, nil
 }
 
@@ -69,7 +70,7 @@ func (this *Element) SetBSON(raw bson.Raw) error {
 		return erro.Wrap(err)
 	}
 
-	salt, err := base64url.DecodeString(buff.Salt)
+	salt, err := base64.RawURLEncoding.DecodeString(buff.Salt)
 	if err != nil {
 		return erro.Wrap(err)
 	}
